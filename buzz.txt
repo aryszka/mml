@@ -1,0 +1,20 @@
+Functional programming for mortals.
+Functional programming for mortals and outsiders.
+Functional programming for outsiders.
+A programming language for outsiders.
+
+MML styleguide:
+
+- your style is original
+- our language is common
+- we talk in code
+- politeness should be honest
+
+Code generator
+Embedded script
+
+Primary use cases:
+- runnable pseudo code
+- microservices glue code
+- personal computing, e.g. rich calculators, or ad-hoc log analytics
+- simple tooling frontends
