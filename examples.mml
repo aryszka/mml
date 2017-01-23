@@ -138,7 +138,7 @@ switch {
 	case a == 1: a + 1
 	case match(a {foo: number}): a.foo
 	case n = a[0]: n
-	case match(n = <-a:) n // here and in ifs, match is optional
+	case n = <-a: n // here and in ifs, match is optional
 	default: 0
 }
 
@@ -146,8 +146,8 @@ switch {
 
 fn reverse(l)
 	match(first = l[0], rest = l[1:]) ?
-	[reverse(rest)..., first] :
-	[]
+		[reverse(rest)..., first] :
+		[]
 
 fn reverse(l) {
 	if case first = l[0], rest = l[1:] {
@@ -166,5 +166,9 @@ fn reverseLoop(l) {
 		r[len(r) - i] = a
 	}
 
-	[r...]
+	[r...] // the result is converted into an immutable list
 }
+
+// -- structures
+
+let s1 = {s0..., mark: true}

@@ -162,20 +162,102 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg: "mutable list",
+		msg:  "mutable list",
 		code: `~[1, 2, 3]`,
 		nodes: []node{{
-			typ: mutableListNode,
+			typ:   mutableListNode,
 			token: token{value: "~"},
 			nodes: []node{{
-				typ: intNode,
+				typ:   intNode,
 				token: token{value: "1"},
 			}, {
-				typ: intNode,
+				typ:   intNode,
 				token: token{value: "2"},
 			}, {
-				typ: intNode,
+				typ:   intNode,
 				token: token{value: "3"},
+			}},
+		}},
+	}, {
+		msg:  "empty structure",
+		code: `{}`,
+		nodes: []node{{
+			typ:   structureNode,
+			token: token{value: "{"},
+		}},
+	}, {
+		msg:  "structure",
+		code: `{foo: "bar"}`,
+		nodes: []node{{
+			typ:   structureNode,
+			token: token{value: "{"},
+			nodes: []node{{
+				typ:   structureDefinitionNode,
+				token: token{value: "foo"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "foo"},
+				}, {
+					typ:   stringNode,
+					token: token{value: "bar"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "structure with multiple items",
+		code: `{foo: "bar", baz: {qux: "quux"}}`,
+		nodes: []node{{
+			typ:   structureNode,
+			token: token{value: "{"},
+			nodes: []node{{
+				typ:   structureDefinitionNode,
+				token: token{value: "foo"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "foo"},
+				}, {
+					typ:   stringNode,
+					token: token{value: "bar"},
+				}},
+			}, {
+				typ:   structureDefinitionNode,
+				token: token{value: "baz"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "baz"},
+				}, {
+					typ:   structureNode,
+					token: token{value: "{"},
+					nodes: []node{{
+						typ:   structureDefinitionNode,
+						token: token{value: "qux"},
+						nodes: []node{{
+							typ:   symbolNode,
+							token: token{value: "qux"},
+						}, {
+							typ:   stringNode,
+							token: token{value: "quux"},
+						}},
+					}},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "mutable structure",
+		code: `~{foo: "bar"}`,
+		nodes: []node{{
+			typ:   mutableStructureNode,
+			token: token{value: "~"},
+			nodes: []node{{
+				typ:   structureDefinitionNode,
+				token: token{value: "foo"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "foo"},
+				}, {
+					typ:   stringNode,
+					token: token{value: "bar"},
+				}},
 			}},
 		}},
 	}, {

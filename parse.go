@@ -10,6 +10,7 @@ func syntax() {
 	primitive(nlNode, nl)
 	sequence(nls, nlNode)
 	primitive(semicolonNode, semicolon)
+	primitive(colonNode, colon)
 	union(seqSep, nlNode, semicolonNode)
 	primitive(commaNode, comma)
 	union(listSep, nlNode, commaNode)
@@ -21,6 +22,8 @@ func syntax() {
 	primitive(lessNode, less)
 	primitive(openParenNode, openParen)
 	primitive(closeParenNode, closeParen)
+	primitive(openBraceNode, openBrace)
+	primitive(closeBraceNode, closeBrace)
 
 	primitive(symbolWordNode, symbolWord)
 	primitive(trueNode, trueWord)
@@ -49,14 +52,16 @@ func syntax() {
 
 	union(listItemNode, expressionNode, spreadExpressionNode, listSep)
 	sequence(listSequenceNode, listItemNode)
-	group(
-		listNode,
-		openSquareNode,
-		listSequenceNode,
-		closeSquareNode,
-	)
+	group(listNode, openSquareNode, listSequenceNode, closeSquareNode)
 
 	group(mutableListNode, tildeNode, listNode)
+
+	group(structureDefinitionNode, symbolExpressionNode, nls, colonNode, nls, expressionNode)
+	union(structureItemNode, structureDefinitionNode, spreadExpressionNode, listSep)
+	sequence(structureSequenceNode, structureItemNode)
+	group(structureNode, openBraceNode, structureSequenceNode, closeBraceNode)
+
+	group(mutableStructureNode, tildeNode, structureNode)
 
 	union(
 		expressionNode,
@@ -68,6 +73,8 @@ func syntax() {
 		boolNode,
 		listNode,
 		mutableListNode,
+		structureNode,
+		mutableStructureNode,
 	)
 
 	union(statementNode, expressionNode)
@@ -89,6 +96,7 @@ const (
 	nlNode
 	nls
 	semicolonNode
+	colonNode
 	commaNode
 	seqSep
 	listSep
@@ -100,6 +108,8 @@ const (
 	closeSquareNode
 	greaterNode
 	lessNode
+	openBraceNode
+	closeBraceNode
 
 	symbolWordNode
 	symbolNode
@@ -119,6 +129,11 @@ const (
 	listSequenceNode
 	listNode
 	mutableListNode
+	structureDefinitionNode
+	structureItemNode
+	structureSequenceNode
+	structureNode
+	mutableStructureNode
 
 	statementNode
 
@@ -192,6 +207,8 @@ func (nt nodeType) String() string {
 		return "nls"
 	case semicolonNode:
 		return "semicolon"
+	case colonNode:
+		return "colon"
 	case commaNode:
 		return "comma"
 	case tildeNode:
@@ -210,6 +227,10 @@ func (nt nodeType) String() string {
 		return "greater"
 	case lessNode:
 		return "less"
+	case openBraceNode:
+		return "openBrace"
+	case closeBraceNode:
+		return "closeBrace"
 
 	case symbolWordNode:
 		return "symbolWord"
@@ -246,6 +267,10 @@ func (nt nodeType) String() string {
 		return "list"
 	case mutableListNode:
 		return "mutable-list"
+	case structureNode:
+		return "structure"
+	case mutableStructureNode:
+		return "mutable-structure"
 	case statementNode:
 		return "statement"
 	case documentNode:
@@ -544,6 +569,26 @@ func postParseMutableList(n node) node {
 	return n
 }
 
+func postParseStructureDefinition(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = append(n.nodes[0:1], n.nodes[2])
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseStructure(n node) node {
+	n.nodes = n.nodes[1].nodes
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseMutableStructure(n node) node {
+	s := postParseStructure(n.nodes[1])
+	n.nodes = s.nodes
+	return n
+}
+
 func postParseDocument(n node) node {
 	n.nodes = dropSeps(n.nodes)
 	n.nodes = postParseNodes(n.nodes)
@@ -564,6 +609,12 @@ func postParseNode(n node) node {
 		return postParseMutableList(n)
 	case statementSequenceNode:
 		return postParseDocument(n)
+	case structureDefinitionNode:
+		return postParseStructureDefinition(n)
+	case structureNode:
+		return postParseStructure(n)
+	case mutableStructureNode:
+		return postParseMutableStructure(n)
 	default:
 		return n
 	}
