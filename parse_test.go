@@ -162,6 +162,35 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg:  "comment in list",
+		code: `[1, /* comment */ 2]`,
+		nodes: []node{{
+			typ:   listNode,
+			token: token{value: "["},
+			nodes: []node{{
+				typ:   intNode,
+				token: token{value: "1"},
+			}, {
+				typ:   intNode,
+				token: token{value: "2"},
+			}},
+		}},
+	}, {
+		msg: "new line in list",
+		code: `[1
+			, 2]`,
+		nodes: []node{{
+			typ:   listNode,
+			token: token{value: "["},
+			nodes: []node{{
+				typ:   intNode,
+				token: token{value: "1"},
+			}, {
+				typ:   intNode,
+				token: token{value: "2"},
+			}},
+		}},
+	}, {
 		msg:  "mutable list",
 		code: `~[1, 2, 3]`,
 		nodes: []node{{
@@ -261,38 +290,57 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg: "empty and",
+		code: `and()`,
+		nodes: []node{{
+			typ: andExpressionNode,
+			token: token{value: "and"},
+		}},
+	}, {
+		msg: "and",
+		code: `and(a, b, c)`,
+		nodes: []node{{
+			typ: andExpressionNode,
+			token: token{value: "and"},
+			nodes: []node{{
+				typ: symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ: symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ: symbolNode,
+				token: token{value: "c"},
+			}},
+		}},
+	}, {
+		msg: "empty or",
+		code: `or()`,
+		nodes: []node{{
+			typ: orExpressionNode,
+			token: token{value: "or"},
+		}},
+	}, {
+		msg: "or",
+		code: `or(a, b, c)`,
+		nodes: []node{{
+			typ: orExpressionNode,
+			token: token{value: "or"},
+			nodes: []node{{
+				typ: symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ: symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ: symbolNode,
+				token: token{value: "c"},
+			}},
+		}},
+	}, {
 		msg:  "fail",
 		code: `[`,
 		fail: true,
-	}, {
-		msg:  "comment in list",
-		code: `[1, /* comment */ 2]`,
-		nodes: []node{{
-			typ:   listNode,
-			token: token{value: "["},
-			nodes: []node{{
-				typ:   intNode,
-				token: token{value: "1"},
-			}, {
-				typ:   intNode,
-				token: token{value: "2"},
-			}},
-		}},
-	}, {
-		msg: "new line in list",
-		code: `[1
-			, 2]`,
-		nodes: []node{{
-			typ:   listNode,
-			token: token{value: "["},
-			nodes: []node{{
-				typ:   intNode,
-				token: token{value: "1"},
-			}, {
-				typ:   intNode,
-				token: token{value: "2"},
-			}},
-		}},
 	}, {
 		msg: "document sequence",
 		code: `1; 2

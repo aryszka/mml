@@ -28,6 +28,8 @@ func syntax() {
 	primitive(symbolWordNode, symbolWord)
 	primitive(trueNode, trueWord)
 	primitive(falseNode, falseWord)
+	primitive(andNode, andWord)
+	primitive(orNode, orWord)
 
 	primitive(intNode, intToken)
 	primitive(stringNode, stringToken)
@@ -37,15 +39,7 @@ func syntax() {
 	group(channelNode, lessNode, greaterNode)
 
 	union(staticSymbolNode, symbolNode, stringNode)
-	group(
-		dynamicSymbolNode,
-		symbolWordNode,
-		openParenNode,
-		nls,
-		expressionNode,
-		nls,
-		closeParenNode,
-	)
+	group(dynamicSymbolNode, symbolWordNode, openParenNode, nls, expressionNode, nls, closeParenNode)
 	union(symbolExpressionNode, staticSymbolNode, dynamicSymbolNode)
 
 	group(spreadExpressionNode, expressionNode, spreadNode)
@@ -63,6 +57,11 @@ func syntax() {
 
 	group(mutableStructureNode, tildeNode, structureNode)
 
+	union(expressionItemNode, expressionNode, listSep)
+	sequence(expressionSequenceNode, expressionItemNode)
+	group(andExpressionNode, andNode, openParenNode, nls, expressionSequenceNode, nls, closeParenNode)
+	group(orExpressionNode, orNode, openParenNode, nls, expressionSequenceNode, nls, closeParenNode)
+
 	union(
 		expressionNode,
 		intNode,
@@ -75,6 +74,8 @@ func syntax() {
 		mutableListNode,
 		structureNode,
 		mutableStructureNode,
+		andExpressionNode,
+		orExpressionNode,
 	)
 
 	union(statementNode, expressionNode)
@@ -119,6 +120,8 @@ const (
 	boolNode
 	trueNode
 	falseNode
+	andNode
+	orNode
 
 	staticSymbolNode
 	dynamicSymbolNode
@@ -134,6 +137,10 @@ const (
 	structureSequenceNode
 	structureNode
 	mutableStructureNode
+	expressionItemNode
+	expressionSequenceNode
+	andExpressionNode
+	orExpressionNode
 
 	statementNode
 
@@ -248,6 +255,10 @@ func (nt nodeType) String() string {
 		return "true"
 	case falseNode:
 		return "false"
+	case andNode:
+		return "and"
+	case orNode:
+		return "or"
 
 	case staticSymbolNode:
 		return "staticSymbol"
@@ -271,6 +282,15 @@ func (nt nodeType) String() string {
 		return "structure"
 	case mutableStructureNode:
 		return "mutable-structure"
+	case expressionItemNode:
+		return "expressionItem"
+	case expressionSequenceNode:
+		return "expressionSequence"
+	case andExpressionNode:
+		return "andExpression"
+	case orExpressionNode:
+		return "orExpression"
+
 	case statementNode:
 		return "statement"
 	case documentNode:
@@ -589,6 +609,20 @@ func postParseMutableStructure(n node) node {
 	return n
 }
 
+func postParseExpressionSequence(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseFunctionCall(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	seq := n.nodes[2]
+	seq = postParseExpressionSequence(seq)
+	n.nodes = seq.nodes
+	return n
+}
+
 func postParseDocument(n node) node {
 	n.nodes = dropSeps(n.nodes)
 	n.nodes = postParseNodes(n.nodes)
@@ -607,14 +641,16 @@ func postParseNode(n node) node {
 		return postParseList(n)
 	case mutableListNode:
 		return postParseMutableList(n)
-	case statementSequenceNode:
-		return postParseDocument(n)
 	case structureDefinitionNode:
 		return postParseStructureDefinition(n)
 	case structureNode:
 		return postParseStructure(n)
 	case mutableStructureNode:
 		return postParseMutableStructure(n)
+	case andExpressionNode, orExpressionNode:
+		return postParseFunctionCall(n)
+	case statementSequenceNode:
+		return postParseDocument(n)
 	default:
 		return n
 	}
