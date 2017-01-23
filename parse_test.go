@@ -8,17 +8,26 @@ import (
 
 func compareNodes(a, b []node) bool {
 	if len(a) != len(b) {
+		// println("length wrong", len(a), len(b))
 		return false
 	}
 
+	// println("length ok", len(a))
+
 	for i, ai := range a {
 		if ai.typ != b[i].typ {
+			// println("type wrong", ai.typ.String(), b[i].typ.String())
 			return false
 		}
 
+		// println("type ok", ai.typ.String())
+
 		if ai.token.value != b[i].token.value {
+			// println("token wrong", ai.token.value, b[i].token.value)
 			return false
 		}
+
+		// println("token ok", ai.token.value)
 
 		if !compareNodes(ai.nodes, b[i].nodes) {
 			return false
@@ -290,51 +299,197 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg: "empty and",
+		msg:  "empty and",
 		code: `and()`,
 		nodes: []node{{
-			typ: andExpressionNode,
+			typ:   andExpressionNode,
 			token: token{value: "and"},
 		}},
 	}, {
-		msg: "and",
+		msg:  "and",
 		code: `and(a, b, c)`,
 		nodes: []node{{
-			typ: andExpressionNode,
+			typ:   andExpressionNode,
 			token: token{value: "and"},
 			nodes: []node{{
-				typ: symbolNode,
+				typ:   symbolNode,
 				token: token{value: "a"},
 			}, {
-				typ: symbolNode,
+				typ:   symbolNode,
 				token: token{value: "b"},
 			}, {
-				typ: symbolNode,
+				typ:   symbolNode,
 				token: token{value: "c"},
 			}},
 		}},
 	}, {
-		msg: "empty or",
+		msg:  "empty or",
 		code: `or()`,
 		nodes: []node{{
-			typ: orExpressionNode,
+			typ:   orExpressionNode,
 			token: token{value: "or"},
 		}},
 	}, {
-		msg: "or",
+		msg:  "or",
 		code: `or(a, b, c)`,
 		nodes: []node{{
-			typ: orExpressionNode,
+			typ:   orExpressionNode,
 			token: token{value: "or"},
 			nodes: []node{{
-				typ: symbolNode,
+				typ:   symbolNode,
 				token: token{value: "a"},
 			}, {
-				typ: symbolNode,
+				typ:   symbolNode,
 				token: token{value: "b"},
 			}, {
-				typ: symbolNode,
+				typ:   symbolNode,
 				token: token{value: "c"},
+			}},
+		}},
+	}, {
+		msg:  "empty function",
+		code: `fn () {;}`,
+		nodes: []node{{
+			typ:   functionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   statementSequenceNode,
+				token: token{value: ";"},
+			}},
+		}},
+	}, {
+		msg:  "function returning empty object",
+		code: `fn () {}`,
+		nodes: []node{{
+			typ:   functionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   structureNode,
+				token: token{value: "{"},
+			}},
+		}},
+	}, {
+		msg:  "identity",
+		code: `fn (x) x`,
+		nodes: []node{{
+			typ:   functionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "x"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "x"},
+			}},
+		}},
+	}, {
+		msg:  "list identity",
+		code: `fn (...l) l`,
+		nodes: []node{{
+			typ:   functionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   collectSymbolNode,
+				token: token{value: "."},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "l"},
+				}},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "l"},
+			}},
+		}},
+	}, {
+		msg:  "simple function",
+		code: `fn (a, b) { a; b }`,
+		nodes: []node{{
+			typ:   functionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   statementSequenceNode,
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "a"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "b"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "function with collect",
+		code: `fn (a, b, ...c) { a; b; c }`,
+		nodes: []node{{
+			typ:   functionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   collectSymbolNode,
+				token: token{value: "."},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "c"},
+				}},
+			}, {
+				typ:   statementSequenceNode,
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "a"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "b"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "c"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "function effect",
+		code: `fn~ (a, b, ...c) { a; b; c }`,
+		nodes: []node{{
+			typ:   functionEffectNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   collectSymbolNode,
+				token: token{value: "."},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "c"},
+				}},
+			}, {
+				typ:   statementSequenceNode,
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "a"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "b"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "c"},
+				}},
 			}},
 		}},
 	}, {
@@ -374,6 +529,7 @@ func TestParse(t *testing.T) {
 
 			if err != nil && err != io.EOF {
 				t.Error(err)
+				return
 			}
 
 			if !compareNodes(n, ti.nodes) {

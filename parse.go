@@ -15,7 +15,6 @@ func syntax() {
 	primitive(commaNode, comma)
 	union(listSep, nlNode, commaNode)
 	primitive(tildeNode, tilde)
-	primitive(spreadNode, spread)
 	primitive(openSquareNode, openSquare)
 	primitive(closeSquareNode, closeSquare)
 	primitive(greaterNode, greater)
@@ -24,12 +23,15 @@ func syntax() {
 	primitive(closeParenNode, closeParen)
 	primitive(openBraceNode, openBrace)
 	primitive(closeBraceNode, closeBrace)
+	primitive(dotNode, dot)
+	group(spreadNode, dotNode, dotNode, dotNode)
 
 	primitive(symbolWordNode, symbolWord)
 	primitive(trueNode, trueWord)
 	primitive(falseNode, falseWord)
 	primitive(andNode, andWord)
 	primitive(orNode, orWord)
+	primitive(fnNode, fnWord)
 
 	primitive(intNode, intToken)
 	primitive(stringNode, stringToken)
@@ -59,8 +61,28 @@ func syntax() {
 
 	union(expressionItemNode, expressionNode, listSep)
 	sequence(expressionSequenceNode, expressionItemNode)
-	group(andExpressionNode, andNode, openParenNode, nls, expressionSequenceNode, nls, closeParenNode)
-	group(orExpressionNode, orNode, openParenNode, nls, expressionSequenceNode, nls, closeParenNode)
+
+	group(andExpressionNode, andNode, openParenNode, expressionSequenceNode, closeParenNode)
+	group(orExpressionNode, orNode, openParenNode, expressionSequenceNode, closeParenNode)
+
+	union(staticSymbolItemNode, staticSymbolNode, listSep)
+	sequence(staticSymbolSequenceNode, staticSymbolItemNode)
+	group(collectSymbolNode, spreadNode, staticSymbolNode)
+	optional(collectArgumentNode, collectSymbolNode)
+	group(functionBodyNode, openBraceNode, statementSequenceNode, closeBraceNode)
+	union(functionValueNode, expressionNode, functionBodyNode)
+	group(
+		functionFactNode,
+		openParenNode,
+		staticSymbolSequenceNode,
+		collectArgumentNode,
+		nls,
+		closeParenNode,
+		nls,
+		functionValueNode,
+	)
+	group(functionNode, fnNode, nls, functionFactNode)
+	group(functionEffectNode, fnNode, tildeNode, nls, functionFactNode)
 
 	union(
 		expressionNode,
@@ -76,6 +98,8 @@ func syntax() {
 		mutableStructureNode,
 		andExpressionNode,
 		orExpressionNode,
+		functionNode,
+		functionEffectNode,
 	)
 
 	union(statementNode, expressionNode)
@@ -111,6 +135,7 @@ const (
 	lessNode
 	openBraceNode
 	closeBraceNode
+	dotNode
 
 	symbolWordNode
 	symbolNode
@@ -122,6 +147,7 @@ const (
 	falseNode
 	andNode
 	orNode
+	fnNode
 
 	staticSymbolNode
 	dynamicSymbolNode
@@ -141,6 +167,15 @@ const (
 	expressionSequenceNode
 	andExpressionNode
 	orExpressionNode
+	staticSymbolItemNode
+	staticSymbolSequenceNode
+	collectSymbolNode
+	collectArgumentNode
+	functionBodyNode
+	functionValueNode
+	functionFactNode
+	functionNode
+	functionEffectNode
 
 	statementNode
 
@@ -238,6 +273,8 @@ func (nt nodeType) String() string {
 		return "openBrace"
 	case closeBraceNode:
 		return "closeBrace"
+	case dotNode:
+		return "dot"
 
 	case symbolWordNode:
 		return "symbolWord"
@@ -259,6 +296,8 @@ func (nt nodeType) String() string {
 		return "and"
 	case orNode:
 		return "or"
+	case fnNode:
+		return "fn"
 
 	case staticSymbolNode:
 		return "staticSymbol"
@@ -290,6 +329,26 @@ func (nt nodeType) String() string {
 		return "andExpression"
 	case orExpressionNode:
 		return "orExpression"
+	case staticSymbolItemNode:
+		return "staticSymbolItem"
+	case staticSymbolSequenceNode:
+		return "staticSymbolSequence"
+	case collectSymbolNode:
+		return "collectSymbol"
+	case collectArgumentNode:
+		return "collectArgument"
+	case functionBodyNode:
+		return "functionBody"
+	case functionValueNode:
+		return "functionValue"
+	case functionFactNode:
+		return "functionFact"
+	case functionNode:
+		return "function"
+	case functionEffectNode:
+		return "effect-function"
+	case statementSequenceNode:
+		return "statementSequence"
 
 	case statementNode:
 		return "statement"
@@ -623,6 +682,58 @@ func postParseFunctionCall(n node) node {
 	return n
 }
 
+func postParseStaticSymbolSequence(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseCollectSymbolNode(n node) node {
+	n.nodes = n.nodes[1:]
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseFunctionFact(n node) node {
+	n.nodes = dropSeps(n.nodes)
+
+	argsFact := n.nodes[:len(n.nodes)-1]
+	fixedArgs := argsFact[1]
+	fixedArgs = postParseStaticSymbolSequence(fixedArgs)
+	args := fixedArgs.nodes
+	if len(argsFact) == 4 {
+		collectArg := argsFact[2]
+		collectArg = postParseCollectSymbolNode(collectArg)
+		args = append(args, collectArg)
+	}
+
+	value := n.nodes[len(n.nodes)-1]
+	if value.typ == functionBodyNode {
+		value = value.nodes[1]
+	}
+
+	value = postParseNode(value)
+
+	n.nodes = append(args, value)
+	return n
+}
+
+func postParseFunction(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	f := n.nodes[1]
+	f = postParseFunctionFact(f)
+	n.nodes = f.nodes
+	return n
+}
+
+func postParseFunctionEffect(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	f := n.nodes[2]
+	f = postParseFunctionFact(f)
+	n.nodes = f.nodes
+	return n
+}
+
 func postParseDocument(n node) node {
 	n.nodes = dropSeps(n.nodes)
 	n.nodes = postParseNodes(n.nodes)
@@ -649,6 +760,10 @@ func postParseNode(n node) node {
 		return postParseMutableStructure(n)
 	case andExpressionNode, orExpressionNode:
 		return postParseFunctionCall(n)
+	case functionNode:
+		return postParseFunction(n)
+	case functionEffectNode:
+		return postParseFunctionEffect(n)
 	case statementSequenceNode:
 		return postParseDocument(n)
 	default:

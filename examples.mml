@@ -172,3 +172,7 @@ fn reverseLoop(l) {
 // -- structures
 
 let s1 = {s0..., mark: true}
+
+// functions
+
+fn emptyStructure() {{}}
