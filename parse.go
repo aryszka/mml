@@ -84,6 +84,21 @@ func syntax() {
 	group(functionNode, fnNode, nls, functionFactNode)
 	group(functionEffectNode, fnNode, tildeNode, nls, functionFactNode)
 
+	group(symbolQueryNode, expressionNode /* due to conflicts with statement sequences nls, */, dotNode, nls, symbolExpressionNode)
+	optional(optionalExpressionNode, expressionNode)
+	group(rangeExpressionNode, optionalExpressionNode /* nls, */, colonNode, nls, optionalExpressionNode)
+	union(queryExpressionNode, expressionNode, rangeExpressionNode)
+	group(
+		expressionQueryNode,
+		expressionNode,
+		openSquareNode,
+		nls,
+		queryExpressionNode,
+		nls,
+		closeSquareNode,
+	)
+	union(queryNode, symbolQueryNode, expressionQueryNode)
+
 	union(
 		expressionNode,
 		intNode,
@@ -100,6 +115,7 @@ func syntax() {
 		orExpressionNode,
 		functionNode,
 		functionEffectNode,
+		queryNode,
 	)
 
 	union(statementNode, expressionNode)
@@ -176,6 +192,12 @@ const (
 	functionFactNode
 	functionNode
 	functionEffectNode
+	symbolQueryNode
+	optionalExpressionNode
+	rangeExpressionNode
+	queryExpressionNode
+	expressionQueryNode
+	queryNode
 
 	statementNode
 
@@ -229,17 +251,19 @@ type unionParser struct {
 
 type groupParser struct {
 	parserBase
-	current parser
-	parsers []nodeType
+	current          parser
+	parsers          []nodeType
+	currentlyParsing []nodeType
 }
 
 type sequenceParser struct {
 	parserBase
-	itemType nodeType
-	parser   parser
+	itemType         nodeType
+	parser           parser
+	currentlyParsing []nodeType
 }
 
-var parsers = make(map[nodeType]func() parser)
+var parsers = make(map[nodeType]func([]nodeType) parser)
 
 func (nt nodeType) String() string {
 	switch nt {
@@ -349,6 +373,18 @@ func (nt nodeType) String() string {
 		return "effect-function"
 	case statementSequenceNode:
 		return "statementSequence"
+	case symbolQueryNode:
+		return "symbolQuery"
+	case optionalExpressionNode:
+		return "optionalExpression"
+	case rangeExpressionNode:
+		return "rangeExpression"
+	case queryExpressionNode:
+		return "queryExpression"
+	case expressionQueryNode:
+		return "expressionQuery"
+	case queryNode:
+		return "query"
 
 	case statementNode:
 		return "statement"
@@ -405,11 +441,11 @@ func (p *primitiveParser) accept(t token) bool {
 	return p.v
 }
 
-func newOptionalParser(nt nodeType) parser {
+func newOptionalParser(nt nodeType, currentlyParsing []nodeType) parser {
 	p := &optionalParser{}
 	p.n = node{typ: noNode}
 	p.optional = nt
-	p.parser = parsers[nt]()
+	p.parser = parsers[nt](currentlyParsing)
 	return p
 }
 
@@ -433,11 +469,22 @@ func (p *optionalParser) accept(t token) bool {
 	return false
 }
 
-func newUnionParser(nt nodeType, nts ...nodeType) parser {
+func newUnionParser(nt nodeType, nts []nodeType, currentlyParsing []nodeType) parser {
 	p := &unionParser{}
 	p.n = node{typ: nt}
+	currentlyParsing = append(currentlyParsing, nt)
 	for _, nti := range nts {
-		p.parsers = append(p.parsers, parsers[nti]())
+		var found bool
+		for _, cnti := range currentlyParsing {
+			if cnti == nti {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			p.parsers = append(p.parsers, parsers[nti](currentlyParsing))
+		}
 	}
 
 	return p
@@ -468,10 +515,11 @@ func (p *unionParser) accept(t token) bool {
 	return false
 }
 
-func newGroupParser(nt nodeType, nts ...nodeType) parser {
+func newGroupParser(nt nodeType, nts []nodeType, currentlyParsing []nodeType) parser {
 	p := &groupParser{}
 	p.n = node{typ: nt}
 	p.parsers = nts
+	p.currentlyParsing = append(currentlyParsing, nt)
 	return p
 }
 
@@ -482,7 +530,8 @@ func (p *groupParser) accept(t token) bool {
 			return false
 		}
 
-		p.current, p.parsers = parsers[p.parsers[0]](), p.parsers[1:]
+		p.current, p.parsers = parsers[p.parsers[0]](p.currentlyParsing), p.parsers[1:]
+		p.currentlyParsing = nil
 	}
 
 	if p.current.accept(t) {
@@ -506,17 +555,19 @@ func (p *groupParser) accept(t token) bool {
 	return p.accept(t)
 }
 
-func newSequenceParser(nt nodeType, itemType nodeType) parser {
+func newSequenceParser(nt nodeType, itemType nodeType, currentlyParsing []nodeType) parser {
 	p := &sequenceParser{}
 	p.n = node{typ: nt}
 	p.itemType = itemType
+	p.currentlyParsing = currentlyParsing
 	return p
 }
 
 func (p *sequenceParser) accept(t token) bool {
 	current := p.parser
 	if current == nil {
-		current = parsers[p.itemType]()
+		current = parsers[p.itemType](p.currentlyParsing)
+		p.currentlyParsing = nil
 	}
 
 	if current.accept(t) {
@@ -545,23 +596,23 @@ func (p *sequenceParser) accept(t token) bool {
 }
 
 func primitive(nt nodeType, tt tokenType) {
-	parsers[nt] = func() parser { return newPrimitiveParser(nt, tt) }
+	parsers[nt] = func(currentlyParsing []nodeType) parser { return newPrimitiveParser(nt, tt) }
 }
 
 func optional(nt, ont nodeType) {
-	parsers[nt] = func() parser { return newOptionalParser(ont) }
+	parsers[nt] = func(currentlyParsing []nodeType) parser { return newOptionalParser(ont, currentlyParsing) }
 }
 
 func union(nt nodeType, nts ...nodeType) {
-	parsers[nt] = func() parser { return newUnionParser(nt, nts...) }
+	parsers[nt] = func(currentlyParsing []nodeType) parser { return newUnionParser(nt, nts, currentlyParsing) }
 }
 
 func group(nt nodeType, nts ...nodeType) {
-	parsers[nt] = func() parser { return newGroupParser(nt, nts...) }
+	parsers[nt] = func(currentlyParsing []nodeType) parser { return newGroupParser(nt, nts, currentlyParsing) }
 }
 
 func sequence(nt nodeType, itemType nodeType) {
-	parsers[nt] = func() parser { return newSequenceParser(nt, itemType) }
+	parsers[nt] = func(currentlyParsing []nodeType) parser { return newSequenceParser(nt, itemType, currentlyParsing) }
 }
 
 func unquoteString(s string) string {
@@ -734,6 +785,32 @@ func postParseFunctionEffect(n node) node {
 	return n
 }
 
+func postParseRangeExpression(n node) node {
+	n.nodes = dropSeps(n.nodes)
+
+	if len(n.nodes) == 1 {
+		n.nodes = make([]node, 2)
+		return n
+	} else if n.nodes[0].typ == colonNode {
+		n.nodes[0] = node{}
+	} else if len(n.nodes) == 2 {
+		n.nodes[1] = node{}
+	} else {
+		n.nodes[1] = n.nodes[2]
+		n.nodes = n.nodes[:2]
+	}
+
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseQuery(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = append(n.nodes[:1], n.nodes[2])
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
 func postParseDocument(n node) node {
 	n.nodes = dropSeps(n.nodes)
 	n.nodes = postParseNodes(n.nodes)
@@ -764,6 +841,10 @@ func postParseNode(n node) node {
 		return postParseFunction(n)
 	case functionEffectNode:
 		return postParseFunctionEffect(n)
+	case symbolQueryNode, expressionQueryNode:
+		return postParseQuery(n)
+	case rangeExpressionNode:
+		return postParseRangeExpression(n)
 	case statementSequenceNode:
 		return postParseDocument(n)
 	default:
@@ -782,7 +863,7 @@ func postParseNodes(n []node) []node {
 
 func parse(r io.Reader, source string) ([]node, error) {
 	tr := newTokenReader(r, source)
-	p := parsers[documentNode]()
+	p := parsers[documentNode](nil)
 
 	for {
 		t, err := tr.next()

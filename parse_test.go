@@ -493,6 +493,106 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg:  "symbol query",
+		code: `a.b`,
+		nodes: []node{{
+			typ:   symbolQueryNode,
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}},
+		}},
+	}, {
+		msg:  "expression query",
+		code: `a[b]`,
+		nodes: []node{{
+			typ:   expressionQueryNode,
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}},
+		}},
+	}, {
+		msg:  "expression query, infinite range",
+		code: `a[:]`,
+		nodes: []node{{
+			typ:   expressionQueryNode,
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   rangeExpressionNode,
+				token: token{value: ":"},
+				nodes: []node{{}, {}},
+			}},
+		}},
+	}, {
+		msg:  "expression query, lower limit",
+		code: `a[3:]`,
+		nodes: []node{{
+			typ:   expressionQueryNode,
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   rangeExpressionNode,
+				token: token{value: "3"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "3"},
+				}, {}},
+			}},
+		}},
+	}, {
+		msg:  "expression query, upper limit",
+		code: `a[:3]`,
+		nodes: []node{{
+			typ:   expressionQueryNode,
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   rangeExpressionNode,
+				token: token{value: ":"},
+				nodes: []node{{}, {
+					typ:   intNode,
+					token: token{value: "3"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "expression query, range",
+		code: `a[3:42]`,
+		nodes: []node{{
+			typ:   expressionQueryNode,
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   rangeExpressionNode,
+				token: token{value: "3"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "3"},
+				}, {
+					typ:   intNode,
+					token: token{value: "42"},
+				}},
+			}},
+		}},
+	}, {
 		msg:  "fail",
 		code: `[`,
 		fail: true,
