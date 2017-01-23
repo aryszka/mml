@@ -35,6 +35,9 @@ func TestParse(t *testing.T) {
 		nodes []node
 		fail  bool
 	}{{
+		msg:  "empty doc",
+		code: "",
+	}, {
 		msg:   "int",
 		code:  `1`,
 		nodes: []node{{typ: intNode, token: token{value: "1"}}},
@@ -75,14 +78,14 @@ func TestParse(t *testing.T) {
 		msg:  "true",
 		code: "true",
 		nodes: []node{{
-			typ:   trueTokenNode,
+			typ:   trueNode,
 			token: token{value: "true"},
 		}},
 	}, {
 		msg:  "false",
 		code: "false",
 		nodes: []node{{
-			typ:   falseTokenNode,
+			typ:   falseNode,
 			token: token{value: "false"},
 		}},
 	}, {
@@ -190,6 +193,24 @@ func TestParse(t *testing.T) {
 				typ:   intNode,
 				token: token{value: "2"},
 			}},
+		}},
+	}, {
+		msg: "document sequence",
+		code: `1; 2
+			3;
+			4`,
+		nodes: []node{{
+			typ:   intNode,
+			token: token{value: "1"},
+		}, {
+			typ:   intNode,
+			token: token{value: "2"},
+		}, {
+			typ:   intNode,
+			token: token{value: "3"},
+		}, {
+			typ:   intNode,
+			token: token{value: "4"},
 		}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {

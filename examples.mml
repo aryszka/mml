@@ -1,0 +1,135 @@
+// -- http listener
+
+import http "mml/http"
+
+type handler http.handler
+
+fn~ handler(w, _) {
+	fprintln(w, "Hello, world!")
+}
+
+http.listen(":8080", handler)
+
+// -- proc every number in an arbitrary json
+
+fn proc(n) 2 * n
+
+fn procInJson(j) {
+	switch type j {
+		case number: proc(j)
+		case []: map(procInJson, j)
+		case {}: mapStruct(procInJson, j)
+		default: j
+	}
+}
+
+// -- loops
+
+let l = [1, 2, 3]
+
+for v in l {
+	print(v)
+}
+
+for i in 0:len(l) {
+	print(l[i])
+}
+
+let~ ml = [1, 2, 3]
+
+for len(ml) > 0 {
+	print(ml[0])
+	ml = ml[1:]
+}
+
+for {
+	if len(ml) == 0 {
+		break
+	}
+
+	print(ml[0])
+	ml = ml[1:]
+}
+
+let s = {a: 1, b: 2, c: 3}
+
+for v in s {
+	print(v)
+}
+
+for k in keys(s) {
+	print(s[k])
+}
+
+// canonically:
+each(print, l)
+each(print, s)
+
+// -- matches
+
+let l = [1, 2, 3]
+
+a = l[0] ? a : 0
+
+fn filterNumbers(l) a = l[0], rest = l[1:] ?
+	type a number ?
+		[a, filterNumbers(rest)...] :
+		filterNumbers(rest) :
+	[]
+
+fn filterNumbers(l) {
+	if a = l[0], rest = l[1:] {
+		let frest = filterNumbers(rest)
+		type a number ? [a, frest...] : frest
+	} else {
+		[]
+	}
+}
+
+fn filterNumbersLoop(l) {
+	let~ ml = []
+	for n in l {
+		if type n number {
+			ml = [ml..., n]
+		}
+	}
+
+	ml
+}
+
+let filterNumbersCanon = bind(filter, isNumber)
+
+switch {
+	case a == 1: a + 1
+	case type a {foo: number}: a.foo
+	case n = a[0]: n
+	case n = <-a: n
+	default: 0
+}
+
+// -- lists
+
+fn reverse(l)
+	first = l[0], rest = l[1:] ?
+	[reverse(rest)..., first] :
+	[]
+
+fn reverse(l) {
+	if case first = l[0], rest = l[1:] {
+		[reverse(rest)..., first]
+	} else {
+		[]
+	}
+}
+
+// should use ^ rather instead of ~, and use pow() for power of
+fn reverseLoop(l) {
+	let r = ~[l...]
+	for i in 0:len(r) / 2 {
+		let~ a = r[i]
+		r[i] = r[len(r) - i]
+		r[len(r) - i] = a
+	}
+
+	[r...]
+}

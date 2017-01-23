@@ -3,7 +3,87 @@ package mml
 import (
 	"fmt"
 	"io"
+	"os"
 )
+
+func syntax() {
+	primitive(nlNode, nl)
+	sequence(nls, nlNode)
+	primitive(semicolonNode, semicolon)
+	union(sep, nlNode, semicolonNode)
+	sequence(sepSequence, sep)
+	group(seps, sep, sepSequence)
+
+	primitive(symbolWordNode, symbolWord)
+	primitive(spreadNode, spread)
+	primitive(commaNode, comma)
+	primitive(trueNode, trueWord)
+	primitive(falseNode, falseWord)
+	primitive(openSquareNode, openSquare)
+	primitive(closeSquareNode, closeSquare)
+	primitive(greaterNode, greater)
+	primitive(lessNode, less)
+	primitive(openParenNode, openParen)
+	primitive(closeParenNode, closeParen)
+
+	primitive(intNode, intToken)
+	primitive(stringNode, stringToken)
+	primitive(symbolNode, symbolToken)
+
+	union(boolNode, trueNode, falseNode)
+	group(channelNode, lessNode, greaterNode)
+
+	union(staticSymbolNode, symbolNode, stringNode)
+	group(
+		dynamicSymbolNode,
+		symbolWordNode,
+		nls,
+		openParenNode,
+		nls,
+		expressionNode,
+		nls,
+		closeParenNode,
+	)
+	union(symbolExpressionNode, staticSymbolNode, dynamicSymbolNode)
+
+	group(spreadExpressionNode, spreadNode, nls, expressionNode)
+	union(listItemNode, expressionNode, spreadExpressionNode)
+	group(listCommaItemNode, nls, commaNode, nls, listItemNode)
+	sequence(listCommaSequenceNode, listCommaItemNode)
+	group(listSequenceNode, listItemNode, listCommaSequenceNode)
+	optional(optionalListSequenceNode, listSequenceNode)
+	group(
+		listNode,
+		openSquareNode,
+		nls,
+		optionalListSequenceNode,
+		nls,
+		closeSquareNode,
+	)
+
+	union(
+		expressionNode,
+		intNode,
+		stringNode,
+		channelNode,
+		symbolNode,
+		dynamicSymbolNode,
+		boolNode,
+		listNode,
+	)
+
+	union(statementNode, expressionNode)
+
+	group(sequenceSepItemNode, sep, nls, statementNode)
+	sequence(sequenceSepSequenceNode, sequenceSepItemNode)
+	group(sequenceSequenceNode, statementNode, sequenceSepSequenceNode)
+	optional(optionalSequenceSequenceNode, sequenceSequenceNode)
+	group(documentNode, nls, optionalSequenceSequenceNode, nls)
+}
+
+func init() {
+	syntax()
+}
 
 type nodeType int
 
@@ -12,23 +92,27 @@ const (
 
 	nlNode
 	nls
+	semicolonNode
+	sep
+	sepSequence
+	seps
 
-	symbolTokenNode
-	spreadTokenNode
+	symbolWordNode
+	symbolNode
+	spreadNode
 	intNode
 	stringNode
 	channelNode
-	symbolNode
 	boolNode
-	commaTokenNode
-	trueTokenNode
-	falseTokenNode
+	commaNode
+	trueNode
+	falseNode
 	openParenNode
 	closeParenNode
-	openSquareTokenNode
-	closeSquareTokenNode
-	greaterTokenNode
-	lessTokenNode
+	openSquareNode
+	closeSquareNode
+	greaterNode
+	lessNode
 
 	staticSymbolNode
 	dynamicSymbolNode
@@ -43,6 +127,10 @@ const (
 	listNode
 	statementNode
 
+	sequenceSepItemNode
+	sequenceSepSequenceNode
+	sequenceSequenceNode
+	optionalSequenceSequenceNode
 	documentNode
 )
 
@@ -109,39 +197,47 @@ func (nt nodeType) String() string {
 		return "newline"
 	case nls:
 		return "nls"
+	case semicolonNode:
+		return "semicolon"
+	case sep:
+		return "separator"
+	case sepSequence:
+		return "separator-sequence"
+	case seps:
+		return "separators"
 
-	case symbolTokenNode:
-		return "symbolToken"
-	case spreadTokenNode:
-		return "spreadToken"
+	case symbolWordNode:
+		return "symbolWord"
+	case symbolNode:
+		return "symbol"
+	case spreadNode:
+		return "spread"
 	case intNode:
 		return "int"
 	case stringNode:
 		return "string"
 	case channelNode:
 		return "channel"
-	case symbolNode:
-		return "symbol"
 	case boolNode:
 		return "bool"
-	case commaTokenNode:
-		return "commaToken"
-	case trueTokenNode:
-		return "trueToken"
-	case falseTokenNode:
-		return "falseToken"
+	case commaNode:
+		return "comma"
+	case trueNode:
+		return "true"
+	case falseNode:
+		return "false"
 	case openParenNode:
 		return "openParen"
 	case closeParenNode:
 		return "closeParen"
-	case openSquareTokenNode:
-		return "openSquareToken"
-	case closeSquareTokenNode:
-		return "closeSquareToken"
-	case greaterTokenNode:
-		return "greaterToken"
-	case lessTokenNode:
-		return "lessToken"
+	case openSquareNode:
+		return "openSquare"
+	case closeSquareNode:
+		return "closeSquare"
+	case greaterNode:
+		return "greater"
+	case lessNode:
+		return "less"
 
 	case staticSymbolNode:
 		return "staticSymbol"
@@ -379,76 +475,6 @@ func sequence(nt nodeType, itemType nodeType) {
 	parsers[nt] = func() parser { return newSequenceParser(nt, itemType) }
 }
 
-func initParser() {
-	primitive(nlNode, nl)
-	sequence(nls, nlNode)
-
-	primitive(symbolTokenNode, symbolWord)
-	primitive(spreadTokenNode, spread)
-	primitive(commaTokenNode, comma)
-	primitive(trueTokenNode, trueWord)
-	primitive(falseTokenNode, falseWord)
-	primitive(openSquareTokenNode, openSquare)
-	primitive(closeSquareTokenNode, closeSquare)
-	primitive(greaterTokenNode, greater)
-	primitive(lessTokenNode, less)
-	primitive(openParenNode, openParen)
-	primitive(closeParenNode, closeParen)
-
-	primitive(intNode, intToken)
-	primitive(stringNode, stringToken)
-	primitive(symbolNode, symbolToken)
-
-	union(boolNode, trueTokenNode, falseTokenNode)
-	group(channelNode, lessTokenNode, greaterTokenNode)
-
-	union(staticSymbolNode, symbolNode, stringNode)
-	group(
-		dynamicSymbolNode,
-		symbolTokenNode,
-		nls,
-		openParenNode,
-		nls,
-		expressionNode,
-		nls,
-		closeParenNode,
-	)
-	union(symbolExpressionNode, staticSymbolNode, dynamicSymbolNode)
-
-	group(spreadExpressionNode, spreadTokenNode, nls, expressionNode)
-	union(listItemNode, expressionNode, spreadExpressionNode)
-	group(listCommaItemNode, nls, commaTokenNode, nls, listItemNode)
-	sequence(listCommaSequenceNode, listCommaItemNode)
-	group(listSequenceNode, listItemNode, listCommaSequenceNode)
-	optional(optionalListSequenceNode, listSequenceNode)
-	group(
-		listNode,
-		openSquareTokenNode,
-		nls,
-		optionalListSequenceNode,
-		nls,
-		closeSquareTokenNode,
-	)
-
-	union(
-		expressionNode,
-		intNode,
-		stringNode,
-		channelNode,
-		symbolNode,
-		dynamicSymbolNode,
-		boolNode,
-		listNode,
-	)
-
-	union(statementNode, expressionNode)
-	sequence(documentNode, statementNode)
-}
-
-func init() {
-	initParser()
-}
-
 func unquoteString(s string) string {
 	var (
 		r       []byte
@@ -502,6 +528,17 @@ func dropNls(n []node) []node {
 	return nn
 }
 
+func dropSeps(n []node) []node {
+	nn := make([]node, 0, len(n))
+	for _, ni := range n {
+		if ni.typ != semicolonNode && ni.typ != nlNode {
+			nn = append(nn, ni)
+		}
+	}
+
+	return nn
+}
+
 func postParseString(n node) node {
 	n.token.value = unquoteString(n.token.value)
 	return n
@@ -514,7 +551,7 @@ func postParseChannel(n node) node {
 
 func postParseDynamicSymbol(n node) node {
 	n.nodes = dropNls(n.nodes)
-	n.nodes = n.nodes[2:3]
+	n.nodes = postParseNodes(n.nodes[2:3])
 	return n
 }
 
@@ -540,6 +577,26 @@ func postParseList(n node) node {
 	return n
 }
 
+func postParseDocument(n node) node {
+	n.nodes = dropNls(n.nodes)
+	if len(n.nodes) == 0 {
+		return n
+	}
+
+	sseq := n.nodes[0].nodes
+	first := sseq[0]
+	following := sseq[1].nodes
+	rest := make([]node, len(following))
+	for i, ni := range following {
+		ni.nodes = dropNls(ni.nodes)
+		ni.nodes = dropSeps(ni.nodes)
+		rest[i] = ni.nodes[0]
+	}
+
+	n.nodes = postParseNodes(append([]node{first}, rest...))
+	return n
+}
+
 func postParseNode(n node) node {
 	switch n.typ {
 	case stringNode:
@@ -550,6 +607,8 @@ func postParseNode(n node) node {
 		return postParseDynamicSymbol(n)
 	case listNode:
 		return postParseList(n)
+	case documentNode:
+		return postParseDocument(n)
 	default:
 		return n
 	}
@@ -577,26 +636,27 @@ func parse(r io.Reader, source string) ([]node, error) {
 		if !p.accept(t) {
 			perr := p.error()
 			if t.typ != eofToken && perr == nil {
-				err = perror(documentNode, noToken, t)
+				return nil, perror(documentNode, noToken, t)
 			} else if perr != nil {
 				err = perr
+				return nil, perr
 			}
 
-			return postParseNodes(p.node().nodes), err
+			return postParseNode(p.node()).nodes, nil
 		}
 	}
 }
 
-// func parseFile(fileName string) ([]node, error) {
-// 	f, err := os.Open(fileName)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	defer f.Close()
-// 	return parse(f, fileName)
-// }
-//
-// func parseInput(r io.Reader) ([]node, error) {
-// 	return parse(r, "<input>")
-// }
+func parseFile(fileName string) ([]node, error) {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+	return parse(f, fileName)
+}
+
+func parseInput(r io.Reader) ([]node, error) {
+	return parse(r, "<input>")
+}

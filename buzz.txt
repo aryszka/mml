@@ -2,6 +2,7 @@ Functional programming for mortals.
 Functional programming for mortals and outsiders.
 Functional programming for outsiders.
 A programming language for outsiders.
+An effort to rebalance precision and epxressiveness.
 
 MML styleguide:
 
