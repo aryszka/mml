@@ -23,6 +23,39 @@ fn procInJson(j) {
 	}
 }
 
+switch {
+	case true: 1
+	case v == 1: 2
+	case match(l[0]): 3
+	case a = l[0]: 4
+	case match(a = l[0]): 5
+	case a = l[0], b = l[1:]: 6
+	case v == 2, v == 3, v == 4: 7
+	case match(s.a): 8
+	case match(s["a"]): 9
+	case a = s.a: 10
+	case _ = s.a: 11
+	case type v number: 12
+	default: 13
+}
+
+// this is not needed
+switch match {
+	case l[0]: 1
+	case s.a: 2
+	default: 3
+}
+
+switch type v {
+	case number: 1
+	default: 2
+}
+
+swtich v {
+	case 0: 1
+	default: 2
+}
+
 // -- loops
 
 let l = [1, 2, 3]
@@ -67,6 +100,8 @@ each(print, s)
 
 // -- matches
 
+// match() can be used as a boolean expression, should it?
+
 let l = [1, 2, 3]
 
 a = l[0] ? a : 0
@@ -101,16 +136,16 @@ let filterNumbersCanon = bind(filter, isNumber)
 
 switch {
 	case a == 1: a + 1
-	case type a {foo: number}: a.foo
+	case match(a {foo: number}): a.foo
 	case n = a[0]: n
-	case n = <-a: n
+	case match(n = <-a:) n // here and in ifs, match is optional
 	default: 0
 }
 
 // -- lists
 
 fn reverse(l)
-	first = l[0], rest = l[1:] ?
+	match(first = l[0], rest = l[1:]) ?
 	[reverse(rest)..., first] :
 	[]
 

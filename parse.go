@@ -10,21 +10,21 @@ func syntax() {
 	primitive(nlNode, nl)
 	sequence(nls, nlNode)
 	primitive(semicolonNode, semicolon)
-	union(sep, nlNode, semicolonNode)
-	sequence(sepSequence, sep)
-	group(seps, sep, sepSequence)
-
-	primitive(symbolWordNode, symbolWord)
-	primitive(spreadNode, spread)
+	union(seqSep, nlNode, semicolonNode)
 	primitive(commaNode, comma)
-	primitive(trueNode, trueWord)
-	primitive(falseNode, falseWord)
+	union(listSep, nlNode, commaNode)
+	primitive(tildeNode, tilde)
+	primitive(spreadNode, spread)
 	primitive(openSquareNode, openSquare)
 	primitive(closeSquareNode, closeSquare)
 	primitive(greaterNode, greater)
 	primitive(lessNode, less)
 	primitive(openParenNode, openParen)
 	primitive(closeParenNode, closeParen)
+
+	primitive(symbolWordNode, symbolWord)
+	primitive(trueNode, trueWord)
+	primitive(falseNode, falseWord)
 
 	primitive(intNode, intToken)
 	primitive(stringNode, stringToken)
@@ -37,7 +37,6 @@ func syntax() {
 	group(
 		dynamicSymbolNode,
 		symbolWordNode,
-		nls,
 		openParenNode,
 		nls,
 		expressionNode,
@@ -46,20 +45,18 @@ func syntax() {
 	)
 	union(symbolExpressionNode, staticSymbolNode, dynamicSymbolNode)
 
-	group(spreadExpressionNode, spreadNode, nls, expressionNode)
-	union(listItemNode, expressionNode, spreadExpressionNode)
-	group(listCommaItemNode, nls, commaNode, nls, listItemNode)
-	sequence(listCommaSequenceNode, listCommaItemNode)
-	group(listSequenceNode, listItemNode, listCommaSequenceNode)
-	optional(optionalListSequenceNode, listSequenceNode)
+	group(spreadExpressionNode, expressionNode, spreadNode)
+
+	union(listItemNode, expressionNode, spreadExpressionNode, listSep)
+	sequence(listSequenceNode, listItemNode)
 	group(
 		listNode,
 		openSquareNode,
-		nls,
-		optionalListSequenceNode,
-		nls,
+		listSequenceNode,
 		closeSquareNode,
 	)
+
+	group(mutableListNode, tildeNode, listNode)
 
 	union(
 		expressionNode,
@@ -70,15 +67,14 @@ func syntax() {
 		dynamicSymbolNode,
 		boolNode,
 		listNode,
+		mutableListNode,
 	)
 
 	union(statementNode, expressionNode)
 
-	group(sequenceSepItemNode, sep, nls, statementNode)
-	sequence(sequenceSepSequenceNode, sequenceSepItemNode)
-	group(sequenceSequenceNode, statementNode, sequenceSepSequenceNode)
-	optional(optionalSequenceSequenceNode, sequenceSequenceNode)
-	group(documentNode, nls, optionalSequenceSequenceNode, nls)
+	union(sequenceItemNode, statementNode, seqSep)
+	sequence(statementSequenceNode, sequenceItemNode)
+	union(documentNode, statementSequenceNode)
 }
 
 func init() {
@@ -93,20 +89,11 @@ const (
 	nlNode
 	nls
 	semicolonNode
-	sep
-	sepSequence
-	seps
-
-	symbolWordNode
-	symbolNode
-	spreadNode
-	intNode
-	stringNode
-	channelNode
-	boolNode
 	commaNode
-	trueNode
-	falseNode
+	seqSep
+	listSep
+	tildeNode
+	spreadNode
 	openParenNode
 	closeParenNode
 	openSquareNode
@@ -114,23 +101,29 @@ const (
 	greaterNode
 	lessNode
 
+	symbolWordNode
+	symbolNode
+	intNode
+	stringNode
+	channelNode
+	boolNode
+	trueNode
+	falseNode
+
 	staticSymbolNode
 	dynamicSymbolNode
 	expressionNode
 	symbolExpressionNode
 	spreadExpressionNode
 	listItemNode
-	listCommaItemNode
-	listCommaSequenceNode
 	listSequenceNode
-	optionalListSequenceNode
 	listNode
+	mutableListNode
+
 	statementNode
 
-	sequenceSepItemNode
-	sequenceSepSequenceNode
-	sequenceSequenceNode
-	optionalSequenceSequenceNode
+	sequenceItemNode
+	statementSequenceNode
 	documentNode
 )
 
@@ -199,33 +192,12 @@ func (nt nodeType) String() string {
 		return "nls"
 	case semicolonNode:
 		return "semicolon"
-	case sep:
-		return "separator"
-	case sepSequence:
-		return "separator-sequence"
-	case seps:
-		return "separators"
-
-	case symbolWordNode:
-		return "symbolWord"
-	case symbolNode:
-		return "symbol"
-	case spreadNode:
-		return "spread"
-	case intNode:
-		return "int"
-	case stringNode:
-		return "string"
-	case channelNode:
-		return "channel"
-	case boolNode:
-		return "bool"
 	case commaNode:
 		return "comma"
-	case trueNode:
-		return "true"
-	case falseNode:
-		return "false"
+	case tildeNode:
+		return "tilde"
+	case spreadNode:
+		return "spread"
 	case openParenNode:
 		return "openParen"
 	case closeParenNode:
@@ -239,6 +211,23 @@ func (nt nodeType) String() string {
 	case lessNode:
 		return "less"
 
+	case symbolWordNode:
+		return "symbolWord"
+	case symbolNode:
+		return "symbol"
+	case intNode:
+		return "int"
+	case stringNode:
+		return "string"
+	case channelNode:
+		return "channel"
+	case boolNode:
+		return "bool"
+	case trueNode:
+		return "true"
+	case falseNode:
+		return "false"
+
 	case staticSymbolNode:
 		return "staticSymbol"
 	case dynamicSymbolNode:
@@ -251,16 +240,12 @@ func (nt nodeType) String() string {
 		return "spreadExpression"
 	case listItemNode:
 		return "listItem"
-	case listCommaItemNode:
-		return "listCommaItem"
-	case listCommaSequenceNode:
-		return "listCommaSequence"
 	case listSequenceNode:
 		return "listSequence"
-	case optionalListSequenceNode:
-		return "optionalListSequence"
 	case listNode:
 		return "list"
+	case mutableListNode:
+		return "mutable-list"
 	case statementNode:
 		return "statement"
 	case documentNode:
@@ -517,21 +502,12 @@ func unquoteString(s string) string {
 	return string(r)
 }
 
-func dropNls(n []node) []node {
-	nn := make([]node, 0, len(n))
-	for _, ni := range n {
-		if ni.typ != nls {
-			nn = append(nn, ni)
-		}
-	}
-
-	return nn
-}
-
 func dropSeps(n []node) []node {
 	nn := make([]node, 0, len(n))
 	for _, ni := range n {
-		if ni.typ != semicolonNode && ni.typ != nlNode {
+		switch ni.typ {
+		case nlNode, semicolonNode, commaNode, nls:
+		default:
 			nn = append(nn, ni)
 		}
 	}
@@ -550,50 +526,27 @@ func postParseChannel(n node) node {
 }
 
 func postParseDynamicSymbol(n node) node {
-	n.nodes = dropNls(n.nodes)
-	n.nodes = postParseNodes(n.nodes[2:3])
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = []node{postParseNode(n.nodes[2])}
 	return n
 }
 
 func postParseList(n node) node {
-	n.nodes = n.nodes[1 : len(n.nodes)-1]
-	n.nodes = dropNls(n.nodes)
-
-	if len(n.nodes) > 0 {
-		seq := n.nodes[0]
-		first := seq.nodes[0]
-		commaSeq := seq.nodes[1].nodes
-
-		n.nodes = make([]node, 1+len(commaSeq))
-		n.nodes[0] = first
-
-		for i, ni := range commaSeq {
-			ni.nodes = dropNls(ni.nodes)
-			n.nodes[1+i] = ni.nodes[1]
-		}
-	}
-
+	n.nodes = n.nodes[1].nodes
+	n.nodes = dropSeps(n.nodes)
 	n.nodes = postParseNodes(n.nodes)
 	return n
 }
 
+func postParseMutableList(n node) node {
+	l := postParseList(n.nodes[1])
+	n.nodes = l.nodes
+	return n
+}
+
 func postParseDocument(n node) node {
-	n.nodes = dropNls(n.nodes)
-	if len(n.nodes) == 0 {
-		return n
-	}
-
-	sseq := n.nodes[0].nodes
-	first := sseq[0]
-	following := sseq[1].nodes
-	rest := make([]node, len(following))
-	for i, ni := range following {
-		ni.nodes = dropNls(ni.nodes)
-		ni.nodes = dropSeps(ni.nodes)
-		rest[i] = ni.nodes[0]
-	}
-
-	n.nodes = postParseNodes(append([]node{first}, rest...))
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = postParseNodes(n.nodes)
 	return n
 }
 
@@ -607,7 +560,9 @@ func postParseNode(n node) node {
 		return postParseDynamicSymbol(n)
 	case listNode:
 		return postParseList(n)
-	case documentNode:
+	case mutableListNode:
+		return postParseMutableList(n)
+	case statementSequenceNode:
 		return postParseDocument(n)
 	default:
 		return n

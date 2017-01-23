@@ -162,6 +162,23 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg: "mutable list",
+		code: `~[1, 2, 3]`,
+		nodes: []node{{
+			typ: mutableListNode,
+			token: token{value: "~"},
+			nodes: []node{{
+				typ: intNode,
+				token: token{value: "1"},
+			}, {
+				typ: intNode,
+				token: token{value: "2"},
+			}, {
+				typ: intNode,
+				token: token{value: "3"},
+			}},
+		}},
+	}, {
 		msg:  "fail",
 		code: `[`,
 		fail: true,

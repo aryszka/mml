@@ -15,7 +15,7 @@ Code generator
 Embedded script
 
 Primary use cases:
-- runnable pseudo code
+- runnable, embeddable pseudo code
 - microservices glue code
 - personal computing, e.g. rich calculators, or ad-hoc log analytics
 - simple tooling frontends
