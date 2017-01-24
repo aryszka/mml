@@ -32,6 +32,9 @@ func syntax() {
 	primitive(andNode, andWord)
 	primitive(orNode, orWord)
 	primitive(fnNode, fnWord)
+	primitive(switchNode, switchWord)
+	primitive(caseNode, caseWord)
+	primitive(defaultNode, defaultWord)
 
 	primitive(intNode, intToken)
 	primitive(stringNode, stringToken)
@@ -99,6 +102,23 @@ func syntax() {
 	)
 	union(queryNode, symbolQueryNode, expressionQueryNode)
 
+	union(matchExpressionNode, expressionNode)
+	group(switchClauseNode, caseNode, nls, matchExpressionNode, nls, colonNode, statementSequenceNode)
+	union(switchClauseSequenceItemNode, switchClauseNode, nlNode)
+	sequence(switchClauseSequenceNode, switchClauseSequenceItemNode)
+	group(defaultClauseNode, defaultNode, nls, colonNode, statementSequenceNode)
+	optional(optionalDefaultClauseNode, defaultClauseNode)
+	group(
+		switchConditionalNode,
+		switchNode,
+		nls,
+		openBraceNode,
+		switchClauseSequenceNode,
+		optionalDefaultClauseNode,
+		switchClauseSequenceNode,
+		closeBraceNode,
+	)
+
 	union(
 		expressionNode,
 		intNode,
@@ -116,6 +136,7 @@ func syntax() {
 		functionNode,
 		functionEffectNode,
 		queryNode,
+		switchConditionalNode,
 	)
 
 	union(statementNode, expressionNode)
@@ -164,6 +185,9 @@ const (
 	andNode
 	orNode
 	fnNode
+	switchNode
+	caseNode
+	defaultNode
 
 	staticSymbolNode
 	dynamicSymbolNode
@@ -198,6 +222,13 @@ const (
 	queryExpressionNode
 	expressionQueryNode
 	queryNode
+	matchExpressionNode
+	switchClauseNode
+	defaultClauseNode
+	switchConditionalNode
+	switchClauseSequenceNode
+	optionalDefaultClauseNode
+	switchClauseSequenceItemNode
 
 	statementNode
 
@@ -322,6 +353,12 @@ func (nt nodeType) String() string {
 		return "or"
 	case fnNode:
 		return "fn"
+	case switchNode:
+		return "switch"
+	case caseNode:
+		return "case"
+	case defaultNode:
+		return "default"
 
 	case staticSymbolNode:
 		return "staticSymbol"
@@ -385,6 +422,20 @@ func (nt nodeType) String() string {
 		return "expressionQuery"
 	case queryNode:
 		return "query"
+	case matchExpressionNode:
+		return "matchExpression"
+	case switchClauseNode:
+		return "switchClause"
+	case defaultClauseNode:
+		return "defaultClause"
+	case switchConditionalNode:
+		return "switchConditional"
+	case switchClauseSequenceNode:
+		return "switchClauseSequence"
+	case optionalDefaultClauseNode:
+		return "optionalDefaultClause"
+	case switchClauseSequenceItemNode:
+		return "switchClauseSequenceItem"
 
 	case statementNode:
 		return "statement"
@@ -811,6 +862,61 @@ func postParseQuery(n node) node {
 	return n
 }
 
+func postParseSwitchClause(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	seq := n.nodes[3].nodes
+	seq = dropSeps(seq)
+	n.nodes = append(n.nodes[1:2], seq...)
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseDefaultClause(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = n.nodes[2].nodes
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseSwitch(n node) node {
+	// union(matchExpressionNode, expressionNode)
+	// group(switchClauseNode, caseNode, nls, matchExpressionNode, nls, colonNode, statementSequenceNode)
+	// union(switchClauseSequenceItemNode, switchClauseNode, nlNode)
+	// sequence(switchClauseSequenceNode, switchClauseSequenceItemNode)
+	// group(defaultClauseNode, defaultNode, nls, colonNode, statementSequenceNode)
+	// optional(optionalDefaultClauseNode, defaultClauseNode)
+	// group(
+	// 	switchConditionalNode,
+	// 	switchNode,
+	// 	nls,
+	// 	openBraceNode,
+	// 	switchClauseSequenceNode,
+	// 	optionalDefaultClauseNode,
+	// 	switchClauseSequenceNode,
+	// 	closeBraceNode,
+	// )
+
+	n.nodes = dropSeps(n.nodes)
+
+	clauses := n.nodes[2].nodes
+	clauses = dropSeps(clauses)
+	if len(n.nodes) == 6 {
+		defaultClause := n.nodes[3]
+		trailingClauses := n.nodes[4].nodes
+		trailingClauses = dropSeps(trailingClauses)
+		clauses = append(append(clauses, trailingClauses...), defaultClause)
+	} else {
+		trailingClauses := n.nodes[3].nodes
+		trailingClauses = dropSeps(trailingClauses)
+		clauses = append(clauses, trailingClauses...)
+	}
+
+	n.nodes = clauses
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
 func postParseDocument(n node) node {
 	n.nodes = dropSeps(n.nodes)
 	n.nodes = postParseNodes(n.nodes)
@@ -845,6 +951,12 @@ func postParseNode(n node) node {
 		return postParseQuery(n)
 	case rangeExpressionNode:
 		return postParseRangeExpression(n)
+	case switchClauseNode:
+		return postParseSwitchClause(n)
+	case defaultClauseNode:
+		return postParseDefaultClause(n)
+	case switchConditionalNode:
+		return postParseSwitch(n)
 	case statementSequenceNode:
 		return postParseDocument(n)
 	default:

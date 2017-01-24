@@ -592,6 +592,162 @@ func TestParse(t *testing.T) {
 				}},
 			}},
 		}},
+		// this should work, union should be greedy:
+		// }, {
+		// 	msg:  "chained expression query",
+		// 	code: `a[3:42][3]`,
+		// 	nodes: []node{{
+		// 		typ:   expressionQueryNode,
+		// 		token: token{value: "a"},
+		// 		nodes: []node{{
+		// 			typ:   expressionQueryNode,
+		// 			token: token{value: "a"},
+		// 			nodes: []node{{
+		// 				typ:   symbolNode,
+		// 				token: token{value: "a"},
+		// 			}, {
+		// 				typ:   rangeExpressionNode,
+		// 				token: token{value: "3"},
+		// 				nodes: []node{{
+		// 					typ:   intNode,
+		// 					token: token{value: "3"},
+		// 				}, {
+		// 					typ:   intNode,
+		// 					token: token{value: "42"},
+		// 				}},
+		// 			}},
+		// 		}, {
+		// 			typ:   intNode,
+		// 			token: token{value: "3"},
+		// 		}},
+		// 	}},
+	}, {
+		msg:  "empty switch",
+		code: `switch {}`,
+		nodes: []node{{
+			typ:   switchConditionalNode,
+			token: token{value: "switch"},
+		}},
+	}, {
+		msg: "switch",
+		code: `switch {
+			case 1: 2
+			case 2: 4
+		}`,
+		nodes: []node{{
+			typ:   switchConditionalNode,
+			token: token{value: "switch"},
+			nodes: []node{{
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "1"},
+				}, {
+					typ:   intNode,
+					token: token{value: "2"},
+				}},
+			}, {
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "2"},
+				}, {
+					typ:   intNode,
+					token: token{value: "4"},
+				}},
+			}},
+		}},
+	}, {
+		msg: "switch with default",
+		code: `switch {
+			case 1: 2
+			case 2: 4
+			default: 0
+		}`,
+		nodes: []node{{
+			typ:   switchConditionalNode,
+			token: token{value: "switch"},
+			nodes: []node{{
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "1"},
+				}, {
+					typ:   intNode,
+					token: token{value: "2"},
+				}},
+			}, {
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "2"},
+				}, {
+					typ:   intNode,
+					token: token{value: "4"},
+				}},
+			}, {
+				typ:   defaultClauseNode,
+				token: token{value: "default"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "0"},
+				}},
+			}},
+		}},
+	}, {
+		msg: "switch with trailing",
+		code: `switch {
+			case 1: 2
+			case 2: 4
+			default: 0
+			case 3: 6
+		}`,
+		nodes: []node{{
+			typ:   switchConditionalNode,
+			token: token{value: "switch"},
+			nodes: []node{{
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "1"},
+				}, {
+					typ:   intNode,
+					token: token{value: "2"},
+				}},
+			}, {
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "2"},
+				}, {
+					typ:   intNode,
+					token: token{value: "4"},
+				}},
+			}, {
+				typ:   switchClauseNode,
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "3"},
+				}, {
+					typ:   intNode,
+					token: token{value: "6"},
+				}},
+			}, {
+				typ:   defaultClauseNode,
+				token: token{value: "default"},
+				nodes: []node{{
+					typ:   intNode,
+					token: token{value: "0"},
+				}},
+			}},
+		}},
 	}, {
 		msg:  "fail",
 		code: `[`,
