@@ -173,6 +173,8 @@ fn reverseLoop(l) {
 
 let s1 = {s0..., mark: true}
 
+// how to filter structures?
+
 // functions
 
 fn emptyStructure() {{}}
