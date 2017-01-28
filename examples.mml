@@ -169,6 +169,29 @@ fn reverseLoop(l) {
 	[r...] // the result is converted into an immutable list
 }
 
+type sort fn (less fn (a, a) bool, [a]) [a]
+fn sort(less, l) { /* impl */ }
+
+sort(less, l)
+
+type sortAnything fn~ (
+	less fn (a int, a int) bool
+	swap fn~ (a int, a int)
+	len int
+)
+fn~ sortAnything(less, swap, len) { /* impl */ }
+
+type sortm fn~ (less fn (a, a) bool, ~[a])
+fn~ sortm(less, l) sortAnything(
+	fn (i, j) less(l[i], l[j])
+	fn~ (i, j) {
+		let tmp = l[i]
+		l[i] = l[j]
+		l[j] = tmp
+	}
+	len(l)
+)
+
 // -- structures
 
 let s1 = {s0..., mark: true}

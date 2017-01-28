@@ -25,6 +25,7 @@ func syntax() {
 	primitive(closeBraceNode, closeBrace)
 	primitive(dotNode, dot)
 	group(spreadNode, dotNode, dotNode, dotNode)
+	primitive(singleEqNode, singleEq)
 
 	primitive(symbolWordNode, symbolWord)
 	primitive(trueNode, trueWord)
@@ -35,6 +36,7 @@ func syntax() {
 	primitive(switchNode, switchWord)
 	primitive(caseNode, caseWord)
 	primitive(defaultNode, defaultWord)
+	primitive(letNode, letWord)
 
 	primitive(intNode, intToken)
 	primitive(stringNode, stringToken)
@@ -85,7 +87,7 @@ func syntax() {
 		functionValueNode,
 	)
 	group(functionNode, fnNode, nls, functionFactNode)
-	group(functionEffectNode, fnNode, tildeNode, nls, functionFactNode)
+	group(functionEffectNode, fnNode, nls, tildeNode, nls, functionFactNode)
 
 	group(symbolQueryNode, expressionNode /* due to conflicts with statement sequences nls, */, dotNode, nls, symbolExpressionNode)
 	optional(optionalExpressionNode, expressionNode)
@@ -101,6 +103,8 @@ func syntax() {
 		closeSquareNode,
 	)
 	union(queryNode, symbolQueryNode, expressionQueryNode)
+
+	group(functionCallNode, expressionNode, openParenNode, listSequenceNode, closeParenNode)
 
 	union(matchExpressionNode, expressionNode)
 	group(switchClauseNode, caseNode, nls, matchExpressionNode, nls, colonNode, statementSequenceNode)
@@ -119,6 +123,8 @@ func syntax() {
 		closeBraceNode,
 	)
 
+	group(groupExpressionNode, openParenNode, nls, expressionNode, nls, closeParenNode)
+
 	union(
 		expressionNode,
 		intNode,
@@ -131,15 +137,49 @@ func syntax() {
 		mutableListNode,
 		structureNode,
 		mutableStructureNode,
-		andExpressionNode,
-		orExpressionNode,
+		// andExpressionNode,
+		// orExpressionNode,
 		functionNode,
 		functionEffectNode,
 		queryNode,
+		functionCallNode,
 		switchConditionalNode,
+		// groupExpressionNode,
 	)
 
-	union(statementNode, expressionNode)
+	optional(optionalEqNode, singleEqNode)
+	group(definitionNode, letNode, nls, staticSymbolNode, nls, optionalEqNode, nls, expressionNode)
+	group(
+		mutableDefinitionNode,
+		letNode,
+		nls,
+		tildeNode,
+		nls,
+		staticSymbolNode,
+		optionalEqNode,
+		nls,
+		expressionNode,
+	)
+	group(functionDefinitionNode, fnNode, nls, staticSymbolNode, nls, functionFactNode)
+	group(
+		functionEffectDefinitionNode,
+		fnNode,
+		nls,
+		tildeNode,
+		nls,
+		staticSymbolNode,
+		nls,
+		functionFactNode,
+	)
+
+	union(
+		statementNode,
+		expressionNode,
+		definitionNode,
+		mutableDefinitionNode,
+		functionDefinitionNode,
+		functionEffectDefinitionNode,
+	)
 
 	union(sequenceItemNode, statementNode, seqSep)
 	sequence(statementSequenceNode, sequenceItemNode)
@@ -173,6 +213,7 @@ const (
 	openBraceNode
 	closeBraceNode
 	dotNode
+	singleEqNode
 
 	symbolWordNode
 	symbolNode
@@ -188,9 +229,11 @@ const (
 	switchNode
 	caseNode
 	defaultNode
+	letNode
 
 	staticSymbolNode
 	dynamicSymbolNode
+	groupExpressionNode
 	expressionNode
 	symbolExpressionNode
 	spreadExpressionNode
@@ -222,6 +265,7 @@ const (
 	queryExpressionNode
 	expressionQueryNode
 	queryNode
+	functionCallNode
 	matchExpressionNode
 	switchClauseNode
 	defaultClauseNode
@@ -229,6 +273,11 @@ const (
 	switchClauseSequenceNode
 	optionalDefaultClauseNode
 	switchClauseSequenceItemNode
+	definitionNode
+	mutableDefinitionNode
+	functionDefinitionNode
+	functionEffectDefinitionNode
+	optionalEqNode
 
 	statementNode
 
@@ -330,6 +379,8 @@ func (nt nodeType) String() string {
 		return "closeBrace"
 	case dotNode:
 		return "dot"
+	case singleEqNode:
+		return "singleEq"
 
 	case symbolWordNode:
 		return "symbolWord"
@@ -359,11 +410,15 @@ func (nt nodeType) String() string {
 		return "case"
 	case defaultNode:
 		return "default"
+	case letNode:
+		return "let"
 
 	case staticSymbolNode:
 		return "staticSymbol"
 	case dynamicSymbolNode:
 		return "dynamicSymbol"
+	case groupExpressionNode:
+		return "groupExpression"
 	case expressionNode:
 		return "expression"
 	case symbolExpressionNode:
@@ -407,7 +462,7 @@ func (nt nodeType) String() string {
 	case functionNode:
 		return "function"
 	case functionEffectNode:
-		return "effect-function"
+		return "function-effect"
 	case statementSequenceNode:
 		return "statementSequence"
 	case symbolQueryNode:
@@ -422,6 +477,8 @@ func (nt nodeType) String() string {
 		return "expressionQuery"
 	case queryNode:
 		return "query"
+	case functionCallNode:
+		return "functionCall"
 	case matchExpressionNode:
 		return "matchExpression"
 	case switchClauseNode:
@@ -436,6 +493,16 @@ func (nt nodeType) String() string {
 		return "optionalDefaultClause"
 	case switchClauseSequenceItemNode:
 		return "switchClauseSequenceItem"
+	case definitionNode:
+		return "definition"
+	case mutableDefinitionNode:
+		return "mutableDefinition"
+	case functionDefinitionNode:
+		return "functionDefinition"
+	case functionEffectDefinitionNode:
+		return "functionEffectDefinition"
+	case optionalEqNode:
+		return "optional-eq"
 
 	case statementNode:
 		return "statement"
@@ -780,7 +847,7 @@ func postParseFunctionCall(n node) node {
 	n.nodes = dropSeps(n.nodes)
 	seq := n.nodes[2]
 	seq = postParseExpressionSequence(seq)
-	n.nodes = seq.nodes
+	n.nodes = append(n.nodes[:1], seq.nodes...)
 	return n
 }
 
@@ -880,23 +947,6 @@ func postParseDefaultClause(n node) node {
 }
 
 func postParseSwitch(n node) node {
-	// union(matchExpressionNode, expressionNode)
-	// group(switchClauseNode, caseNode, nls, matchExpressionNode, nls, colonNode, statementSequenceNode)
-	// union(switchClauseSequenceItemNode, switchClauseNode, nlNode)
-	// sequence(switchClauseSequenceNode, switchClauseSequenceItemNode)
-	// group(defaultClauseNode, defaultNode, nls, colonNode, statementSequenceNode)
-	// optional(optionalDefaultClauseNode, defaultClauseNode)
-	// group(
-	// 	switchConditionalNode,
-	// 	switchNode,
-	// 	nls,
-	// 	openBraceNode,
-	// 	switchClauseSequenceNode,
-	// 	optionalDefaultClauseNode,
-	// 	switchClauseSequenceNode,
-	// 	closeBraceNode,
-	// )
-
 	n.nodes = dropSeps(n.nodes)
 
 	clauses := n.nodes[2].nodes
@@ -914,6 +964,52 @@ func postParseSwitch(n node) node {
 
 	n.nodes = clauses
 	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseDefinition(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = n.nodes[1:]
+
+	if len(n.nodes) == 3 {
+		n.nodes = append(n.nodes[:1], n.nodes[2])
+	}
+
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseMutableDefinition(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = n.nodes[2:]
+
+	if len(n.nodes) == 3 {
+		n.nodes = append(n.nodes[:1], n.nodes[2])
+	}
+
+	n.nodes = postParseNodes(n.nodes)
+	return n
+}
+
+func postParseFunctionDefinition(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = n.nodes[1:]
+
+	f := n.nodes[1]
+	f = postParseFunctionFact(f)
+	n.nodes = append(n.nodes[:1], f.nodes...)
+
+	return n
+}
+
+func postParseFunctionEffectDefinition(n node) node {
+	n.nodes = dropSeps(n.nodes)
+	n.nodes = n.nodes[2:]
+
+	f := n.nodes[1]
+	f = postParseFunctionFact(f)
+	n.nodes = append(n.nodes[:1], f.nodes...)
+
 	return n
 }
 
@@ -941,7 +1037,7 @@ func postParseNode(n node) node {
 		return postParseStructure(n)
 	case mutableStructureNode:
 		return postParseMutableStructure(n)
-	case andExpressionNode, orExpressionNode:
+	case andExpressionNode, orExpressionNode, functionCallNode:
 		return postParseFunctionCall(n)
 	case functionNode:
 		return postParseFunction(n)
@@ -957,6 +1053,14 @@ func postParseNode(n node) node {
 		return postParseDefaultClause(n)
 	case switchConditionalNode:
 		return postParseSwitch(n)
+	case definitionNode:
+		return postParseDefinition(n)
+	case mutableDefinitionNode:
+		return postParseMutableDefinition(n)
+	case functionDefinitionNode:
+		return postParseFunctionDefinition(n)
+	case functionEffectDefinitionNode:
+		return postParseFunctionEffectDefinition(n)
 	case statementSequenceNode:
 		return postParseDocument(n)
 	default:

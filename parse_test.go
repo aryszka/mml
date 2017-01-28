@@ -298,54 +298,54 @@ func TestParse(t *testing.T) {
 				}},
 			}},
 		}},
-	}, {
-		msg:  "empty and",
-		code: `and()`,
-		nodes: []node{{
-			typ:   andExpressionNode,
-			token: token{value: "and"},
-		}},
-	}, {
-		msg:  "and",
-		code: `and(a, b, c)`,
-		nodes: []node{{
-			typ:   andExpressionNode,
-			token: token{value: "and"},
-			nodes: []node{{
-				typ:   symbolNode,
-				token: token{value: "a"},
-			}, {
-				typ:   symbolNode,
-				token: token{value: "b"},
-			}, {
-				typ:   symbolNode,
-				token: token{value: "c"},
-			}},
-		}},
-	}, {
-		msg:  "empty or",
-		code: `or()`,
-		nodes: []node{{
-			typ:   orExpressionNode,
-			token: token{value: "or"},
-		}},
-	}, {
-		msg:  "or",
-		code: `or(a, b, c)`,
-		nodes: []node{{
-			typ:   orExpressionNode,
-			token: token{value: "or"},
-			nodes: []node{{
-				typ:   symbolNode,
-				token: token{value: "a"},
-			}, {
-				typ:   symbolNode,
-				token: token{value: "b"},
-			}, {
-				typ:   symbolNode,
-				token: token{value: "c"},
-			}},
-		}},
+		// }, {
+		// 	msg:  "empty and",
+		// 	code: `and()`,
+		// 	nodes: []node{{
+		// 		typ:   andExpressionNode,
+		// 		token: token{value: "and"},
+		// 	}},
+		// }, {
+		// 	msg:  "and",
+		// 	code: `and(a, b, c)`,
+		// 	nodes: []node{{
+		// 		typ:   andExpressionNode,
+		// 		token: token{value: "and"},
+		// 		nodes: []node{{
+		// 			typ:   symbolNode,
+		// 			token: token{value: "a"},
+		// 		}, {
+		// 			typ:   symbolNode,
+		// 			token: token{value: "b"},
+		// 		}, {
+		// 			typ:   symbolNode,
+		// 			token: token{value: "c"},
+		// 		}},
+		// 	}},
+		// }, {
+		// 	msg:  "empty or",
+		// 	code: `or()`,
+		// 	nodes: []node{{
+		// 		typ:   orExpressionNode,
+		// 		token: token{value: "or"},
+		// 	}},
+		// }, {
+		// 	msg:  "or",
+		// 	code: `or(a, b, c)`,
+		// 	nodes: []node{{
+		// 		typ:   orExpressionNode,
+		// 		token: token{value: "or"},
+		// 		nodes: []node{{
+		// 			typ:   symbolNode,
+		// 			token: token{value: "a"},
+		// 		}, {
+		// 			typ:   symbolNode,
+		// 			token: token{value: "b"},
+		// 		}, {
+		// 			typ:   symbolNode,
+		// 			token: token{value: "c"},
+		// 		}},
+		// 	}},
 	}, {
 		msg:  "empty function",
 		code: `fn () {;}`,
@@ -746,6 +746,188 @@ func TestParse(t *testing.T) {
 					typ:   intNode,
 					token: token{value: "0"},
 				}},
+			}},
+		}},
+	}, {
+		msg:  "definition",
+		code: `let a = 1`,
+		nodes: []node{{
+			typ:   definitionNode,
+			token: token{value: "let"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   intNode,
+				token: token{value: "1"},
+			}},
+		}},
+	}, {
+		msg:  "definition without equals",
+		code: `let a 1`,
+		nodes: []node{{
+			typ:   definitionNode,
+			token: token{value: "let"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   intNode,
+				token: token{value: "1"},
+			}},
+		}},
+	}, {
+		msg:  "mutable definition",
+		code: `let~ a = 1`,
+		nodes: []node{{
+			typ:   mutableDefinitionNode,
+			token: token{value: "let"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   intNode,
+				token: token{value: "1"},
+			}},
+		}},
+	}, {
+		msg:  "mutable definition without equals",
+		code: `let~ a 1`,
+		nodes: []node{{
+			typ:   mutableDefinitionNode,
+			token: token{value: "let"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   intNode,
+				token: token{value: "1"},
+			}},
+		}},
+	}, {
+		msg:  "function definition",
+		code: `fn f(a, b, c) 42`,
+		nodes: []node{{
+			typ:   functionDefinitionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "f"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "c"},
+			}, {
+				typ:   intNode,
+				token: token{value: "42"},
+			}},
+		}},
+	}, {
+		msg:  "function definition with sequence",
+		code: `fn f(a, b, c) { a; b; c }`,
+		nodes: []node{{
+			typ:   functionDefinitionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "f"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "c"},
+			}, {
+				typ:   statementSequenceNode,
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "a"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "b"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "c"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "effect definition",
+		code: `fn~ f(a, b, c) 42`,
+		nodes: []node{{
+			typ:   functionEffectDefinitionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "f"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "c"},
+			}, {
+				typ:   intNode,
+				token: token{value: "42"},
+			}},
+		}},
+	}, {
+		msg:  "effect definition with sequence",
+		code: `fn~ f(a, b, c) { a; b; c }`,
+		nodes: []node{{
+			typ:   functionEffectDefinitionNode,
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "f"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "a"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "b"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "c"},
+			}, {
+				typ:   statementSequenceNode,
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   symbolNode,
+					token: token{value: "a"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "b"},
+				}, {
+					typ:   symbolNode,
+					token: token{value: "c"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "function call",
+		code: `f(a)`,
+		nodes: []node{{
+			typ:   functionCallNode,
+			token: token{value: "f"},
+			nodes: []node{{
+				typ:   symbolNode,
+				token: token{value: "f"},
+			}, {
+				typ:   symbolNode,
+				token: token{value: "a"},
 			}},
 		}},
 	}, {
