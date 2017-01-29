@@ -1,0 +1,6 @@
+!# mml
+
+import("mml/text/input").table(fn~ (row) println(row[3]))
+
+fn currentRoutes() import("mml/time").now().day % 2 == 0 ? "even.eskip" : "odd.eskip"
+import("mml/cmd").exec("skipper -routes-file", currentRoutes())

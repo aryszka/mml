@@ -194,10 +194,61 @@ fn~ sortm(less, l) sortAnything(
 
 // -- structures
 
-let s1 = {s0..., mark: true}
+let s1 {s0..., mark: true}
 
 // how to filter structures?
 
 // functions
 
-fn emptyStructure() {{}}
+fn emptyStructure() {}
+fn noopFunction() {;}
+
+// go routines
+
+let c channel()
+spawn work(c)
+println(receive(c))
+
+// or:
+let c <>
+~work(c)
+println(<-c)
+
+// alternative for mutation:
+let~ a 1
+a = 2
+set a 3
+
+// formatting with options:
+#! mml
+
+import (
+	format "mml/format"
+	lang   "mml/lang"
+)
+
+let options {
+	listComma:      lang.listComma.mandatory,
+	structureComma: lang.listComma.mandatory,
+	letEqual:       lang.letEqual.forbidden,
+	setEqual:       lang.setEqual.forbidden,
+}
+
+format.withOptions(options).copy(stdin, stdout)
+
+// reflection:
+
+code(a)
+doc(a)
+type(a)
+typeFull(a)
+
+// symbols:
+
+let j json.parse(stdin)
+if isError(j) {
+	log(j)
+	sys.exit(-1)
+}
+
+println(j."a json field with spaces")

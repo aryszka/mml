@@ -3,15 +3,18 @@ SOURCES = $(shell find . -name '*.go')
 default: build
 
 build: $(SOURCES)
-	go build
+	go build ./...
+
+install: $(SOURCES)
+	go install ./cmd/mml
 
 check: build
-	go test -race
+	go test ./... -race
 
 shortcheck: build
-	go test -test.short -run ^Test
+	go test ./... -test.short -run ^Test
 
 fmt: $(SOURCES)
-	gofmt -w -s ./*.go
+	@gofmt -w -s $(SOURCES)
 
-precommit: build check fmt
+precommit: build shortcheck fmt
