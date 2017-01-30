@@ -223,6 +223,35 @@ func compileOr(w io.Writer, n node) error {
 	return compile(w, orToSwitch(n))
 }
 
+func compileStatementList(w io.Writer, sep string, ret bool, n []node) error {
+	for _, ni := range n[:len(n)-1] {
+		if err := compile(w, ni); err != nil {
+			return err
+		}
+
+		if _, err := fmt.Fprint(w, ";"); err != nil {
+			return err
+		}
+
+	}
+
+	if ret {
+		if _, err := fmt.Fprint(w, "return "); err != nil {
+			return err
+		}
+	}
+
+	if err := compile(w, n[len(n)-1]); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func compileSequence(w io.Writer, n []node) error {
+	return compileStatementList(w, ";", true, n)
+}
+
 func compileFunction(w io.Writer, n node) error {
 	valueIndex := len(n.nodes) - 1
 	value := n.nodes[valueIndex]
@@ -275,36 +304,114 @@ func compileFunction(w io.Writer, n node) error {
 		return err
 	}
 
-	var (
-		nodes []node
-		last  node
-	)
 	if value.typ == statementSequenceNode {
-		nodes = value.nodes[:len(value.nodes)-1]
-		last = value.nodes[len(value.nodes)-1]
+		if err := compileSequence(w, value.nodes); err != nil {
+			return err
+		}
 	} else {
-		last = value
-	}
-
-	for _, ni := range nodes {
-		if err := compile(w, ni); err != nil {
+		if err := compile(w, value); err != nil {
 			return err
 		}
-
-		if _, err := fmt.Fprint(w, ";"); err != nil {
-			return err
-		}
-	}
-
-	if _, err := fmt.Fprint(w, "return "); err != nil {
-		return err
-	}
-
-	if err := compile(w, last); err != nil {
-		return err
 	}
 
 	if _, err := fmt.Fprint(w, "})"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func compileQuery(w io.Writer, n node) error {
+	if _, err := fmt.Fprint(w, "mml.Query("); err != nil {
+		return err
+	}
+
+	if err := compile(w, n.nodes[0]); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprint(w, ","); err != nil {
+		return err
+	}
+
+	if err := compile(w, n.nodes[1]); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprint(w, ")"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func compileValueList(w io.Writer, n []node) error {
+	return compileStatementList(w, ",", false, n)
+}
+
+func compileFunctionCall(w io.Writer, n node) error {
+	if _, err := fmt.Fprint(w, "mml.ApplySys("); err != nil {
+		return err
+	}
+
+	if err := compile(w, n.nodes[0]); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprint(w, ","); err != nil {
+		return err
+	}
+
+	if err := compileValueList(w, n.nodes[1:]); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprint(w, ")"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func compileSwitch(w io.Writer, n node) error {
+	if _, err := fmt.Fprint(w, "func() *mml.Val {"); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintln(w, "switch {"); err != nil {
+		return err
+	}
+
+	for _, ni := range n.nodes {
+		switch ni.typ {
+		case switchClauseNode:
+			if _, err := fmt.Fprintln(w, "\ncase "); err != nil {
+				return err
+			}
+
+			if err := compile(w, ni.nodes[0]); err != nil {
+				return err
+			}
+
+			if _, err := fmt.Fprintln(w, "== mml.True:"); err != nil {
+				return err
+			}
+
+			if err := compileSequence(w, ni.nodes[1:]); err != nil {
+				return err
+			}
+		default:
+			if _, err := fmt.Fprintln(w, "\ndefault:"); err != nil {
+				return err
+			}
+
+			if err := compileSequence(w, ni.nodes); err != nil {
+				return err
+			}
+		}
+	}
+
+	if _, err := fmt.Fprint(w, "}}()"); err != nil {
 		return err
 	}
 
@@ -337,6 +444,12 @@ func compile(w io.Writer, n node) error {
 		return compileOr(w, n)
 	case functionNode:
 		return compileFunction(w, n)
+	case symbolQueryNode, expressionQueryNode:
+		return compileQuery(w, n)
+	case functionCallNode:
+		return compileFunctionCall(w, n)
+	case switchConditionalNode:
+		return compileSwitch(w, n)
 	default:
 		return notImplemented
 	}

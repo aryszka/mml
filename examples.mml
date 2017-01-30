@@ -4,8 +4,8 @@ import http "mml/http"
 
 type handler http.handler
 
-fn~ handler(w, _) {
-	fprintln(w, "Hello, world!")
+fn~ handler(writer, _) {
+	fprintln(writer, "Hello, world!")
 }
 
 http.listen(":8080", handler)
@@ -14,58 +14,64 @@ http.listen(":8080", handler)
 
 fn proc(n) 2 * n
 
-fn procInJson(j) {
-	switch type j {
-		case number: proc(j)
-		case []: map(procInJson, j)
-		case {}: mapStruct(procInJson, j)
+fn procInJson(data) {
+	switch type data {
+		case number: proc(data)
+		case []: map(procInJson, data)
+		case {}: mapStruct(procInJson, data)
 		default: j
 	}
 }
 
 switch {
 	case true: 1
-	case v == 1: 2
-	case match(l[0]): 3
-	case a = l[0]: 4
-	case match(a = l[0]): 5
-	case a = l[0], b = l[1:]: 6
-	case v == 2, v == 3, v == 4: 7
-	case match(s.a): 8
-	case match(s["a"]): 9
-	case a = s.a: 10
-	case _ = s.a: 11
-	case type v number: 12
+	case value == 1: 2
+	case match(list[0]): 3
+	case a = list[0]: 4
+	case match(a = list[0]): 5
+	case a = list[0], b = list[1:]: 6
+	case value == 2, value == 3, value == 4: 7
+	case match(struct.a): 8
+	case match(struct["a"]): 9
+	case a = struct.a: 10
+	case _ = struct.a: 11
+	case type value number: 12
 	default: 13
 }
 
 // this is not needed
 switch match {
-	case l[0]: 1
-	case s.a: 2
+	case list[0]: 1
+	case struct.a: 2
 	default: 3
 }
 
-switch type v {
+switch type value {
 	case number: 1
 	default: 2
 }
 
-swtich v {
+swtich value {
 	case 0: 1
 	default: 2
 }
 
+// -- strings
+
+let reverseString bind(fold, appendString, "")
+
+fn reverseString(s) = fold(appendString, "", s)
+
 // -- loops
 
-let l = [1, 2, 3]
+let list = [1, 2, 3]
 
-for v in l {
-	print(v)
+for item in list {
+	print(item)
 }
 
-for i in 0:len(l) {
-	print(l[i])
+for index in 0:len(list) {
+	print(list[index])
 }
 
 let~ ml = [1, 2, 3]
@@ -150,7 +156,7 @@ fn reverse(l)
 		[]
 
 fn reverse(l) {
-	if case first = l[0], rest = l[1:] {
+	if first l[0], rest l[1:] {
 		[reverse(rest)..., first]
 	} else {
 		[]
@@ -228,10 +234,8 @@ import (
 )
 
 let options {
-	listComma:      lang.listComma.mandatory,
-	structureComma: lang.listComma.mandatory,
-	letEqual:       lang.letEqual.forbidden,
-	setEqual:       lang.setEqual.forbidden,
+	letEquals: format.never,
+	setEquals: format.always,
 }
 
 format.withOptions(options).copy(stdin, stdout)
