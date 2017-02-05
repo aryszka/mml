@@ -53,6 +53,7 @@ func init() {
 	union(
 		"expression",
 		"int",
+		"string",
 		"symbol",
 		"function",
 		"function-call",

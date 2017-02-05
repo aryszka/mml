@@ -52,100 +52,107 @@ func TestParse(t *testing.T) {
 			token: token{value: "3"},
 		}},
 	}, {
-		msg: "symbol",
+		msg:  "symbol",
 		code: "a",
 		nodes: []node{{
-			typ: "symbol",
+			typ:   "symbol",
 			token: token{value: "a"},
 		}},
 	}, {
-		msg: "noop function",
+		msg:  "string",
+		code: "\"abc\"",
+		nodes: []node{{
+			typ:   "string",
+			token: token{value: "\"abc\""},
+		}},
+	}, {
+		msg:  "noop function",
 		code: "fn () {;}",
 		nodes: []node{{
-			typ: "function",
+			typ:   "function",
 			token: token{value: "fn"},
 			nodes: []node{{
-				typ: "statement-sequence",
+				typ:   "statement-sequence",
 				token: token{value: ";"},
 			}},
 		}},
 	}, {
-		msg: "simple function",
+		msg:  "simple function",
 		code: "fn () 3",
 		nodes: []node{{
-			typ: "function",
+			typ:   "function",
 			token: token{value: "fn"},
 			nodes: []node{{
-				typ: "int",
+				typ:   "int",
 				token: token{value: "3"},
 			}},
 		}},
 	}, {
-		msg: "identity",
+		msg:  "identity",
 		code: "fn (x) x",
 		nodes: []node{{
-			typ: "function",
+			typ:   "function",
 			token: token{value: "fn"},
 			nodes: []node{{
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "x"},
 			}, {
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "x"},
 			}},
 		}},
 	}, {
-		msg: "list",
+		msg:  "list",
 		code: "fn (...x) x",
 		nodes: []node{{
-			typ: "function",
+			typ:   "function",
 			token: token{value: "fn"},
 			nodes: []node{{
-				typ: "collect-symbol",
+				typ:   "collect-symbol",
 				token: token{value: "."},
 				nodes: []node{{
-					typ: "symbol",
+					typ:   "symbol",
 					token: token{value: "x"},
 				}},
 			}, {
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "x"},
 			}},
 		}},
 	}, {
-		msg: "function",
+		msg:  "function",
 		code: "fn (a, b, ...c) { a(b); c }",
 		nodes: []node{{
-			typ: "function",
+			typ:   "function",
 			token: token{value: "fn"},
 			nodes: []node{{
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "a"},
 			}, {
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "b"},
 			}, {
-				typ: "collect-symbol",
+				typ:   "collect-symbol",
 				token: token{value: "."},
 				nodes: []node{{
-					typ: "symbol",
+					typ:   "symbol",
 					token: token{value: "c"},
 				}},
 			}, {
-				typ: "statement-sequence",
+				typ:   "statement-sequence",
 				token: token{value: "a"},
 				nodes: []node{{
-					typ: "function-call",
+					typ:   "function-call",
 					token: token{value: "a"},
 					nodes: []node{{
-						typ: "symbol",
+						typ:   "symbol",
 						token: token{value: "a"},
 					}, {
-						typ: "symbol",
+						typ:   "symbol",
 						token: token{value: "b"},
 					}},
 				}, {
-					typ: "symbol",
+					typ:   "symbol",
 					token: token{value: "c"},
 				}},
 			}},
@@ -262,29 +269,29 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg: "function call with multiple arguments",
+		msg:  "function call with multiple arguments",
 		code: "f(a..., b, c...)",
 		nodes: []node{{
-			typ: "function-call",
+			typ:   "function-call",
 			token: token{value: "f"},
 			nodes: []node{{
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "f"},
 			}, {
-				typ: "spread-expression",
+				typ:   "spread-expression",
 				token: token{value: "a"},
 				nodes: []node{{
-					typ: "symbol",
+					typ:   "symbol",
 					token: token{value: "a"},
 				}},
 			}, {
-				typ: "symbol",
+				typ:   "symbol",
 				token: token{value: "b"},
 			}, {
-				typ: "spread-expression",
+				typ:   "spread-expression",
 				token: token{value: "c"},
 				nodes: []node{{
-					typ: "symbol",
+					typ:   "symbol",
 					token: token{value: "c"},
 				}},
 			}},
