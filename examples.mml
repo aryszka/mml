@@ -256,3 +256,20 @@ if isError(j) {
 }
 
 println(j."a json field with spaces")
+
+// find the first even number:
+
+fn findEven(numbers) {
+	let result 0
+	for n in numbers {
+		if n % 2 == 0 {
+			result = n
+			break
+		}
+	}
+
+	result
+}
+
+fn isEven(n) n % 2 == 0
+let findEven find(isEven)
