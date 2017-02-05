@@ -3,6 +3,7 @@ package mml
 import (
 	"fmt"
 	"io"
+	"log"
 )
 
 type node struct {
@@ -66,6 +67,8 @@ type unionParser struct {
 	current  parserInstance
 	parsers  []*parser
 	excludes []string
+	accepted []token
+	queue    []token
 }
 
 var (
@@ -259,9 +262,30 @@ func newUnionParser(parsers []*parser, excludes []string) *unionParser {
 }
 
 func (p *unionParser) accept(t token) bool {
+	// need a token queue
+
+	out := func(a ...interface{}) {
+		return
+		typ := p.n.typ
+		if typ == "" {
+			typ = "unset node"
+		}
+
+		current := "unset parser"
+		if p.current != nil {
+			current = p.current.node().typ
+		}
+
+		log.Println(append([]interface{}{"union:", p.name, typ, current}, a...)...)
+	}
+
+	out("accepting", t.value)
+
 	if p.current == nil {
+		out("finding parser")
 		for {
 			if len(p.parsers) == 0 {
+				out("no parser found")
 				return false
 			}
 
@@ -280,30 +304,50 @@ func (p *unionParser) accept(t token) bool {
 
 				if ok {
 					p.current = current
+					out("found next parser", cp.name)
 					break
 				}
 			}
 		}
 	}
 
+	out("calling current accept")
 	if p.current.accept(t) {
+		out("accepted")
+		p.accepted = append(p.accepted, t)
+		if len(p.queue) > 0 {
+			t, p.queue = p.queue[0], p.queue[1:]
+			return p.accept(t)
+		}
+
 		return true
 	}
 
 	if !p.current.valid() {
+		out("not valid")
 		if p.n.typ == "" {
 			p.v = false
 			p.e = p.current.error()
 		}
 
 		p.current = nil
+		out("trying with next parser")
+		if len(p.accepted) > 0 {
+			out("has accepted")
+			t, p.queue, p.accepted = p.accepted[0], append(p.accepted[1:], t), nil
+		}
+
 		return p.accept(t)
 	}
+
+	out("valid")
 
 	p.n = p.current.node()
 	p.v = true
 	p.current = nil
 	p.parsers = append([]*parser{parsers[p.n.typ]}, p.parsers...)
+
+	out("trying with the same set of parsers")
 	return p.accept(t)
 }
 

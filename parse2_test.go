@@ -52,6 +52,13 @@ func TestParse(t *testing.T) {
 			token: token{value: "3"},
 		}},
 	}, {
+		msg:  "string",
+		code: "\"abc\"",
+		nodes: []node{{
+			typ:   "string",
+			token: token{value: "\"abc\""},
+		}},
+	}, {
 		msg:  "symbol",
 		code: "a",
 		nodes: []node{{
@@ -59,11 +66,252 @@ func TestParse(t *testing.T) {
 			token: token{value: "a"},
 		}},
 	}, {
-		msg:  "string",
-		code: "\"abc\"",
+		msg:  "dynamic symbol",
+		code: "symbol(f(a))",
 		nodes: []node{{
-			typ:   "string",
-			token: token{value: "\"abc\""},
+			typ:   "dynamic-symbol",
+			token: token{value: "symbol"},
+			nodes: []node{{
+				typ:   "function-call",
+				token: token{value: "f"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "f"},
+				}, {
+					typ:   "symbol",
+					token: token{value: "a"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "bool",
+		code: "true false",
+		nodes: []node{{
+			typ:   "true",
+			token: token{value: "true"},
+		}, {
+			typ:   "false",
+			token: token{value: "false"},
+		}},
+	}, {
+		msg:  "empty list",
+		code: "[]",
+		nodes: []node{{
+			typ:   "list",
+			token: token{value: "["},
+		}},
+	}, {
+		msg:  "list",
+		code: "[1, 2, f(a), [3, 4, []]]",
+		nodes: []node{{
+			typ:   "list",
+			token: token{value: "["},
+			nodes: []node{{
+				typ:   "int",
+				token: token{value: "1"},
+			}, {
+				typ:   "int",
+				token: token{value: "2"},
+			}, {
+				typ:   "function-call",
+				token: token{value: "f"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "f"},
+				}, {
+					typ:   "symbol",
+					token: token{value: "a"},
+				}},
+			}, {
+				typ:   "list",
+				token: token{value: "["},
+				nodes: []node{{
+					typ:   "int",
+					token: token{value: "3"},
+				}, {
+					typ:   "int",
+					token: token{value: "4"},
+				}, {
+					typ:   "list",
+					token: token{value: "["},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "mutable-list",
+		code: "~[1, 2, f(a), [3, 4, ~[]]]",
+		nodes: []node{{
+			typ:   "mutable-list",
+			token: token{value: "~"},
+			nodes: []node{{
+				typ:   "int",
+				token: token{value: "1"},
+			}, {
+				typ:   "int",
+				token: token{value: "2"},
+			}, {
+				typ:   "function-call",
+				token: token{value: "f"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "f"},
+				}, {
+					typ:   "symbol",
+					token: token{value: "a"},
+				}},
+			}, {
+				typ:   "list",
+				token: token{value: "["},
+				nodes: []node{{
+					typ:   "int",
+					token: token{value: "3"},
+				}, {
+					typ:   "int",
+					token: token{value: "4"},
+				}, {
+					typ:   "mutable-list",
+					token: token{value: "~"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "empty structure",
+		code: "{}",
+		nodes: []node{{
+			typ:   "structure",
+			token: token{value: "{"},
+		}},
+	}, {
+		msg:  "structure",
+		code: "{a: 1, b: 2, c..., d: {e: 3, f: {}}}",
+		nodes: []node{{
+			typ:   "structure",
+			token: token{value: "{"},
+			nodes: []node{{
+				typ:   "structure-definition",
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "a"},
+				}, {
+					typ:   "int",
+					token: token{value: "1"},
+				}},
+			}, {
+				typ:   "structure-definition",
+				token: token{value: "b"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "b"},
+				}, {
+					typ:   "int",
+					token: token{value: "2"},
+				}},
+			}, {
+				typ:   "spread-expression",
+				token: token{value: "c"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "c"},
+				}},
+			}, {
+				typ:   "structure-definition",
+				token: token{value: "d"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "d"},
+				}, {
+					typ:   "structure",
+					token: token{value: "{"},
+					nodes: []node{{
+						typ:   "structure-definition",
+						token: token{value: "e"},
+						nodes: []node{{
+							typ:   "symbol",
+							token: token{value: "e"},
+						}, {
+							typ:   "int",
+							token: token{value: "3"},
+						}},
+					}, {
+						typ:   "structure-definition",
+						token: token{value: "f"},
+						nodes: []node{{
+							typ:   "symbol",
+							token: token{value: "f"},
+						}, {
+							typ:   "structure",
+							token: token{value: "{"},
+						}},
+					}},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "mutable structure",
+		code: "~{a: 1, b: 2, c..., d: {e: 3, f: ~{}}}",
+		nodes: []node{{
+			typ:   "mutable-structure",
+			token: token{value: "~"},
+			nodes: []node{{
+				typ:   "structure-definition",
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "a"},
+				}, {
+					typ:   "int",
+					token: token{value: "1"},
+				}},
+			}, {
+				typ:   "structure-definition",
+				token: token{value: "b"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "b"},
+				}, {
+					typ:   "int",
+					token: token{value: "2"},
+				}},
+			}, {
+				typ:   "spread-expression",
+				token: token{value: "c"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "c"},
+				}},
+			}, {
+				typ:   "structure-definition",
+				token: token{value: "d"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "d"},
+				}, {
+					typ:   "structure",
+					token: token{value: "{"},
+					nodes: []node{{
+						typ:   "structure-definition",
+						token: token{value: "e"},
+						nodes: []node{{
+							typ:   "symbol",
+							token: token{value: "e"},
+						}, {
+							typ:   "int",
+							token: token{value: "3"},
+						}},
+					}, {
+						typ:   "structure-definition",
+						token: token{value: "f"},
+						nodes: []node{{
+							typ:   "symbol",
+							token: token{value: "f"},
+						}, {
+							typ:   "mutable-structure",
+							token: token{value: "~"},
+						}},
+					}},
+				}},
+			}},
 		}},
 	}, {
 		msg:  "noop function",
@@ -301,9 +549,9 @@ func TestParse(t *testing.T) {
 			r := newTokenReader(bytes.NewBufferString(ti.code), "<test>")
 			n, err := parse(parsers["document"], r)
 			if err == nil && ti.fail {
-				t.Error("failed to fail")
+				t.Fatal("failed to fail")
 			} else if err != nil && !ti.fail {
-				t.Error(err)
+				t.Fatal(err)
 			} else if err != nil {
 				return
 			}
