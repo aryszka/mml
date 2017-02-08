@@ -39,7 +39,7 @@ func init() {
 	union("static-symbol-item", "static-symbol", "list-sep")
 	sequence("static-symbol-sequence", "static-symbol-item")
 	group("collect-symbol", "spread", "static-symbol")
-	group("spread-expression", "expression", "spread")
+	group("spread-expression", "spread", "expression") // we can turn this around once having a single token for ...
 	union("list-item", "expression", "spread-expression", "list-sep")
 	sequence("list-sequence", "list-item")
 	union("sequence-item", "statement", "seq-sep")
@@ -69,6 +69,13 @@ func init() {
 	)
 	group("function", "fn-word", "nls", "function-fact")
 
+	group("symbol-query", "expression", "nls", "dot", "nls", "symbol-expression")
+	optional("optional-expression", "expression")
+	group("range-expression", "optional-expression", "nls", "colon", "nls", "optional-expression")
+	union("query-expression", "expression", "range-expression")
+	group("expression-query", "expression", "open-square", "nls", "query-expression", "nls", "close-square")
+	union("query", "symbol-query", "expression-query")
+
 	group("function-call", "expression", "open-paren", "list-sequence", "close-paren")
 
 	union(
@@ -83,6 +90,7 @@ func init() {
 		"structure",
 		"mutable-structure",
 		"function",
+		"query",
 		"function-call",
 	)
 
@@ -116,7 +124,7 @@ func init() {
 		},
 
 		"spread-expression": func(n node) node {
-			n.nodes = n.nodes[:1]
+			n.nodes = n.nodes[1:]
 			return n
 		},
 
@@ -163,6 +171,31 @@ func init() {
 			}
 
 			n.nodes = append(args, value)
+			return n
+		},
+
+		"symbol-query": func(n node) node {
+			n.nodes = append(n.nodes[:1], n.nodes[2])
+			return n
+		},
+
+		"range-expression": func(n node) node {
+			if len(n.nodes) == 1 {
+				n.nodes = make([]node, 2)
+				return n
+			}
+
+			if n.nodes[0].typ == "colon" {
+				n.nodes = []node{{}, n.nodes[1]}
+				return n
+			}
+
+			n.nodes = append(n.nodes[:1], n.nodes[2:]...)
+			return n
+		},
+
+		"expression-query": func(n node) node {
+			n.nodes = append(n.nodes[:1], n.nodes[2])
 			return n
 		},
 

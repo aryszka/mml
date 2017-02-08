@@ -56,6 +56,7 @@ type sequenceParser struct {
 
 type groupParser struct {
 	parserBase
+	name     string
 	current  parserInstance
 	parsers  []*parser
 	excludes []string
@@ -219,9 +220,27 @@ func newGroupParser(nodeType string, parsers []*parser, excludes []string) *grou
 }
 
 func (p *groupParser) accept(t token) bool {
+	out := func(a ...interface{}) {
+		return
+		typ := p.n.typ
+		if typ == "" {
+			typ = "unset node"
+		}
+
+		current := "unset parser"
+		if p.current != nil {
+			current = p.current.node().typ
+		}
+
+		log.Println(append([]interface{}{"group:", p.name, len(p.n.nodes), typ, current}, a...)...)
+	}
+
+	out("accepting with number of nodes", len(p.n.nodes), t.value)
+
 	if p.current == nil {
 		if len(p.parsers) == 0 {
 			p.v = true
+			out("no more parsers")
 			return false
 		}
 
@@ -231,20 +250,28 @@ func (p *groupParser) accept(t token) bool {
 		}
 
 		p.current, _ = p.parsers[0].create(nil, excludes)
+		out("taking parser", p.parsers[0].name)
 		p.parsers = p.parsers[1:]
 	}
 
 	if p.current.accept(t) {
+		out("accepted")
 		return true
 	}
 
+	out("not accepted")
+
 	if !p.current.valid() {
 		p.e = p.current.error()
+		out("not valid")
 		return false
 	}
 
+	out("valid")
+
 	n := p.current.node()
 	if n.typ != "" {
+		out("storing node", n.token.value)
 		p.n.nodes = append(p.n.nodes, n)
 		if p.n.token.typ == noToken {
 			p.n.token = n.token
@@ -262,8 +289,6 @@ func newUnionParser(parsers []*parser, excludes []string) *unionParser {
 }
 
 func (p *unionParser) accept(t token) bool {
-	// need a token queue
-
 	out := func(a ...interface{}) {
 		return
 		typ := p.n.typ
@@ -304,7 +329,7 @@ func (p *unionParser) accept(t token) bool {
 
 				if ok {
 					p.current = current
-					out("found next parser", cp.name)
+					out("found next parser", cp.name, len(init), len(p.accepted), len(p.queue))
 					break
 				}
 			}
@@ -343,8 +368,10 @@ func (p *unionParser) accept(t token) bool {
 	out("valid")
 
 	p.n = p.current.node()
+	out("node set", p.n.typ)
 	p.v = true
 	p.current = nil
+	p.accepted, p.queue = p.queue, nil
 	p.parsers = append([]*parser{parsers[p.n.typ]}, p.parsers...)
 
 	out("trying with the same set of parsers")
@@ -427,12 +454,14 @@ func group(name string, types ...string) {
 			itemParsers[i] = parsers[t]
 		}
 
+		// log.Println("group parser created", name, len(itemParsers), len(excludes))
 		pi := newGroupParser(name, itemParsers, excludes)
 		if len(init) > 0 {
 			pi.n.nodes = init
 			pi.n.token = init[0].token
 		}
 
+		pi.name = name
 		return pi, true
 	}
 
@@ -442,7 +471,7 @@ func group(name string, types ...string) {
 func union(name string, types ...string) {
 	p := &parser{name: name, members: types}
 	p.create = func(init []node, excludes []string) (parserInstance, bool) {
-		if len(init) > 0 {
+		if len(init) > 1 {
 			return nil, false
 		}
 
@@ -452,6 +481,10 @@ func union(name string, types ...string) {
 		}
 
 		pi := newUnionParser(itemParsers, excludes)
+		if len(init) > 0 {
+			pi.n = init[0]
+		}
+
 		pi.name = name
 		return pi, true
 	}
@@ -511,6 +544,7 @@ func parse(p *parser, r *tokenReader) (node, error) {
 			return n, nil
 		}
 
+		// log.Println("root accepting", t.value)
 		if !pi.accept(t) {
 			return pi.node(), perror(p.String(), noToken, t)
 		}

@@ -183,7 +183,7 @@ func TestParse(t *testing.T) {
 		}},
 	}, {
 		msg:  "structure",
-		code: "{a: 1, b: 2, c..., d: {e: 3, f: {}}}",
+		code: "{a: 1, b: 2, ...c, d: {e: 3, f: {}}}",
 		nodes: []node{{
 			typ:   "structure",
 			token: token{value: "{"},
@@ -209,7 +209,7 @@ func TestParse(t *testing.T) {
 				}},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "c"},
+				token: token{value: "."},
 				nodes: []node{{
 					typ:   "symbol",
 					token: token{value: "c"},
@@ -249,7 +249,7 @@ func TestParse(t *testing.T) {
 		}},
 	}, {
 		msg:  "mutable structure",
-		code: "~{a: 1, b: 2, c..., d: {e: 3, f: ~{}}}",
+		code: "~{a: 1, b: 2, ...c, d: {e: 3, f: ~{}}}",
 		nodes: []node{{
 			typ:   "mutable-structure",
 			token: token{value: "~"},
@@ -275,7 +275,7 @@ func TestParse(t *testing.T) {
 				}},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "c"},
+				token: token{value: "."},
 				nodes: []node{{
 					typ:   "symbol",
 					token: token{value: "c"},
@@ -311,6 +311,41 @@ func TestParse(t *testing.T) {
 						}},
 					}},
 				}},
+			}},
+		}},
+	}, {
+		msg:  "symbol query",
+		code: "a.b",
+		nodes: []node{{
+			typ:   "symbol-query",
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   "symbol",
+				token: token{value: "a"},
+			}, {
+				typ:   "symbol",
+				token: token{value: "b"},
+			}},
+		}},
+	}, {
+		msg:  "chained symbol query",
+		code: "a.b.c",
+		nodes: []node{{
+			typ:   "symbol-query",
+			token: token{value: "a"},
+			nodes: []node{{
+				typ:   "symbol-query",
+				token: token{value: "a"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "a"},
+				}, {
+					typ:   "symbol",
+					token: token{value: "b"},
+				}},
+			}, {
+				typ:   "symbol",
+				token: token{value: "c"},
 			}},
 		}},
 	}, {
@@ -518,7 +553,7 @@ func TestParse(t *testing.T) {
 		}},
 	}, {
 		msg:  "function call with multiple arguments",
-		code: "f(a..., b, c...)",
+		code: "f(...a, b, ...c)",
 		nodes: []node{{
 			typ:   "function-call",
 			token: token{value: "f"},
@@ -527,7 +562,7 @@ func TestParse(t *testing.T) {
 				token: token{value: "f"},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "a"},
+				token: token{value: "."},
 				nodes: []node{{
 					typ:   "symbol",
 					token: token{value: "a"},
@@ -537,7 +572,7 @@ func TestParse(t *testing.T) {
 				token: token{value: "b"},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "c"},
+				token: token{value: "."},
 				nodes: []node{{
 					typ:   "symbol",
 					token: token{value: "c"},
