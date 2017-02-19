@@ -8,8 +8,9 @@ build: $(SOURCES)
 install: $(SOURCES)
 	go install ./cmd/mml
 
-check: build
-	go test ./... -race
+check: build shortcheck
+	# no race here
+	# go test ./... -race
 
 shortcheck: build
 	go test ./... -test.short -run ^Test

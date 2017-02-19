@@ -19,6 +19,10 @@ func compareNode(t *testing.T, a, b node) {
 
 func compareNodes(t *testing.T, a, b []node) {
 	if len(a) != len(b) {
+		for _, ai := range a {
+			t.Log(ai)
+		}
+
 		t.Fatal("invalid node length", len(a), len(b))
 		return
 	}
@@ -404,6 +408,34 @@ func TestParse(t *testing.T) {
 		}},
 	}, {
 		msg:  "function",
+		code: "fn (a, b, ...c) { c }",
+		nodes: []node{{
+			typ:   "function",
+			token: token{value: "fn"},
+			nodes: []node{{
+				typ:   "symbol",
+				token: token{value: "a"},
+			}, {
+				typ:   "symbol",
+				token: token{value: "b"},
+			}, {
+				typ:   "collect-symbol",
+				token: token{value: "."},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "c"},
+				}},
+			}, {
+				typ:   "statement-sequence",
+				token: token{value: "c"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "c"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "function",
 		code: "fn (a, b, ...c) { a(b); c }",
 		nodes: []node{{
 			typ:   "function",
@@ -582,7 +614,7 @@ func TestParse(t *testing.T) {
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			r := newTokenReader(bytes.NewBufferString(ti.code), "<test>")
-			n, err := parse(parsers["document"], r)
+			n, err := parse(generators["document"], r)
 			if err == nil && ti.fail {
 				t.Fatal("failed to fail")
 			} else if err != nil && !ti.fail {

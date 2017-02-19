@@ -260,10 +260,10 @@ println(j."a json field with spaces")
 // find the first even number:
 
 fn findEven(numbers) {
-	let result 0
+	let~ result 0
 	for n in numbers {
 		if n % 2 == 0 {
-			result = n
+			set result n
 			break
 		}
 	}
@@ -271,5 +271,100 @@ fn findEven(numbers) {
 	result
 }
 
+type find fn (fn (a) bool, [a]) a|error
+
+// --
+
+fn find(predicate, list) {
+	let~ result error("empty list")
+	for item in list {
+		if predicate(item) {
+			set result item
+			break
+		}
+	}
+
+	result
+}
+
+type isEven fn (int) bool
 fn isEven(n) n % 2 == 0
-let findEven find(isEven)
+
+type findEven fn ([int]) int
+fn findEven(numbers) {
+	let firstEven = find(isEven, numbers)
+	firstEven ? firstEven : 0
+}
+
+// --
+
+type numberOrZero fn (int|error) int
+fn numberOrZero(value) value ? value : 0
+
+type findEven fn ([int]) int
+fn findEven(numbers) {
+	numberOrZero(find(isEven, numbers))
+}
+
+// --
+
+type findEven fn ([int]) int
+fn findEven(numbers) {
+	numbers -> bind(find, isEven) -> numberOrZero
+}
+
+// --
+
+type findEven fn ([int]) int
+fn findEven(numbers) {
+	numbers -> find(isEven) -> numberOrZero
+}
+
+// --
+
+type findEven fn ([int]) int
+fn isEven(n) n % 2 == 0
+fn numberOrZero(value) value ? value : 0
+export let findEven find(isEven) -> numberOrZero
+
+// --
+
+type node struct {
+	children []node
+	value int
+
+	// other fields ...
+}
+
+func filterEven(forest []*node, query int) []*node {
+	var even []*node
+	for _, n := range forest {
+		evenChildren := filterEven(n.children)
+		if len(evenChildren) > 0 || n.value == query {
+			nv := *n
+			n = &nv
+			n.children = evenChildren
+			even = append(even, n)
+		}
+	}
+
+	return even
+}
+
+// --
+
+type alias node(a) {value: a, children: [node(a)]}
+type filterForest(t) fn (fn (t) bool, [node(t)]) [node(t)]
+fn filterForest(predicate, forest) fold(
+	fn (item, result) {
+		let matchingChildren filterForest(item.children)
+		len(matchingChildren) > 0 || predicate(item) ?
+			[{item..., children: matchingChildren}, result...] :
+			result
+	},
+	[],
+	forest
+)
+
+let filterEven filterForest(isEven)
+let filterAllCaps filterForest(allCaps)

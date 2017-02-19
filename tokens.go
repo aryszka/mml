@@ -194,6 +194,8 @@ func (t token) String() string {
 	switch t.typ {
 	case nl:
 		return "<newline>"
+	case noToken:
+		return "<empty>"
 	default:
 		return t.value
 	}
