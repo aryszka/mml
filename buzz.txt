@@ -20,3 +20,5 @@ Primary use cases:
 - microservices glue code
 - personal computing, e.g. rich calculators, or ad-hoc log analytics
 - simple tooling frontends
+
+A non-elitist programmin language.
