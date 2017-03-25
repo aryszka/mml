@@ -1,27 +1,44 @@
 package mml
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 )
+
+var symbols = make(map[string]string)
+
+var builtin = map[string]*Val{
+	"sum": NewCompiled(0, true, Sum),
+}
+
+func resolveSymbol(s string) string {
+	if rs, ok := symbols[s]; ok {
+		return rs
+	}
+
+	rs := fmt.Sprintf("s_%d", len(symbols))
+	symbols[s] = rs
+	return rs
+}
 
 func compileInt(w io.Writer, n node) error {
 	_, err := fmt.Fprintf(w, "mml.SysIntToInt(%s)", n.token.value)
 	return err
 }
 
-// func compileString(w io.Writer, n node) error {
-// 	_, err := fmt.Fprintf(w, "mml.SysStringToString(\"%s\")", n.token.value)
-// 	return err
-// }
-//
+func compileString(w io.Writer, n node) error {
+	_, err := fmt.Fprintf(w, "mml.SysStringToString(%s)", n.token.value)
+	return err
+}
+
 // func compileChannel(w io.Writer, n node) error {
 // 	_, err := fmt.Fprint(w, "mml.MakeChannel()")
 // 	return err
 // }
 
 func compileSymbol(w io.Writer, n node) error {
-	_, err := fmt.Fprint(w, n.token.value)
+	_, err := fmt.Fprint(w, resolveSymbol(n.token.value))
 	return err
 }
 
@@ -246,7 +263,12 @@ func compileStatementList(w io.Writer, sep string, ret bool, n []node) error {
 }
 
 func compileSequence(w io.Writer, n []node) error {
-	return compileStatementList(w, ";", true, n)
+	return compileStatementList(w, ";", false, n)
+}
+
+func compileStaticSymbol(w io.Writer, n node) error {
+	_, err := fmt.Fprint(w, resolveSymbol(n.token.value))
+	return err
 }
 
 func compileFunction(w io.Writer, n node) error {
@@ -254,13 +276,11 @@ func compileFunction(w io.Writer, n node) error {
 	value := n.nodes[valueIndex]
 
 	args := n.nodes[:valueIndex]
-	fixed := args
-	fixedCount := len(fixed)
+	fixedCount := len(args)
 
 	var variadic bool
-	if len(fixed) > 0 && fixed[fixedCount-1].typ == "collect-argument" {
+	if len(args) > 0 && args[fixedCount-1].typ == "collect-symbol" {
 		variadic = true
-		fixed = fixed[:fixedCount-1]
 		fixedCount--
 	}
 
@@ -278,7 +298,7 @@ func compileFunction(w io.Writer, n node) error {
 	}
 
 	fmt.Fprint(w, "var (\n")
-	for i, ai := range args {
+	for i, ai := range args[:fixedCount] {
 		// if i > 0 {
 		// 	if _, err := fmt.Fprintf(w, ";"); err != nil {
 		// 		return err
@@ -297,17 +317,50 @@ func compileFunction(w io.Writer, n node) error {
 		// 	return err
 		// }
 
-		if _, err := fmt.Fprintf(w, "%s = a[%d]\n", ai.token.value, i); err != nil {
+		if err := compileStaticSymbol(w, ai); err != nil {
+			return err
+		}
+
+		if _, err := fmt.Fprintf(w, " = a[%d]\n", i); err != nil {
 			return err
 		}
 	}
+
+	if variadic {
+		if err := compileStaticSymbol(w, args[len(args)-1].nodes[0]); err != nil {
+			return err
+		}
+
+		if _, err := fmt.Fprintf(w, " = mml.ListFromSysSlice(a[%d:])\n", fixedCount); err != nil {
+			return err
+		}
+	}
+
 	fmt.Fprintf(w, ")\n")
 
 	if value.typ == "statement-sequence" {
-		if err := compileSequence(w, value.nodes); err != nil {
+		if len(value.nodes) == 0 {
+			if _, err := fmt.Fprintln(w, "return mml.Void"); err != nil {
+				return err
+			}
+		}
+
+		if err := compileSequence(w, value.nodes[:len(value.nodes)-1]); err != nil {
+			return err
+		}
+
+		if _, err := fmt.Fprint(w, ";return "); err != nil {
+			return err
+		}
+
+		if err := compile(w, value.nodes[len(value.nodes)-1]); err != nil {
 			return err
 		}
 	} else {
+		if _, err := fmt.Fprint(w, "return "); err != nil {
+			return err
+		}
+
 		if err := compile(w, value); err != nil {
 			return err
 		}
@@ -359,8 +412,168 @@ func compileFunction(w io.Writer, n node) error {
 // 	return nil
 // }
 
-func compileValueList(w io.Writer, n []node) error {
-	return compileStatementList(w, ",", false, n)
+// func compileValueList(w io.Writer, n []node) error {
+// 	return compileStatementList(w, ",", false, n)
+// }
+
+// func(a...)
+// mml.ApplySys(func, mml.ListToSysSlice(a))
+//
+// func(a, b...)
+// mml.ApplySys(func, append([]*mml.Val{a}, mml.ListToSysSlice(b)...))
+//
+// func(a, b, c..., d, e, f...)
+// mml.ApplySys(f, append(append([]*mml.Val{a, b}, append(mml.ListToSysSlice(c), d, e)...), mml.ListToSysSlice(f)...))
+//
+// // do the recursion
+
+func compileArgList(w io.Writer, n []node, forceList bool) (int, error) {
+	if len(n) == 0 {
+		fmt.Fprint(w, "nil")
+		return 0, nil
+	}
+
+	last := len(n) - 1
+
+	switch n[last].typ {
+	case "spread-expression":
+		wp := bytes.NewBuffer(nil)
+		tp, err := compileArgList(wp, n[:last], true)
+		if err != nil {
+			return 0, err
+		}
+
+		switch tp {
+		case 0:
+			if _, err := fmt.Fprint(w, "mml.ListToSysSlice("); err != nil {
+				return 0, err
+			}
+
+			if err := compile(w, n[last].nodes[0]); err != nil {
+				return 0, err
+			}
+
+			if _, err := fmt.Fprint(w, ")"); err != nil {
+				return 0, err
+			}
+
+			return 2, nil
+		default:
+			if _, err := fmt.Fprint(w, "append("); err != nil {
+				return 0, err
+			}
+
+			if _, err := io.Copy(w, wp); err != nil {
+				return 0, err
+			}
+
+			if _, err := fmt.Fprint(w, ", mml.ListToSysSlice("); err != nil {
+				return 0, err
+			}
+
+			if err := compile(w, n[last].nodes[0]); err != nil {
+				return 0, err
+			}
+
+			if _, err := fmt.Fprint(w, ")...)"); err != nil {
+				return 0, err
+			}
+
+			return 2, nil
+		}
+	default:
+		wp := bytes.NewBuffer(nil)
+		tp, err := compileArgList(wp, n[:last], false)
+		if err != nil {
+			return 0, err
+		}
+
+		if forceList {
+			switch tp {
+			case 1:
+				if _, err := fmt.Fprint(w, "[]*mml.Val{"); err != nil {
+					return 0, err
+				}
+
+				if _, err := io.Copy(w, wp); err != nil {
+					return 0, err
+				}
+
+				if _, err := fmt.Fprint(w, ", "); err != nil {
+					return 0, err
+				}
+
+				if err := compile(w, n[last]); err != nil {
+					return 0, err
+				}
+
+				if _, err := fmt.Fprint(w, "}"); err != nil {
+					return 0, err
+				}
+
+				return 2, err
+			case 2:
+				if _, err := fmt.Fprint(w, "append("); err != nil {
+					return 0, err
+				}
+
+				if _, err := io.Copy(w, wp); err != nil {
+					return 0, err
+				}
+
+				if _, err := fmt.Fprint(w, ", "); err != nil {
+					return 0, err
+				}
+
+				if err := compile(w, n[last]); err != nil {
+					return 0, err
+				}
+
+				if _, err := fmt.Fprint(w, ")"); err != nil {
+					return 0, err
+				}
+
+				return 2, err
+			default:
+				if _, err := fmt.Fprint(w, "[]*mml.Val{"); err != nil {
+					return 0, err
+				}
+
+				if err := compile(w, n[last]); err != nil {
+					return 0, err
+				}
+
+				if _, err := fmt.Fprint(w, "}"); err != nil {
+					return 0, err
+				}
+
+				return 2, err
+			}
+		} else {
+			switch tp {
+			case 0:
+				if err := compile(w, n[last]); err != nil {
+					return 0, err
+				}
+
+				return 1, nil
+			default:
+				if _, err := io.Copy(w, wp); err != nil {
+					return 0, err
+				}
+
+				if _, err := fmt.Fprint(w, ", "); err != nil {
+					return 0, err
+				}
+
+				if err := compile(w, n[last]); err != nil {
+					return 0, err
+				}
+
+				return tp, nil
+			}
+		}
+	}
 }
 
 func compileFunctionCall(w io.Writer, n node) error {
@@ -376,7 +589,7 @@ func compileFunctionCall(w io.Writer, n node) error {
 		return err
 	}
 
-	if err := compileValueList(w, n.nodes[1:]); err != nil {
+	if _, err := compileArgList(w, n.nodes[1:], true); err != nil {
 		return err
 	}
 
@@ -433,20 +646,9 @@ func compileFunctionCall(w io.Writer, n node) error {
 // }
 
 func compileValueDefinition(w io.Writer, n node) error {
-	switch n.nodes[0].typ {
-	case "symbol":
-		if err := compileSymbol(w, n.nodes[0]); err != nil {
-			return err
-		}
-		// case stringNode:
-		// 	if err := compileString(w, n.nodes[0]); err != nil {
-		// 		return err
-		// 	}
+	if err := compileStaticSymbol(w, n.nodes[0]); err != nil {
+		return err
 	}
-
-	// if _, err := fmt.Fprintf(w, ","); err != nil {
-	// 	return err
-	// }
 
 	if _, err := fmt.Fprint(w, " := "); err != nil {
 		return err
@@ -456,10 +658,6 @@ func compileValueDefinition(w io.Writer, n node) error {
 		return err
 	}
 
-	// if _, err := fmt.Fprintf(w, ")"); err != nil {
-	// 	return err
-	// }
-
 	return nil
 }
 
@@ -467,8 +665,8 @@ func compile(w io.Writer, n node) error {
 	switch n.typ {
 	case "int":
 		return compileInt(w, n)
-	// case stringNode:
-	// 	return compileString(w, n)
+	case "string":
+		return compileString(w, n)
 	// case channelNode:
 	// 	return compileChannel(w, n)
 	case "symbol", "dynamic-symbol":
@@ -517,8 +715,15 @@ func compileHead(w io.Writer) error {
 		return err
 	}
 
-	if _, err := fmt.Fprintln(w, "sys := mml.Sys"); err != nil {
-		return err
+	return nil
+}
+
+func compileBuiltin(w io.Writer) error {
+	for name := range Builtin {
+		s := resolveSymbol(name)
+		if _, err := fmt.Fprintf(w, "%s := mml.Builtin[\"%s\"]\n", s, name); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -533,6 +738,10 @@ func Compile(in io.Reader, out io.Writer) error {
 	}
 
 	if err := compileHead(out); err != nil {
+		return err
+	}
+
+	if err := compileBuiltin(out); err != nil {
 		return err
 	}
 

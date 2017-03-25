@@ -1,0 +1,13 @@
+let println fn(a) {
+	stdout(string(a))
+	stdout("\n")
+}
+
+println("Hello, world!")
+
+let f fn (a, b) sum(a, b)
+let result f(1, 2)
+println(result)
+
+let g fn(a, b, ...c) sum(a, b, ...c)
+println(g(1, 2, 4, 5, 6))
