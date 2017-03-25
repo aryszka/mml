@@ -1,9 +1,10 @@
-Data is aeroplane.
+Data is my aeroplane.
 Functional programming for mortals.
 Functional programming for mortals and outsiders.
 Functional programming for outsiders.
 A programming language for outsiders.
 An effort to rebalance precision and epxressiveness.
+A functional programming language without elitism.
 
 MML styleguide:
 
