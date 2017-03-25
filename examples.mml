@@ -355,16 +355,200 @@ func filterEven(forest []*node, query int) []*node {
 
 type alias node(a) {value: a, children: [node(a)]}
 type filterForest(t) fn (fn (t) bool, [node(t)]) [node(t)]
-fn filterForest(predicate, forest) fold(
-	fn (item, result) {
-		let matchingChildren filterForest(item.children)
-		len(matchingChildren) > 0 || predicate(item) ?
-			[{item..., children: matchingChildren}, result...] :
-			result
-	},
-	[],
-	forest
-)
+fn forestFold(predicate, item, result) {
+	let matchingChildren filterForest(item.children)
+	if len(matchingChildren) > 0 || predicate(item) {
+		[{item..., children: matchingChildren}, result...]
+	} else {
+		result
+	}
+}
+fn filterForest(predicate, forest) {
+	fold(forestFold(predicate), [], forest)
+}
 
 let filterEven filterForest(isEven)
 let filterAllCaps filterForest(allCaps)
+
+test "filter forest" {
+	test "even" {
+		fn even(n) n % 2 == 0
+		let value field("value")
+		let predicate value -> even
+		let data = [{
+			value: 1,
+			children: [{
+				value: 2
+				children: []
+			}, {
+				value: 3
+				children: []
+			}]
+		}, {
+			value: 4
+			children: []
+		}, {
+			value: 5
+			children: []
+		}]
+		let result = filterForest(predicate, data)
+		match(result, [{
+			value: 1
+			children: [{
+				value: 2
+				children: []
+			}]
+		}, {
+			value: 4
+			children: []
+		}])
+	}
+
+	test "all caps" {
+		import rx "mml/regexp"
+
+		let predicate field("value") -> rx.match("^[A-Z]*$")
+
+		let data = [{
+			value: "foo",
+			children: [{
+				value: "BAR"
+				children: []
+			}, {
+				value: "baZ"
+				children: []
+			}]
+		}, {
+			value: "QUX"
+			children: []
+		}, {
+			value: "QUuX"
+			children: []
+		}]
+
+		let result = filterForest(predicate, data)
+		match(result, [{
+			value: "foo"
+			children: [{
+				value: "BAR"
+				children: []
+			}]
+		}, {
+			value: "QUX"
+			children: []
+		}])
+	}
+}
+
+// --
+
+import rand "mml/rand"
+
+fn~ produce(out, toggle) {
+	for {
+		select {
+		case out <- rand.int():
+		case <-toggle:
+			if blocked(out) {
+				unblock(out)
+			} else {
+				block(out)
+			}
+		}
+	}
+}
+
+fn~ consume(in) {
+	for {
+		println(<-in)
+	}
+}
+
+fn~ control(toggle) {
+	for {
+		readln()
+		toggle <- {}
+	}
+}
+
+let inOut <>
+let toggle <>
+go produce(inOut, toggle)
+go consume(inOut)
+go control(toggle)
+select {}
+
+// --
+
+switch {
+	case a == 1: true
+	default: false
+}
+
+switch a {
+	case 1: true
+	default: false
+}
+
+match {
+	case type a int: true
+	case a0 a[0], ar a[1:]: true
+	case v a.value: true
+	case v a.symbol(b): true
+	default: false
+}
+
+match type a {
+	case int: true
+	case [int]: true
+	default: false
+}
+
+// --
+
+// what is it, a send or a receive?
+// can default to send, and receive can be enforced with the optional =
+let~ c1 <>
+let c2 <>
+select {
+	case c1 <- c2: // sends c2 through c1
+	case c1 = <-c2: // receives from c2 and captures in a new c1
+	case let c1 = <-c2: // receives from c2 and captures in a new c1 (full format)
+}
+
+// --
+
+// channels for every IO? No.
+
+type stdin fn(int) string|error
+type stdout fn(string) error
+type stderr fn(string) error
+
+// --
+
+// objects:
+
+fn newPair(a, b) {
+	let p ~{a: a, b: b}
+	fn privateFunction(v) log(v)
+	{
+		getA: fn() p.a
+		setA: fn(a) {
+			privateFunction(a)
+			p.a = a
+		}
+		getB: fn() p.b
+		setB: fn(b) p.b = b
+	}
+}
+
+let p newPair(1, 2)
+p.getA()
+
+fn extendedPair(a, b) {
+	let p newPair(a, b)
+	{
+		p...
+		setB: fn(b) p.setB(2 * b)
+	}
+}

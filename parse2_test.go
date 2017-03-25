@@ -611,6 +611,89 @@ func TestParse(t *testing.T) {
 				}},
 			}},
 		}},
+	}, {
+		msg:  "switch conditional with default only",
+		code: "switch{default: 42}",
+		nodes: []node{{
+			typ:   "switch-conditional",
+			token: token{value: "switch"},
+			nodes: []node{{
+				typ:   "default-clause",
+				token: token{value: "default"},
+				nodes: []node{{
+					typ:   "int",
+					token: token{value: "42"},
+				}},
+			}},
+		}},
+	}, {
+		msg: "switch conditional with cases",
+		code: `
+			switch {
+				case a: b
+				default: x
+				case c: d
+			}`,
+		nodes: []node{{
+			typ:   "switch-conditional",
+			token: token{value: "switch"},
+			nodes: []node{{
+				typ:   "switch-clause",
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "a"},
+				}, {
+					typ:   "symbol",
+					token: token{value: "b"},
+				}},
+			}, {
+				typ:   "default-clause",
+				token: token{value: "default"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "x"},
+				}},
+			}, {
+				typ:   "switch-clause",
+				token: token{value: "case"},
+				nodes: []node{{
+					typ:   "symbol",
+					token: token{value: "c"},
+				}, {
+					typ:   "symbol",
+					token: token{value: "d"},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "definition item",
+		code: "let a b",
+		nodes: []node{{
+			typ:   "value-definition",
+			token: token{value: "let"},
+			nodes: []node{{
+				typ:   "symbol",
+				token: token{value: "a"},
+			}, {
+				typ:   "symbol",
+				token: token{value: "b"},
+			}},
+		}},
+	}, {
+		msg:  "mutable definition item",
+		code: "let ~ a b",
+		nodes: []node{{
+			typ:   "mutable-value-definition",
+			token: token{value: "let"},
+			nodes: []node{{
+				typ:   "symbol",
+				token: token{value: "a"},
+			}, {
+				typ:   "symbol",
+				token: token{value: "b"},
+			}},
+		}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			r := newTokenReader(bytes.NewBufferString(ti.code), "<test>")

@@ -20,6 +20,12 @@ func init() {
 	primitive("symbol-word", symbolWord)
 	primitive("true", trueWord)
 	primitive("false", falseWord)
+	primitive("switch-word", switchWord)
+	primitive("case-word", caseWord)
+	primitive("default-word", defaultWord)
+	primitive("let-word", letWord)
+
+	primitive("single-eq", singleEq)
 
 	primitive("int", intToken)
 	primitive("symbol", symbolToken)
@@ -78,6 +84,29 @@ func init() {
 
 	group("function-call", "expression", "open-paren", "list-sequence", "close-paren")
 
+	union("match-expression", "expression")
+	group("switch-clause", "case-word", "match-expression", "colon", "statement-sequence")
+	group("default-clause", "default-word", "colon", "statement-sequence")
+	sequence("switch-clause-sequence", "switch-clause")
+	group(
+		"switch-conditional",
+		"switch-word",
+		"nls",
+		"open-brace",
+		"nls",
+		"switch-clause-sequence",
+		"nls",
+		"default-clause",
+		"nls",
+		"switch-clause-sequence",
+		"nls",
+		"close-brace",
+	)
+	union(
+		"conditional",
+		"switch-conditional",
+	)
+
 	union(
 		"expression",
 		"int",
@@ -92,13 +121,21 @@ func init() {
 		"function",
 		"query",
 		"function-call",
+		"conditional",
 	)
 
 	// group("definition", "let", "nls", "static-symbol", "nls", "optional-eq", "nls", "expression")
 
+	optional("optional-single-eq", "single-eq")
+	group("definition-item", "static-symbol", "nls", "optional-single-eq", "nls", "expression")
+	group("value-definition", "let-word", "nls", "definition-item")
+	group("mutable-value-definition", "let-word", "nls", "tilde", "nls", "definition-item")
+	union("definition", "value-definition", "mutable-value-definition")
+
 	union(
 		"statement",
 		"expression",
+		"definition",
 	)
 
 	union("document", "statement-sequence")
@@ -201,6 +238,54 @@ func init() {
 
 		"function-call": func(n node) node {
 			n.nodes = append(n.nodes[:1], n.nodes[2].nodes...)
+			return n
+		},
+
+		"switch-clause": func(n node) node {
+			n.nodes = append(n.nodes[1:2], n.nodes[3].nodes...)
+			return n
+		},
+
+		"default-clause": func(n node) node {
+			n.nodes = n.nodes[2].nodes
+			return n
+		},
+
+		"switch-conditional": func(n node) node {
+			n.nodes = n.nodes[2 : len(n.nodes)-1]
+
+			var nodes []node
+			for _, ni := range n.nodes {
+				switch ni.typ {
+				case "switch-clause-sequence":
+					if len(ni.nodes) > 0 {
+						nodes = append(nodes, ni.nodes...)
+					}
+				case "default-clause":
+					nodes = append(nodes, ni)
+				}
+			}
+
+			n.nodes = nodes
+			return n
+		},
+
+		"definition-item": func(n node) node {
+			if len(n.nodes) == 2 {
+				return n
+			}
+
+			n.nodes = append(n.nodes[:1], n.nodes[2])
+			return n
+		},
+
+		"value-definition": func(n node) node {
+			n.nodes = n.nodes[1].nodes
+			return n
+		},
+
+		"mutable-value-definition": func(n node) node {
+			n.nodes = n.nodes[2].nodes
 			return n
 		},
 	})
