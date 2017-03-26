@@ -42,21 +42,21 @@ func compileSymbol(w io.Writer, n node) error {
 	return err
 }
 
-// func compileDynamicSymbol(w io.Writer, n node) error {
-// 	if _, err := fmt.Fprint(w, "mml.SymbolFromValue("); err != nil {
-// 		return err
-// 	}
-//
-// 	if err := compile(w, n.nodes[0]); err != nil {
-// 		return err
-// 	}
-//
-// 	if _, err := fmt.Fprint(w, ")"); err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
+func compileDynamicSymbol(w io.Writer, n node) error {
+	if _, err := fmt.Fprint(w, "mml.SymbolFromValue("); err != nil {
+		return err
+	}
+
+	if err := compile(w, n.nodes[0]); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprint(w, ")"); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func compileLookup(w io.Writer, n node) error {
 	// if _, err := fmt.Fprint(w, "mml.Lookup(env, "); err != nil {
@@ -123,60 +123,65 @@ func compileLookup(w io.Writer, n node) error {
 // func compileMutableList(w io.Writer, n node) error {
 // 	return compileListVariant(w, n, "MutableList")
 // }
-//
-// func compileSymbolExpression(w io.Writer, n node) error {
-// 	switch n.typ {
-// 	case symbolNode:
-// 		return compileSymbol(w, n)
-// 	case stringNode:
-// 		return compileString(w, n)
-// 	case dynamicSymbolNode:
-// 		return compileDynamicSymbol(w, n)
-// 	default:
-// 		return fmt.Errorf("not implemented: %d, %d, %v, %s", n.token.line, n.token.column, n.typ, n.token.value)
-// 	}
-// }
-//
-// func compileStructureVariant(w io.Writer, n node, variant string) error {
-// 	if _, err := fmt.Fprintf(w, "mml.%s(", variant); err != nil {
-// 		return err
-// 	}
-//
-// 	for i, ni := range n.nodes {
-// 		if i > 0 {
-// 			if _, err := fmt.Fprint(w, ","); err != nil {
-// 				return err
-// 			}
-// 		}
-//
-// 		if err := compileSymbolExpression(w, ni.nodes[0]); err != nil {
-// 			return err
-// 		}
-//
-// 		if _, err := fmt.Fprint(w, ","); err != nil {
-// 			return err
-// 		}
-//
-// 		if err := compile(w, ni.nodes[1]); err != nil {
-// 			return err
-// 		}
-// 	}
-//
-// 	if _, err := fmt.Fprint(w, ")"); err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
-//
+
+func compileSymbolLiteral(w io.Writer, n node) error {
+	_, err := fmt.Fprintf(w, "\"%s\"", n.token.value)
+	return err
+}
+
+func compileSymbolExpression(w io.Writer, n node) error {
+	switch n.typ {
+	case "symbol":
+		return compileSymbolLiteral(w, n)
+	case "string":
+		return compileString(w, n)
+	case "dynamic-symbol":
+		return compileDynamicSymbol(w, n)
+	default:
+		return fmt.Errorf("not implemented: %d, %d, %v, %s", n.token.line, n.token.column, n.typ, n.token.value)
+	}
+}
+
+func compileStructureVariant(w io.Writer, n node, variant string) error {
+	if _, err := fmt.Fprintf(w, "mml.%s(", variant); err != nil {
+		return err
+	}
+
+	for i, ni := range n.nodes {
+		if i > 0 {
+			if _, err := fmt.Fprint(w, ","); err != nil {
+				return err
+			}
+		}
+
+		if err := compileSymbolExpression(w, ni.nodes[0]); err != nil {
+			return err
+		}
+
+		if _, err := fmt.Fprint(w, ","); err != nil {
+			return err
+		}
+
+		if err := compile(w, ni.nodes[1]); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprint(w, ")"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // func compileStructure(w io.Writer, n node) error {
 // 	return compileStructureVariant(w, n, "Structure")
 // }
-//
-// func compileMutableStructure(w io.Writer, n node) error {
-// 	return compileStructureVariant(w, n, "MutableStructure")
-// }
-//
+
+func compileMutableStructure(w io.Writer, n node) error {
+	return compileStructureVariant(w, n, "MutableStructure")
+}
+
 // func andToSwitch(n node) node {
 // 	if len(n.nodes) == 0 {
 // 		return node{typ: trueNode, token: n.token}
@@ -238,6 +243,10 @@ func compileLookup(w io.Writer, n node) error {
 // }
 
 func compileStatementList(w io.Writer, sep string, ret bool, n []node) error {
+	if len(n) == 0 {
+		return nil
+	}
+
 	for _, ni := range n[:len(n)-1] {
 		if err := compile(w, ni); err != nil {
 			return err
@@ -336,13 +345,17 @@ func compileFunction(w io.Writer, n node) error {
 		}
 	}
 
-	fmt.Fprintf(w, ")\n")
+	if _, err := fmt.Fprintf(w, ")\n"); err != nil {
+		return err
+	}
 
 	if value.typ == "statement-sequence" {
 		if len(value.nodes) == 0 {
-			if _, err := fmt.Fprintln(w, "return mml.Void"); err != nil {
+			if _, err := fmt.Fprintln(w, "return mml.Void})"); err != nil {
 				return err
 			}
+
+			return nil
 		}
 
 		if err := compileSequence(w, value.nodes[:len(value.nodes)-1]); err != nil {
@@ -679,8 +692,8 @@ func compile(w io.Writer, n node) error {
 	// 	return compileMutableList(w, n)
 	// case structureNode:
 	// 	return compileStructure(w, n)
-	// case mutableStructureNode:
-	// 	return compileMutableStructure(w, n)
+	case "mutable-structure":
+		return compileMutableStructure(w, n)
 	// case andExpressionNode:
 	// 	return compileAnd(w, n)
 	// case orExpressionNode:
@@ -702,6 +715,25 @@ func compile(w io.Writer, n node) error {
 	}
 }
 
+func compileBuiltin(w io.Writer) error {
+	if _, err := fmt.Fprintln(w, "var ("); err != nil {
+		return err
+	}
+
+	for name := range Builtin {
+		s := resolveSymbol(name)
+		if _, err := fmt.Fprintf(w, "%s = mml.Builtin[\"%s\"]\n", s, name); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintln(w, ")"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func compileHead(w io.Writer) error {
 	if _, err := fmt.Fprintln(w, "package main"); err != nil {
 		return err
@@ -711,19 +743,12 @@ func compileHead(w io.Writer) error {
 		return err
 	}
 
-	if _, err := fmt.Fprintln(w, "func main() {"); err != nil {
+	if err := compileBuiltin(w); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func compileBuiltin(w io.Writer) error {
-	for name := range Builtin {
-		s := resolveSymbol(name)
-		if _, err := fmt.Fprintf(w, "%s := mml.Builtin[\"%s\"]\n", s, name); err != nil {
-			return err
-		}
+	if _, err := fmt.Fprintln(w, "func main() {"); err != nil {
+		return err
 	}
 
 	return nil
@@ -738,10 +763,6 @@ func Compile(in io.Reader, out io.Writer) error {
 	}
 
 	if err := compileHead(out); err != nil {
-		return err
-	}
-
-	if err := compileBuiltin(out); err != nil {
 		return err
 	}
 
