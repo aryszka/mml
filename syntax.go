@@ -24,6 +24,8 @@ func init() {
 	primitive("case-word", caseWord)
 	primitive("default-word", defaultWord)
 	primitive("let-word", letWord)
+	primitive("if-word", ifWord)
+	primitive("else-word", elseWord)
 
 	primitive("single-eq", singleEq)
 
@@ -75,6 +77,8 @@ func init() {
 	)
 	group("function", "fn-word", "nls", "function-fact")
 
+	group("effect-function", "fn-word", "nls", "tilde", "nls", "function-fact")
+
 	group("symbol-query", "expression", "nls", "dot", "nls", "symbol-expression")
 	optional("optional-expression", "expression")
 	group("range-expression", "optional-expression", "nls", "colon", "nls", "optional-expression")
@@ -102,9 +106,30 @@ func init() {
 		"nls",
 		"close-brace",
 	)
+	group(
+		"if-conditional",
+		"if-word",
+		"nls",
+		"expression",
+		"nls",
+		"open-brace",
+		"nls",
+		"statement-sequence",
+		"nls",
+		"close-brace",
+		"nls",
+		"else-word",
+		"nls",
+		"open-brace",
+		"nls",
+		"statement-sequence",
+		"nls",
+		"close-brace",
+	)
 	union(
 		"conditional",
 		"switch-conditional",
+		"if-conditional",
 	)
 
 	union(
@@ -119,18 +144,62 @@ func init() {
 		"structure",
 		"mutable-structure",
 		"function",
+		"effect-function",
 		"query",
 		"function-call",
 		"conditional",
 	)
 
-	// group("definition", "let", "nls", "static-symbol", "nls", "optional-eq", "nls", "expression")
-
 	optional("optional-single-eq", "single-eq")
 	group("definition-item", "static-symbol", "nls", "optional-single-eq", "nls", "expression")
 	group("value-definition", "let-word", "nls", "definition-item")
 	group("mutable-value-definition", "let-word", "nls", "tilde", "nls", "definition-item")
-	union("definition", "value-definition", "mutable-value-definition")
+	union("definition-item-separator", "comma", "nl")
+	union("value-definition-sequence-item", "definition-item", "definition-item-separator")
+	sequence("value-definition-sequence", "value-definition-sequence-item")
+
+	group(
+		"value-definition-group",
+		"let-word",
+		"nls",
+		"open-paren",
+		"nls",
+		"value-definition-sequence",
+		"close-paren",
+	)
+
+	group(
+		"mutable-value-definition-group",
+		"let-word",
+		"nls",
+		"tilde",
+		"nls",
+		"open-paren",
+		"nls",
+		"value-definition-sequence",
+		"close-paren",
+	)
+
+	group("function-definition", "fn-word", "nls", "symbol-expression", "nls", "function-fact")
+	group(
+		"effect-function-definition",
+		"fn-word",
+		"nls",
+		"tilde",
+		"nls",
+		"symbol-expression",
+		"nls",
+		"function-fact",
+	)
+
+	union("definition",
+		"value-definition",
+		"mutable-value-definition",
+		"function-definition",
+		"effect-function-definition",
+		"value-definition-group",
+		"mutable-value-definition-group",
+	)
 
 	union(
 		"statement",
@@ -211,6 +280,27 @@ func init() {
 			return n
 		},
 
+		"effect-function": func(n node) node {
+			fact := n.nodes[2].nodes
+			args := fact[2].nodes
+
+			var value node
+			if len(fact) == 5 {
+				// when has varargs:
+				args = append(args, fact[2])
+				value = fact[4]
+			} else {
+				value = fact[3]
+			}
+
+			if value.typ == "function-body" {
+				value = value.nodes[1]
+			}
+
+			n.nodes = append(args, value)
+			return n
+		},
+
 		"symbol-query": func(n node) node {
 			n.nodes = append(n.nodes[:1], n.nodes[2])
 			return n
@@ -270,6 +360,10 @@ func init() {
 			return n
 		},
 
+		"if-conditional": func(n node) node {
+			return n
+		},
+
 		"definition-item": func(n node) node {
 			if len(n.nodes) == 2 {
 				return n
@@ -286,6 +380,16 @@ func init() {
 
 		"mutable-value-definition": func(n node) node {
 			n.nodes = n.nodes[2].nodes
+			return n
+		},
+
+		"function-definition": func(n node) node {
+			n.nodes = n.nodes[1:]
+			return n
+		},
+
+		"effect-function-definition": func(n node) node {
+			n.nodes = n.nodes[2:]
 			return n
 		},
 	})

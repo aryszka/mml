@@ -281,8 +281,8 @@ func (tr *tokenReader) next() (token, error) {
 		t.typ = inWord
 	case t.value == letWordString:
 		t.typ = letWord
-	case t.value == orWordString:
-		t.typ = orWord
+	// case t.value == orWordString:
+	// 	t.typ = orWord
 	case t.value == panicWordString:
 		t.typ = panicWord
 	case t.value == receiveWordString:

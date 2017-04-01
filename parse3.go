@@ -17,6 +17,8 @@ type node struct {
 type parseResult struct {
 	accepting bool
 	valid     bool
+	parsed int
+	fromCache int
 	unparsed  []token
 	node      node
 }
@@ -38,6 +40,7 @@ type generator interface {
 
 type baseParser struct {
 	p []string
+	skip int
 }
 
 type baseGenerator struct {
@@ -49,6 +52,9 @@ type primitiveParser struct {
 	accepting bool
 	token     tokenType
 	node      node
+	valid bool
+	parsed int
+	fromCache int
 }
 
 type primitiveGenerator struct {
@@ -63,6 +69,7 @@ type optionalParser struct {
 	init             node
 	excluded         []string
 	parser           parser
+	lastResult parseResult
 }
 
 type sequenceParser struct {
@@ -73,6 +80,9 @@ type sequenceParser struct {
 	currentParser parser
 	queue         []token
 	excluded      []string
+	accepting bool
+	finalResult parseResult
+	parsed int
 }
 
 type groupParser struct {
@@ -85,6 +95,9 @@ type groupParser struct {
 	excluded      []string
 	accepted      []token
 	itemAccepted  []token
+	accepting bool
+	finalResult parseResult
+	parsed int
 }
 
 type unionParser struct {
@@ -98,6 +111,9 @@ type unionParser struct {
 	excluded         []string
 	init             node
 	hasAccepted      bool
+	accepting bool
+	finalResult parseResult
+	parsed int
 }
 
 type optionalGenerator struct {
@@ -120,12 +136,76 @@ type unionGenerator struct {
 	union []string
 }
 
+type cacheItem struct {
+	node node
+	length int
+}
+
+type tokenCacheItem struct {
+	match map[string]cacheItem
+	noMatch map[string]bool
+}
+
+type tokenCache struct {
+	tokens map[token]tokenCacheItem
+}
+
 var (
 	isSep      func(node) bool
 	postParse  = make(map[string]func(node) node)
 	generators = make(map[string]generator)
 	zeroNode   = node{}
+	cache = tokenCache{tokens: make(map[token]tokenCacheItem)}
 )
+
+func (c tokenCache) getMatch(t token, name string) (ci cacheItem, ok bool) {
+	var tci tokenCacheItem
+	tci, ok = c.tokens[t]
+	if !ok {
+		return
+	}
+
+	ci, ok = tci.match[name]
+	return
+}
+
+func (c tokenCache) hasNoMatch(t token, name string) bool {
+	tci, ok := c.tokens[t]
+	if !ok {
+		return false
+	}
+
+	return tci.noMatch[name]
+}
+
+func (c tokenCache) setMatch(t token, name string, n node, length int) {
+	tci, ok := c.tokens[t]
+	if !ok {
+		c.tokens[t] = tci
+	}
+
+	if tci.match == nil {
+		tci.match = make(map[string]cacheItem)
+	}
+
+	tci.match[name] = cacheItem{
+		node: n,
+		length: length,
+	}
+}
+
+func (c tokenCache) setNoMatch(t token, name string) {
+	tci, ok := c.tokens[t]
+	if !ok {
+		c.tokens[t] = tci
+	}
+
+	if tci.noMatch == nil {
+		tci.noMatch = make(map[string]bool)
+	}
+
+	tci.noMatch[name] = true
+}
 
 func stringsContain(strs []string, str string) bool {
 	for _, s := range strs {
@@ -197,7 +277,7 @@ func newPrimitiveParser(path []string, name string, token tokenType, init node) 
 		p.accepting = true
 		p.token = token
 	} else {
-		// p.out("initialized with node")
+		p.out("initialized with node")
 		p.node = init
 	}
 
@@ -205,21 +285,54 @@ func newPrimitiveParser(path []string, name string, token tokenType, init node) 
 }
 
 func (p *primitiveParser) parse(t token) parseResult {
-	// p.out("parse", t)
-	if !p.accepting || t.typ != p.token {
-		// p.out("not accepting", p.node.typ == p.name())
+	p.out("parse", t)
+
+	if !p.accepting {
 		return parseResult{
-			accepting: false,
-			valid:     p.node.typ == p.name(),
-			unparsed:  []token{t},
-			node:      p.node,
+			valid: p.valid,
+			unparsed: []token{t},
+			node: p.node,
+			parsed: p.parsed,
+			fromCache: p.fromCache,
 		}
 	}
 
-	// p.out("accepting")
-	p.node = node{typ: p.name(), token: t}
 	p.accepting = false
-	return parseResult{accepting: true}
+
+	if cache.hasNoMatch(t, p.name()) {
+		return parseResult{
+			unparsed: []token{t},
+		}
+	}
+
+	if ci, ok := cache.getMatch(t, p.name()); ok {
+		p.valid = true
+		p.node = ci.node
+		p.fromCache = ci.length
+		return parseResult{
+			valid: true,
+			unparsed: []token{t},
+			node: ci.node,
+			fromCache: ci.length,
+		}
+	}
+
+	if t.typ != p.token {
+		// cache.setNoMatch(t, p.name())
+		return parseResult{
+			unparsed: []token{t},
+		}
+	}
+
+	p.valid = true
+	p.node = node{typ: p.name(), token: t}
+	p.parsed = 1
+	// cache.setMatch(t, p.name(), p.node, 1)
+	return parseResult{
+		valid: true,
+		node: p.node,
+		parsed: 1,
+	}
 }
 
 func primitive(name string, token tokenType) {
@@ -257,21 +370,29 @@ func newOptionalParser(path []string, name string, optional generator, init node
 	p.init = init
 	p.excluded = append(excluded, name)
 	p.p = append(path, name)
+	p.lastResult = parseResult{accepting: true}
 	return p
 }
 
 func (p *optionalParser) parse(t token) parseResult {
-	// p.out("parsing", t)
+	p.out("parsing", t)
+
+	if !p.lastResult.accepting {
+		r := p.lastResult
+		r.unparsed = append(r.unparsed, t)
+		return r
+	}
+
 	if p.parser == nil {
 		p.parser = p.optional.create(p.path(), p.init, p.excluded)
 	}
 
-	result := p.parser.parse(t)
-	if !result.accepting {
-		result.valid = true
+	p.lastResult = p.parser.parse(t)
+	if !p.lastResult.accepting {
+		p.lastResult.valid = true
 	}
 
-	return result
+	return p.lastResult
 }
 
 func optional(name, optional string) {
@@ -311,11 +432,22 @@ func newSequenceParser(path []string, name string, itemGenerator generator, init
 	p.itemGenerator = itemGenerator
 	p.p = append(path, name)
 	p.excluded = excluded
+	p.accepting = true
 	return p
 }
 
 func (p *sequenceParser) parse(t token) parseResult {
-	// p.out("parsing", t)
+	p.out("parsing", t)
+
+	if !p.accepting {
+		p.out("cached result")
+		r := p.finalResult
+		r.unparsed = append(r.unparsed, t)
+		return r
+	}
+
+	p.out("finding parser")
+
 	if p.currentParser == nil {
 		if len(p.node.nodes) == 0 {
 			p.currentParser = p.itemGenerator.create(p.path(), p.init, p.excluded)
@@ -328,45 +460,56 @@ func (p *sequenceParser) parse(t token) parseResult {
 	if itemResult.accepting {
 		if len(p.queue) > 0 {
 			t, p.queue = p.queue[0], p.queue[1:]
-			// p.out("accepting from queue")
+			p.out("accepting from queue")
 			return p.parse(t)
 		}
 
-		// p.out("accepting")
+		p.out("accepting")
 		return parseResult{accepting: true}
 	}
 
-	// p.out("item parse done")
+	p.out("item parse done")
 
 	if !itemResult.valid {
-		// p.out("invalid")
-		return parseResult{
+		p.out("invalid")
+
+		p.finalResult = parseResult{
 			valid: true,
 			node:  p.node,
 			unparsed: append(
 				itemResult.unparsed,
 				p.queue...,
 			),
+			parsed: p.parsed,
 		}
+		p.accepting = false
+		return p.finalResult
 	}
 
-	// p.out("valid")
+	p.out("valid")
 
 	if !itemResult.node.zero() {
-		// p.out("has node")
+		p.out("has node")
 		if len(p.node.nodes) == 0 {
 			p.node.token = itemResult.node.token
 		}
 
-		// p.out("appending node", itemResult.node.typ)
+		p.out("appending node", itemResult.node.typ)
 		p.node.nodes = append(p.node.nodes, itemResult.node)
 	}
 
 	p.currentParser = nil
+	p.parsed += itemResult.parsed
 	p.queue = append(itemResult.unparsed, p.queue...)
+	if len(p.queue) == 0 {
+		return parseResult{
+			accepting: true,
+		}
+	}
+
 	t, p.queue = p.queue[0], p.queue[1:]
 
-	// p.out("next from queue")
+	p.out("next from queue")
 	return p.parse(t)
 }
 
@@ -407,24 +550,36 @@ func newGroupParser(path []string, name string, generators []generator, init nod
 	p.generators = generators
 	p.p = append(path, name)
 	p.excluded = excluded
+	p.accepting = true
 	if !p.init.zero() {
-		// p.out("initialized with node")
+		p.out("initialized with node")
 	}
 
 	return p
 }
 
 func (p *groupParser) parse(t token) parseResult {
-	// p.out("parsing", t, p.queue)
+	p.out("parsing", t, p.queue)
+
+	if !p.accepting {
+		r := p.finalResult
+		r.unparsed = append(r.unparsed, t)
+		return r
+	}
+
 	if p.currentParser == nil {
 		if len(p.generators) == 0 {
-			// p.out("done")
-			// p.out("returning", append([]token{t}, p.queue...))
-			return parseResult{
+			p.out("done")
+			p.out("returning", append([]token{t}, p.queue...))
+			p.finalResult = parseResult{
 				valid:    true,
 				node:     p.node,
 				unparsed: append([]token{t}, p.queue...),
+				parsed: p.parsed,
 			}
+
+			p.accepting = false
+			return p.finalResult
 		}
 
 		if len(p.node.nodes) == 0 {
@@ -441,17 +596,17 @@ func (p *groupParser) parse(t token) parseResult {
 	}
 
 	itemResult := p.currentParser.parse(t)
+	p.itemAccepted = append(p.itemAccepted, t) // rename to item fed
 
 	if itemResult.accepting {
-		p.itemAccepted = append(p.itemAccepted, t)
 		if len(p.queue) > 0 {
 			t, p.queue = p.queue[0], p.queue[1:]
-			// p.out("accepting from queue")
-			// p.out("same item, accepted", len(p.itemAccepted), len(p.accepted))
+			p.out("accepting from queue")
+			p.out("same item, accepted", len(p.itemAccepted), len(p.accepted))
 			return p.parse(t)
 		}
 
-		// p.out("accepting")
+		p.out("accepting")
 		return parseResult{accepting: true}
 	}
 
@@ -460,24 +615,24 @@ func (p *groupParser) parse(t token) parseResult {
 		if len(p.node.nodes) == 0 && !p.init.zero() &&
 			generators[p.currentParser.name()].member(p.init.typ) {
 
-			// p.out("init item as node")
+			p.out("init item as node")
 			p.node.token = p.init.token
 			p.node.nodes = append(p.node.nodes, p.init)
 			p.currentParser = nil
 			p.queue = append(itemResult.unparsed, p.queue...)
 			t, p.queue = p.queue[0], p.queue[1:]
-			// p.out("invalid, accepted", len(p.itemAccepted), len(p.accepted))
+			p.out("invalid, accepted", len(p.itemAccepted), len(p.accepted))
 			return p.parse(t)
 		}
 
-		// p.out("invalid")
-		// p.out(
-		// 	"returning rather",
-		// 	p.accepted,
-		// 	itemResult.unparsed,
-		// 	p.queue,
-		// )
-		return parseResult{
+		p.out("invalid")
+		p.out(
+			"returning rather",
+			p.accepted,
+			itemResult.unparsed,
+			p.queue,
+		)
+		p.finalResult = parseResult{
 			unparsed: append(
 				p.accepted,
 				append(
@@ -486,6 +641,8 @@ func (p *groupParser) parse(t token) parseResult {
 				)...,
 			),
 		}
+		p.accepting = false
+		return p.finalResult
 	}
 
 	if !itemResult.node.zero() {
@@ -496,24 +653,32 @@ func (p *groupParser) parse(t token) parseResult {
 		p.node.nodes = append(p.node.nodes, itemResult.node)
 	}
 
-	p.itemAccepted = p.itemAccepted[0 : len(p.itemAccepted)-len(itemResult.unparsed)+1]
+	// p.itemAccepted = p.itemAccepted[0 : len(p.itemAccepted)-len(itemResult.unparsed)]
+	// println(len(p.itemAccepted), itemResult.parsed, itemResult.node.token.String(), p.name())
+	p.itemAccepted = p.itemAccepted[:itemResult.parsed]
+	p.parsed += len(p.itemAccepted)
 
 	p.currentParser = nil
-	// p.out(
-	// 	"adding to accepted",
-	// 	p.accepted,
-	// 	p.itemAccepted,
-	// 	itemResult.valid,
-	// 	itemResult.node.zero(),
-	// 	itemResult.unparsed,
-	// )
+	p.out(
+		"adding to accepted",
+		p.accepted,
+		p.itemAccepted,
+		itemResult.valid,
+		itemResult.node.zero(),
+		itemResult.unparsed,
+	)
 	p.accepted = append(p.accepted, p.itemAccepted...)
 	p.itemAccepted = nil
+	// println(len(p.queue), len(itemResult.unparsed), itemResult.valid, itemResult.parsed)
 	p.queue = append(itemResult.unparsed, p.queue...)
+	if len(p.queue) == 0 {
+		return parseResult{accepting: true}
+	}
+
 	t, p.queue = p.queue[0], p.queue[1:]
 
-	// p.out("next from queue")
-	// p.out("valid, accepted", len(p.itemAccepted), len(p.accepted))
+	p.out("next from queue")
+	p.out("valid, accepted", len(p.itemAccepted), len(p.accepted))
 	return p.parse(t)
 }
 
@@ -573,36 +738,47 @@ func newUnionParser(path []string, name string, init node, generators []generato
 	p.generators = generators
 	p.activeGenerators = generators
 	p.excluded = append(excluded, name)
+	p.accepting = true
 
 	gs := make([]string, len(p.generators))
 	for i, gi := range p.generators {
 		gs[i] = gi.name()
 	}
 
-	// p.out("created", name, gs, p.excluded)
+	p.out("created", name, gs, p.excluded)
 	return p
 }
 
 func (p *unionParser) parse(t token) parseResult {
-	// p.out("parsing", t)
+	p.out("parsing", t)
+
+	if !p.accepting {
+		r := p.finalResult
+		r.unparsed = append(r.unparsed, t)
+		return r
+	}
+
 	if p.currentParser == nil {
-		// p.out("excluded", p.excluded)
+		p.out("excluded", p.excluded)
 		for {
 			if len(p.activeGenerators) == 0 {
-				// p.out("finished union, valid:", p.valid)
-				return parseResult{
+				p.out("finished union, valid:", p.valid)
+				p.finalResult = parseResult{
 					node:  p.node,
 					valid: p.valid,
 					unparsed: append(
 						[]token{t},
 						p.queue...,
 					),
+					parsed: p.parsed,
 				}
+
+				return p.finalResult
 			}
 
 			var g generator
 			g, p.activeGenerators = p.activeGenerators[0], p.activeGenerators[1:]
-			// p.out("looking for generator", g.name())
+			p.out("looking for generator", g.name())
 			if g.canCreate(p.node, p.excluded) {
 				p.currentParser = g.create(p.path(), p.node, p.excluded)
 				break
@@ -610,60 +786,61 @@ func (p *unionParser) parse(t token) parseResult {
 		}
 	}
 
-	// p.out("call to parse")
+	p.out("call to parse")
 	elementResult := p.currentParser.parse(t)
 
 	if elementResult.accepting {
-		p.hasAccepted = true
-		// p.out("accepting")
+		p.out("accepting")
 		if len(p.queue) > 0 {
-			// p.out("from queue", p.queue)
+			p.out("from queue", p.queue)
 			t, p.queue = p.queue[0], p.queue[1:]
-			// p.out("queue set after accept", p.queue)
+			p.out("queue set after accept", p.queue)
 			return p.parse(t)
 		}
 
 		return parseResult{accepting: true}
 	}
 
-	// p.out("element parse done")
+	p.out("element parse done")
 
 	p.currentParser = nil
 
 	if !elementResult.valid {
-		// p.out("invalid union parse", p.valid, elementResult.unparsed, p.queue)
+		p.out("invalid union parse", p.valid, elementResult.unparsed, p.queue)
 		p.queue = append(elementResult.unparsed, p.queue...)
-		// p.out("queue set after invalid", p.queue)
+		p.out("queue set after invalid", p.queue)
 		if len(p.queue) > 0 {
 			t, p.queue = p.queue[0], p.queue[1:]
-			// p.out("queue set after taken on invalid", p.queue)
+			p.out("queue set after taken on invalid", p.queue)
 			return p.parse(t)
 		}
 
 		return parseResult{accepting: true}
 	}
 
-	// p.out("valid")
+	p.out("valid")
+	p.hasAccepted = elementResult.parsed > 0
 
 	if !p.valid || p.hasAccepted {
-		// p.out("setting valid")
+		p.out("setting valid")
 		p.valid = true
 		p.node = elementResult.node
+		p.parsed = elementResult.parsed
 		p.activeGenerators = p.generators
 		p.hasAccepted = false
 	}
 
-	// p.out("a valid union parse", p.valid, elementResult.unparsed, p.queue)
+	p.out("a valid union parse", p.valid, elementResult.unparsed, p.queue)
 	p.queue = append(elementResult.unparsed, p.queue...)
-	// p.out("queue set after valid", p.queue)
+	p.out("queue set after valid", p.queue)
 	if len(p.queue) == 0 {
-		// p.out("next from outside")
+		p.out("next from outside")
 		return parseResult{accepting: true}
 	}
 
 	t, p.queue = p.queue[0], p.queue[1:]
-	// p.out("queue set after taken on valid", p.queue)
-	// p.out("next from queue")
+	p.out("queue set after taken on valid", p.queue)
+	p.out("next from queue")
 	return p.parse(t)
 }
 
@@ -780,7 +957,7 @@ func parse(p generator, r *tokenReader) (node, error) {
 		}
 
 		if err == io.EOF {
-			// gi.out("accepting after eof", token{})
+			gi.out("accepting after eof", token{})
 			result := gi.parse(token{})
 			if len(result.unparsed) != 1 && result.unparsed[0].typ != noToken {
 				// println("unparsed length", len(result.unparsed))
@@ -801,14 +978,14 @@ func parse(p generator, r *tokenReader) (node, error) {
 		}
 
 		// println("root accepting", t.value, t.value == "", len(t.value))
-		// gi.out("accepting", t, t.value == "")
+		gi.out("accepting in root", t, t.value == "")
 		result := gi.parse(t)
 		if len(result.unparsed) > 0 {
 			// println("unparsed", len(result.unparsed), t.value)
 			// for _, up := range result.unparsed {
 			// 	println(up.value)
 			// }
-			return node{}, fmt.Errorf("unexpected token: %v", t)
+			return node{}, fmt.Errorf("unexpected token:%d:%d: %v", t.line, t.column, t)
 		}
 	}
 }
