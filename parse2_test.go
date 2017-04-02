@@ -435,7 +435,7 @@ func TestParse(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg:  "function",
+		msg:  "function with sequence",
 		code: "fn (a, b, ...c) { a(b); c }",
 		nodes: []node{{
 			typ:   "function",
@@ -549,153 +549,154 @@ func TestParse(t *testing.T) {
 				}},
 			}},
 		}},
-	}, {
-		msg:  "function call sequence",
-		code: "f(a) f(b)g(a)",
-		nodes: []node{{
-			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
-				typ:   "symbol",
-				token: token{value: "f"},
-			}, {
-				typ:   "symbol",
-				token: token{value: "a"},
-			}},
-		}, {
-			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
-				typ:   "symbol",
-				token: token{value: "f"},
-			}, {
-				typ:   "symbol",
-				token: token{value: "b"},
-			}},
-		}, {
-			typ:   "function-call",
-			token: token{value: "g"},
-			nodes: []node{{
-				typ:   "symbol",
-				token: token{value: "g"},
-			}, {
-				typ:   "symbol",
-				token: token{value: "a"},
-			}},
-		}},
-	}, {
-		msg:  "function call with multiple arguments",
-		code: "f(...a, b, ...c)",
-		nodes: []node{{
-			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
-				typ:   "symbol",
-				token: token{value: "f"},
-			}, {
-				typ:   "spread-expression",
-				token: token{value: "."},
-				nodes: []node{{
-					typ:   "symbol",
-					token: token{value: "a"},
-				}},
-			}, {
-				typ:   "symbol",
-				token: token{value: "b"},
-			}, {
-				typ:   "spread-expression",
-				token: token{value: "."},
-				nodes: []node{{
-					typ:   "symbol",
-					token: token{value: "c"},
-				}},
-			}},
-		}},
-	}, {
-		msg:  "switch conditional with default only",
-		code: "switch{default: 42}",
-		nodes: []node{{
-			typ:   "switch-conditional",
-			token: token{value: "switch"},
-			nodes: []node{{
-				typ:   "default-clause",
-				token: token{value: "default"},
-				nodes: []node{{
-					typ:   "int",
-					token: token{value: "42"},
-				}},
-			}},
-		}},
-	}, {
-		msg: "switch conditional with cases",
-		code: `
-			switch {
-				case a: b
-				default: x
-				case c: d
-			}`,
-		nodes: []node{{
-			typ:   "switch-conditional",
-			token: token{value: "switch"},
-			nodes: []node{{
-				typ:   "switch-clause",
-				token: token{value: "case"},
-				nodes: []node{{
-					typ:   "symbol",
-					token: token{value: "a"},
-				}, {
-					typ:   "symbol",
-					token: token{value: "b"},
-				}},
-			}, {
-				typ:   "default-clause",
-				token: token{value: "default"},
-				nodes: []node{{
-					typ:   "symbol",
-					token: token{value: "x"},
-				}},
-			}, {
-				typ:   "switch-clause",
-				token: token{value: "case"},
-				nodes: []node{{
-					typ:   "symbol",
-					token: token{value: "c"},
-				}, {
-					typ:   "symbol",
-					token: token{value: "d"},
-				}},
-			}},
-		}},
-	}, {
-		msg:  "definition item",
-		code: "let a b",
-		nodes: []node{{
-			typ:   "value-definition",
-			token: token{value: "let"},
-			nodes: []node{{
-				typ:   "symbol",
-				token: token{value: "a"},
-			}, {
-				typ:   "symbol",
-				token: token{value: "b"},
-			}},
-		}},
-	}, {
-		msg:  "mutable definition item",
-		code: "let ~ a b",
-		nodes: []node{{
-			typ:   "mutable-value-definition",
-			token: token{value: "let"},
-			nodes: []node{{
-				typ:   "symbol",
-				token: token{value: "a"},
-			}, {
-				typ:   "symbol",
-				token: token{value: "b"},
-			}},
-		}},
+	// }, {
+	// 	msg:  "function call sequence",
+	// 	code: "f(a) f(b)g(a)",
+	// 	nodes: []node{{
+	// 		typ:   "function-call",
+	// 		token: token{value: "f"},
+	// 		nodes: []node{{
+	// 			typ:   "symbol",
+	// 			token: token{value: "f"},
+	// 		}, {
+	// 			typ:   "symbol",
+	// 			token: token{value: "a"},
+	// 		}},
+	// 	}, {
+	// 		typ:   "function-call",
+	// 		token: token{value: "f"},
+	// 		nodes: []node{{
+	// 			typ:   "symbol",
+	// 			token: token{value: "f"},
+	// 		}, {
+	// 			typ:   "symbol",
+	// 			token: token{value: "b"},
+	// 		}},
+	// 	}, {
+	// 		typ:   "function-call",
+	// 		token: token{value: "g"},
+	// 		nodes: []node{{
+	// 			typ:   "symbol",
+	// 			token: token{value: "g"},
+	// 		}, {
+	// 			typ:   "symbol",
+	// 			token: token{value: "a"},
+	// 		}},
+	// 	}},
+	// }, {
+	// 	msg:  "function call with multiple arguments",
+	// 	code: "f(...a, b, ...c)",
+	// 	nodes: []node{{
+	// 		typ:   "function-call",
+	// 		token: token{value: "f"},
+	// 		nodes: []node{{
+	// 			typ:   "symbol",
+	// 			token: token{value: "f"},
+	// 		}, {
+	// 			typ:   "spread-expression",
+	// 			token: token{value: "."},
+	// 			nodes: []node{{
+	// 				typ:   "symbol",
+	// 				token: token{value: "a"},
+	// 			}},
+	// 		}, {
+	// 			typ:   "symbol",
+	// 			token: token{value: "b"},
+	// 		}, {
+	// 			typ:   "spread-expression",
+	// 			token: token{value: "."},
+	// 			nodes: []node{{
+	// 				typ:   "symbol",
+	// 				token: token{value: "c"},
+	// 			}},
+	// 		}},
+	// 	}},
+	// }, {
+	// 	msg:  "switch conditional with default only",
+	// 	code: "switch{default: 42}",
+	// 	nodes: []node{{
+	// 		typ:   "switch-conditional",
+	// 		token: token{value: "switch"},
+	// 		nodes: []node{{
+	// 			typ:   "default-clause",
+	// 			token: token{value: "default"},
+	// 			nodes: []node{{
+	// 				typ:   "int",
+	// 				token: token{value: "42"},
+	// 			}},
+	// 		}},
+	// 	}},
+	// }, {
+	// 	msg: "switch conditional with cases",
+	// 	code: `
+	// 		switch {
+	// 			case a: b
+	// 			default: x
+	// 			case c: d
+	// 		}`,
+	// 	nodes: []node{{
+	// 		typ:   "switch-conditional",
+	// 		token: token{value: "switch"},
+	// 		nodes: []node{{
+	// 			typ:   "switch-clause",
+	// 			token: token{value: "case"},
+	// 			nodes: []node{{
+	// 				typ:   "symbol",
+	// 				token: token{value: "a"},
+	// 			}, {
+	// 				typ:   "symbol",
+	// 				token: token{value: "b"},
+	// 			}},
+	// 		}, {
+	// 			typ:   "default-clause",
+	// 			token: token{value: "default"},
+	// 			nodes: []node{{
+	// 				typ:   "symbol",
+	// 				token: token{value: "x"},
+	// 			}},
+	// 		}, {
+	// 			typ:   "switch-clause",
+	// 			token: token{value: "case"},
+	// 			nodes: []node{{
+	// 				typ:   "symbol",
+	// 				token: token{value: "c"},
+	// 			}, {
+	// 				typ:   "symbol",
+	// 				token: token{value: "d"},
+	// 			}},
+	// 		}},
+	// 	}},
+	// }, {
+	// 	msg:  "definition",
+	// 	code: "let a b",
+	// 	nodes: []node{{
+	// 		typ:   "value-definition",
+	// 		token: token{value: "let"},
+	// 		nodes: []node{{
+	// 			typ:   "symbol",
+	// 			token: token{value: "a"},
+	// 		}, {
+	// 			typ:   "symbol",
+	// 			token: token{value: "b"},
+	// 		}},
+	// 	}},
+	// }, {
+	// 	msg:  "mutable definition",
+	// 	code: "let ~ a b",
+	// 	nodes: []node{{
+	// 		typ:   "mutable-value-definition",
+	// 		token: token{value: "let"},
+	// 		nodes: []node{{
+	// 			typ:   "symbol",
+	// 			token: token{value: "a"},
+	// 		}, {
+	// 			typ:   "symbol",
+	// 			token: token{value: "b"},
+	// 		}},
+	// 	}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
+			cache = tokenCache{tokens: make(map[token]tokenCacheItem)}
 			r := newTokenReader(bytes.NewBufferString(ti.code), "<test>")
 			n, err := parse(generators["document"], r)
 			if err == nil && ti.fail {

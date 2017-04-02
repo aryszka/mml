@@ -5,6 +5,7 @@ Functional programming for outsiders.
 A programming language for outsiders.
 An effort to rebalance precision and epxressiveness.
 A functional programming language without elitism.
+An alternative frontend for Go.
 
 MML styleguide:
 
@@ -21,3 +22,7 @@ Primary use cases:
 - microservices glue code
 - personal computing, e.g. rich calculators, or ad-hoc log analytics
 - simple tooling frontends
+
+Tail recursion:
+- return the next function and its args
+- unless there is a recover or defer in the scope
