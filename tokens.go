@@ -92,7 +92,7 @@ const (
 	boolToken
 	symbolToken
 
-	eofToken
+	eofTokenType
 )
 
 const (
@@ -227,7 +227,7 @@ func (tr *tokenReader) next() (token, error) {
 	if st == scanner.EOF {
 		tr.err = io.EOF
 		return token{
-			typ:      eofToken,
+			typ:      eofTokenType, // this is not needed in this formType
 			value:    "eof",
 			fileName: tr.fileName,
 			line:     tr.scanner.Line,

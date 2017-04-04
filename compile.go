@@ -757,7 +757,7 @@ func compileHead(w io.Writer) error {
 func Compile(in io.Reader, out io.Writer) error {
 	r := newTokenReader(in, "test")
 
-	n, err := parse(generators["document"], r)
+	n, err := parse(traceOff, generators["document"], r)
 	if err != nil {
 		return err
 	}
