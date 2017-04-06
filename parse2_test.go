@@ -4,34 +4,34 @@ package mml
 // 	"bytes"
 // 	"testing"
 // )
-// 
+//
 // func compareNode(t *testing.T, a, b node) {
 // 	if a.typ != b.typ {
 // 		t.Fatal("invalid node type", a.typ, b.typ)
 // 	}
-// 
+//
 // 	if a.token.value != b.token.value {
 // 		t.Fatal("invalid token value", a.token.value, b.token.value)
 // 	}
-// 
+//
 // 	compareNodes(t, a.nodes, b.nodes)
 // }
-// 
+//
 // func compareNodes(t *testing.T, a, b []node) {
 // 	if len(a) != len(b) {
 // 		for _, ai := range a {
 // 			t.Log(ai)
 // 		}
-// 
+//
 // 		t.Fatal("invalid node length", len(a), len(b))
 // 		return
 // 	}
-// 
+//
 // 	for i, ai := range a {
 // 		compareNode(t, ai, b[i])
 // 	}
 // }
-// 
+//
 // func TestParse(t *testing.T) {
 // 	for _, ti := range []struct {
 // 		msg   string
@@ -706,7 +706,7 @@ package mml
 // 			} else if err != nil {
 // 				return
 // 			}
-// 
+//
 // 			compareNodes(t, n.nodes, ti.nodes)
 // 		})
 // 	}

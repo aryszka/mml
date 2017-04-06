@@ -159,11 +159,11 @@
 package mml
 
 import (
-	"fmt"
-	"strings"
-	"log"
-	"io"
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	"strings"
 )
 
 type node struct {
@@ -180,10 +180,10 @@ type generator interface {
 
 type parseResult struct {
 	accepting bool
-	valid bool
-	unparsed []token
+	valid     bool
+	unparsed  []token
 	fromCache int
-	node node
+	node      node
 }
 
 type parser interface {
@@ -206,22 +206,37 @@ const (
 )
 
 type trace struct {
-	level traceLevel
-	path []string
+	level      traceLevel
+	path       []string
 	pathString string
 }
 
+type baseParser struct {
+	trace         trace
+	nodeType      string
+	init          node
+	excludedTypes []string
+	done          bool
+}
+
+type collectionParser struct {
+	baseParser
+	node           node
+	started        bool
+	queue          []token
+	skip           int
+	parser         parser
+	firstGenerator generator
+}
+
 type primitiveGenerator struct {
-	nodeType string
+	nodeType  string
 	tokenType tokenType
 }
 
 type primitiveParser struct {
-	trace trace
-	nodeType string
+	baseParser
 	token tokenType
-	init node
-	done bool
 }
 
 type optionalGenerator struct {
@@ -230,13 +245,9 @@ type optionalGenerator struct {
 }
 
 type optionalParser struct {
-	trace trace
-	nodeType string
-	optional generator
-	init node
-	excludedTypes []string
+	baseParser
+	optional       generator
 	optionalParser parser
-	done bool
 }
 
 type sequenceGenerator struct {
@@ -245,34 +256,38 @@ type sequenceGenerator struct {
 }
 
 type sequenceParser struct {
-	trace trace
-	nodeType string
+	collectionParser
 	generator generator
-	init node
-	excludedTypes []string
-	done bool
-	node node
-	started bool
-	queue []token
-	skip int
-	parser parser
+}
+
+type groupGenerator struct {
+	nodeType  string
+	itemTypes []string
+}
+
+type groupParser struct {
+	collectionParser
+	items     []generator
+	firstItem generator
 }
 
 var (
-	generators = make(map[string]generator)
-	isSep      func(node) bool
-	postParse  = make(map[string]func(node) node)
-	cache      = make(tokenCache)
-	eofToken = token{}
-	zeroNode = node{}
+	generators              = make(map[string]generator)
+	isSep                   func(node) bool
+	postParse               = make(map[string]func(node) node)
+	cache                   = make(tokenCache)
+	eofToken                = token{}
+	zeroNode                = node{}
 	errInvalidRootGenerator = errors.New("invalid root generator")
-	errUnexpectedEOF = errors.New("unexpected EOF")
+	errUnexpectedEOF        = errors.New("unexpected EOF")
 )
 
-func stringsContain(strs []string, str string) bool {
-	for _, s := range strs {
-		if s == str {
-			return true
+func stringsContain(strc []string, stri ...string) bool {
+	for _, sc := range strc {
+		for _, si := range stri {
+			if si == sc {
+				return true
+			}
 		}
 	}
 
@@ -321,16 +336,23 @@ func newTrace(l traceLevel) trace {
 func (t trace) extend(nodeType string) trace {
 	p := append(t.path, nodeType)
 	return trace{
-		level: t.level,
-		path: p,
+		level:      t.level,
+		path:       p,
 		pathString: strings.Join(p, "/"),
 	}
 }
 
 func (t trace) outLevel(l traceLevel, a ...interface{}) {
-	if l <= t.level {
-		log.Println(append([]interface{}{t.pathString}, a...)...)
+	if l > t.level {
+		return
 	}
+
+	if t.pathString == "" {
+		log.Println(a...)
+		return
+	}
+
+	log.Println(append([]interface{}{t.pathString}, a...)...)
 }
 
 func (t trace) out(a ...interface{}) {
@@ -345,21 +367,25 @@ func (n node) zero() bool {
 	return n.typ == ""
 }
 
-func (n node) length() int {
+func (n node) tokens() []token {
 	if n.zero() {
-		return 0
+		return nil
 	}
 
 	if len(n.nodes) == 0 {
-		return 1
+		return []token{n.token}
 	}
 
-	var l int
+	var t []token
 	for _, ni := range n.nodes {
-		l += ni.length()
+		t = append(t, ni.tokens()...)
 	}
 
-	return l
+	return t
+}
+
+func (n node) length() int {
+	return len(n.tokens())
 }
 
 func register(nodeType string, g generator) generator {
@@ -387,13 +413,81 @@ func unexpectedResult(nodeType string) error {
 	return fmt.Errorf("unexpected parse result: %s", nodeType)
 }
 
+func groupWithoutItems(nodeType string) error {
+	return fmt.Errorf("group without items: %s", nodeType)
+}
+
 func primitive(nodeType string, token tokenType) generator {
-	g := &primitiveGenerator{
-		nodeType: nodeType,
+	return register(nodeType, &primitiveGenerator{
+		nodeType:  nodeType,
 		tokenType: token,
+	})
+}
+
+func (p *baseParser) checkDone(currentToken token) {
+	if p.done {
+		panic(unexpectedToken(p.nodeType, currentToken))
+	}
+}
+
+func (p *baseParser) cacheToken(t token) token {
+	if p.init.zero() {
+		return t
 	}
 
-	return register(nodeType, g)
+	return p.init.token
+}
+
+func (p *collectionParser) checkSkip() (parseResult, bool) {
+	if p.skip == 0 {
+		return parseResult{}, false
+	}
+
+	p.skip--
+	return parseResult{accepting: true}, true
+}
+
+func (p *collectionParser) appendNode(n node) {
+	p.node.nodes = append(p.node.nodes, n)
+	if len(p.node.nodes) == 1 {
+		p.node.token = n.token
+	}
+}
+
+func (p *collectionParser) appendInitIfMember() (bool, error) {
+	if p.init.zero() {
+		return false, nil
+	}
+
+	if m, err := p.firstGenerator.member(p.init.typ); !m || err != nil {
+		return m, err
+	}
+
+	p.appendNode(p.init)
+	return true, nil
+}
+
+func (p *collectionParser) appendParsedItem(n node, fromCache int) {
+	p.appendNode(n)
+	if fromCache < len(p.queue) {
+		p.queue = p.queue[fromCache:]
+	} else {
+		p.queue, p.skip = nil, fromCache-len(p.queue)
+	}
+}
+
+func (p *collectionParser) parseNextToken(parser parser) (parseResult, error) {
+	if len(p.queue) > 0 {
+		var t token
+		t, p.queue = p.queue[0], p.queue[1:]
+		return parser.parse(t)
+	}
+
+	return parseResult{accepting: true}, nil
+}
+
+func (p *collectionParser) error(currentToken token, err error) (parseResult, error) {
+	return parseResult{unparsed: append([]token{currentToken}, p.queue...)}, err
 }
 
 func (g *primitiveGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
@@ -418,26 +512,26 @@ func (g *primitiveGenerator) member(nodeType string) (bool, error) {
 
 func newPrimitiveParser(t trace, nodeType string, token tokenType, init node) *primitiveParser {
 	return &primitiveParser{
-		trace: t,
-		nodeType: nodeType,
+		baseParser: baseParser{
+			trace:    t,
+			nodeType: nodeType,
+			init:     init,
+		},
 		token: token,
-		init: init,
 	}
 }
 
 func (p *primitiveParser) parse(t token) (parseResult, error) {
 	p.trace.out("parsing", t)
-	if p.done {
-		panic(unexpectedToken(p.nodeType, t))
-	}
 
+	p.checkDone(t)
 	p.done = true
 
 	if !p.init.zero() {
 		p.trace.out("valid from init")
 		return parseResult{
 			valid: true,
-			node: p.init,
+			node:  p.init,
 		}, nil
 	}
 
@@ -452,17 +546,15 @@ func (p *primitiveParser) parse(t token) (parseResult, error) {
 	n := node{typ: p.nodeType, token: t}
 	return parseResult{
 		valid: true,
-		node: n,
+		node:  n,
 	}, nil
 }
 
 func optional(nodeType, optionalType string) generator {
-	g := &optionalGenerator{
+	return register(nodeType, &optionalGenerator{
 		nodeType: nodeType,
 		optional: optionalType,
-	}
-
-	return register(nodeType, g)
+	})
 }
 
 func (g *optionalGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
@@ -514,19 +606,19 @@ func (g *optionalGenerator) member(nodeType string) (bool, error) {
 
 func newOptionalParser(t trace, nodeType string, optional generator, init node, excludedTypes []string) parser {
 	return &optionalParser{
-		trace: t,
-		nodeType: nodeType,
+		baseParser: baseParser{
+			trace:         t,
+			nodeType:      nodeType,
+			init:          init,
+			excludedTypes: append(excludedTypes, nodeType),
+		},
 		optional: optional,
-		init: init,
-		excludedTypes: append(excludedTypes, nodeType),
 	}
 }
 
 func (p *optionalParser) parse(t token) (parseResult, error) {
 	p.trace.out("parsing", t)
-	if p.done {
-		panic(unexpectedToken(p.nodeType, t))
-	}
+	p.checkDone(t)
 
 	if p.optionalParser == nil {
 		if ok, err := p.optional.canCreate(p.init, p.excludedTypes); !ok || err != nil {
@@ -545,19 +637,20 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 		p.optionalParser = optional
 	}
 
-	if cache.hasNoMatch(t, p.nodeType) {
+	ct := p.cacheToken(t)
+	if cache.hasNoMatch(ct, p.nodeType) {
 		p.trace.out("cached mismatch")
 		p.done = true
 		return parseResult{unparsed: []token{t}}, nil
 	}
 
-	if cn, ok := cache.getMatch(t, p.nodeType); ok {
+	if cn, ok := cache.getMatch(ct, p.nodeType); ok {
 		p.trace.out("cached match")
 		p.done = true
 		return parseResult{
-			valid: true,
-			node: cn,
-			unparsed: []token{t},
+			valid:     true,
+			node:      cn,
+			unparsed:  []token{t},
 			fromCache: cn.length(),
 		}, nil
 	}
@@ -576,7 +669,7 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 	p.trace.out("optional done, parsed:", r.valid)
 	p.done = true
 
-	ct := r.node.token
+	ct = r.node.token
 	if r.node.zero() {
 		if len(r.unparsed) == 0 {
 			panic(unexpectedResult(p.nodeType))
@@ -591,12 +684,10 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 }
 
 func sequence(nodeType, itemType string) generator {
-	g := &sequenceGenerator{
+	return register(nodeType, &sequenceGenerator{
 		nodeType: nodeType,
 		itemType: itemType,
-	}
-
-	return register(nodeType, g)
+	})
 }
 
 func (g *sequenceGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
@@ -649,18 +740,23 @@ func (g *sequenceGenerator) member(nodeType string) (bool, error) {
 
 func newSequenceParser(t trace, nodeType string, item generator, init node, excludedTypes []string) parser {
 	return &sequenceParser{
-		trace: t,
-		nodeType: nodeType,
+		collectionParser: collectionParser{
+			baseParser: baseParser{
+				trace:         t,
+				nodeType:      nodeType,
+				init:          init,
+				excludedTypes: excludedTypes,
+			},
+			node:           node{typ: nodeType},
+			firstGenerator: item,
+		},
 		generator: item,
-		init: init,
-		excludedTypes: excludedTypes,
-		node: node{typ: nodeType},
 	}
 }
 
-func (p *sequenceParser) nextParser() (parser, error) {
+func (p *sequenceParser) nextParser() (parser, bool, error) {
 	var (
-		init node
+		init     node
 		excluded []string
 	)
 
@@ -672,77 +768,24 @@ func (p *sequenceParser) nextParser() (parser, error) {
 	}
 
 	if ok, err := p.generator.canCreate(init, excluded); !ok || err != nil {
-		return nil, err
+		return nil, ok, err
 	}
 
-	return p.generator.create(p.trace, init, excluded)
-}
-
-func (p *sequenceParser) error(currentToken token, err error) (parseResult, error) {
-	return parseResult{unparsed: append([]token{currentToken}, p.queue...)}, err
-}
-
-func (p *sequenceParser) parseNextToken() (parseResult, error) {
-	if len(p.queue) > 0 {
-		var t token
-		t, p.queue = p.queue[0], p.queue[1:]
-		return p.parse(t)
-	}
-
-	return parseResult{accepting: true}, nil
-}
-
-func (p *sequenceParser) cached(t token) (node, bool) {
-	if !p.init.zero() {
-		t = p.init.token
-	}
-
-	return cache.getMatch(t, p.nodeType)
-}
-
-func (p *sequenceParser) appendNode(n node) {
-	p.node.nodes = append(p.node.nodes, n)
-	if len(p.node.nodes) == 1 {
-		p.node.token = n.token
-	}
-}
-
-func (p *sequenceParser) appendParsedItem(n node, fromCache int) {
-	p.appendNode(n)
-	if fromCache < len(p.queue) {
-		p.queue = p.queue[fromCache:]
-	} else {
-		p.queue, p.skip = nil, fromCache - len(p.queue)
-	}
-}
-
-func (p *sequenceParser) appendInitIfMember() (bool, error) {
-	if p.init.zero() {
-		return false, nil
-	}
-
-	if m, err := p.generator.member(p.init.typ); !m || err != nil {
-		return m, err
-	}
-
-	p.appendNode(p.init)
-	return true, nil
+	parser, err := p.generator.create(p.trace, init, excluded)
+	return parser, err == nil, err
 }
 
 func (p *sequenceParser) parse(t token) (parseResult, error) {
 	p.trace.out("parsing", t)
-	if p.done {
-		panic(unexpectedToken(p.nodeType, t))
-	}
 
-	if p.skip > 0 {
-		p.skip--
-		return parseResult{accepting: true}, nil
+	p.checkDone(t)
+	if r, ok := p.checkSkip(); ok {
+		return r, nil
 	}
 
 	if p.parser == nil {
-		parser, err := p.nextParser()
-		if err != nil {
+		parser, ok, err := p.nextParser()
+		if !ok || err != nil {
 			p.trace.out("failed to create next item parser")
 			p.done = true
 			return p.error(t, err)
@@ -753,13 +796,14 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 
 	if !p.started {
 		// should not get here when parsing from the queue
-		if n, ok := p.cached(t); ok {
+		ct := p.cacheToken(t)
+		if n, ok := cache.getMatch(ct, p.nodeType); ok {
 			p.trace.out("cached match")
 			p.done = true
 			return parseResult{
-				valid: true,
-				node: n,
-				unparsed: []token{t},
+				valid:     true,
+				node:      n,
+				unparsed:  []token{t},
 				fromCache: n.length(),
 			}, nil
 		}
@@ -773,7 +817,7 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 	}
 
 	if r.accepting {
-		return p.parseNextToken()
+		return p.parseNextToken(p)
 	}
 
 	p.parser = nil
@@ -782,7 +826,7 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 	if r.valid && !r.node.zero() {
 		p.started = true
 		p.appendParsedItem(r.node, r.fromCache)
-		return p.parseNextToken()
+		return p.parseNextToken(p)
 	}
 
 	if !p.started {
@@ -792,7 +836,7 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 			p.done = true
 			return p.error(t, err)
 		} else if ok {
-			return p.parseNextToken()
+			return p.parseNextToken(p)
 		}
 	}
 
@@ -804,13 +848,212 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 
 	cache.setMatch(p.node.token, p.nodeType, p.node)
 	return parseResult{
-		valid: true,
+		valid:    true,
 		unparsed: p.queue,
-		node: p.node,
+		node:     p.node,
 	}, nil
 }
 
-func group(nodeType string, itemTypes ...string) generator { return nil }
+func group(nodeType string, itemTypes ...string) generator {
+	return register(nodeType, &groupGenerator{
+		nodeType:  nodeType,
+		itemTypes: itemTypes,
+	})
+}
+
+func (g *groupGenerator) itemGenerators() ([]generator, error) {
+	ig := make([]generator, len(g.itemTypes))
+	for i, it := range g.itemTypes {
+		g, ok := generators[it]
+		if !ok {
+			return nil, unspecifiedParser(it)
+		}
+
+		ig[i] = g
+	}
+
+	return ig, nil
+}
+
+func (g *groupGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
+	if len(g.itemTypes) == 0 {
+		return false, groupWithoutItems(g.nodeType)
+	}
+
+	if stringsContain(excludedTypes, g.nodeType) {
+		return false, nil
+	}
+
+	first := generators[g.itemTypes[0]]
+
+	if ok, err := first.canCreate(init, append(excludedTypes, g.nodeType)); ok || err != nil {
+		return ok, err
+	}
+
+	if ok, err := first.member(init.typ); ok || err != nil {
+		return ok, err
+	}
+
+	return false, nil
+}
+
+func (g *groupGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
+	ig, err := g.itemGenerators()
+	if err != nil {
+		return nil, err
+	}
+
+	return newGroupParser(t.extend(g.nodeType), g.nodeType, ig, init, append(excludedTypes, g.nodeType)), nil
+}
+
+func (g *groupGenerator) member(nodeType string) (bool, error) {
+	return nodeType == g.nodeType, nil
+}
+
+func newGroupParser(t trace, nodeType string, items []generator, init node, excludedTypes []string) parser {
+	return &groupParser{
+		collectionParser: collectionParser{
+			baseParser: baseParser{
+				trace:         t,
+				nodeType:      nodeType,
+				init:          init,
+				excludedTypes: excludedTypes,
+			},
+			node:           node{typ: nodeType},
+			firstGenerator: items[0],
+		},
+		items:     items,
+		firstItem: items[0],
+	}
+}
+
+func (p *groupParser) nextParser() (parser, error) {
+	var item generator
+	item, p.items = p.items[0], p.items[1:]
+
+	var (
+		init     node
+		excluded []string
+	)
+
+	if !p.started {
+		init = p.init
+		excluded = append(p.excludedTypes, p.nodeType)
+	}
+
+	if ok, err := item.canCreate(init, excluded); !ok || err != nil {
+		return nil, err
+	}
+
+	return item.create(p.trace, init, excluded)
+}
+
+func (p *groupParser) parseOrDone() (parseResult, error) {
+	if len(p.items) > 0 {
+		return p.parseNextToken(p)
+	}
+
+	p.trace.out("parse done")
+	p.done = true
+	cache.setMatch(p.node.token, p.nodeType, p.node)
+	return parseResult{
+		valid:    true,
+		node:     p.node,
+		unparsed: p.queue,
+	}, nil
+}
+
+func (p *groupParser) parse(t token) (parseResult, error) {
+	p.trace.out("parsing", t)
+	p.checkDone(t)
+
+	if r, ok := p.checkSkip(); ok {
+		return r, nil
+	}
+
+	if p.parser == nil {
+		if parser, err := p.nextParser(); err != nil {
+			p.trace.out("failed to create next item parser")
+			p.done = true
+			return p.error(t, err)
+		} else {
+			p.parser = parser
+		}
+	}
+
+	if !p.started {
+		// should not get here when parsing from the queue
+
+		ct := p.cacheToken(t)
+		if cache.hasNoMatch(ct, p.nodeType) {
+			p.trace.out("no match identified in cache")
+			p.done = true
+			return p.error(t, nil)
+		}
+
+		if n, ok := cache.getMatch(ct, p.nodeType); ok {
+			p.trace.out("cached match")
+			p.done = true
+			return parseResult{
+				valid:     true,
+				node:      n,
+				fromCache: n.length(),
+				unparsed:  []token{t},
+			}, nil
+		}
+	}
+
+	r, err := p.parser.parse(t)
+	if err != nil {
+		p.trace.out("failed to parse item")
+		p.done = true
+		return p.error(t, err)
+	}
+
+	if r.accepting {
+		return p.parseNextToken(p)
+	}
+
+	p.parser = nil
+	p.queue = append(r.unparsed, p.queue...)
+
+	if r.valid && !r.node.zero() {
+		p.started = true
+		p.appendParsedItem(r.node, r.fromCache)
+		return p.parseOrDone()
+	}
+
+	if !p.started {
+		p.started = true
+		if ok, err := p.appendInitIfMember(); err != nil {
+			p.trace.out("failed to check init item membership")
+			p.done = true
+			return p.error(t, err)
+		} else if ok {
+			return p.parseOrDone()
+		}
+	}
+
+	if r.valid {
+		p.started = true
+		return p.parseOrDone()
+	}
+
+	p.trace.out("invalid item")
+
+	var ct token
+	if p.node.zero() {
+		ct = p.queue[0]
+	} else {
+		ct = p.node.token
+	}
+
+	cache.setNoMatch(ct, p.nodeType)
+
+	p.done = true
+	return parseResult{unparsed: append(p.node.tokens(), p.queue...)}, nil
+}
+
 func union(nodeType string, nodeTypes ...string) generator { return nil }
 
 func setPostParse(p map[string]func(node) node) {
@@ -821,27 +1064,29 @@ func setPostParse(p map[string]func(node) node) {
 
 func parse(l traceLevel, g generator, r *tokenReader) (node, error) {
 	if ok, err := g.canCreate(zeroNode, nil); err != nil {
-		return node{}, err
+		return zeroNode, err
 	} else if !ok {
-		return node{}, errInvalidRootGenerator
+		return zeroNode, errInvalidRootGenerator
 	}
 
-	t := newTrace(l)
-	p, err := g.create(t, zeroNode, nil)
+	trace := newTrace(l)
+	p, err := g.create(trace, zeroNode, nil)
 	if err != nil {
-		return node{}, err
+		return zeroNode, err
 	}
 
 	last := parseResult{accepting: true}
 	for {
+		trace.out("checking next token")
 		t, err := r.next()
 		if err != nil && err != io.EOF {
-			return node{}, err
+			return zeroNode, err
 		}
 
 		if !last.accepting {
+			trace.out("last not accepting")
 			if err != io.EOF {
-				return node{}, unexpectedToken("root", t)
+				return zeroNode, unexpectedToken("root", t)
 			}
 
 			return last.node, nil
@@ -850,15 +1095,17 @@ func parse(l traceLevel, g generator, r *tokenReader) (node, error) {
 		if err == io.EOF {
 			last, err = p.parse(eofToken)
 			if err != nil {
-				return node{}, err
+				return zeroNode, err
 			}
 
 			if !last.valid {
-				return node{}, errUnexpectedEOF
+				trace.out("last not valid")
+				return zeroNode, errUnexpectedEOF
 			}
 
 			if len(last.unparsed) != 1 || last.unparsed[0] != eofToken {
-				return node{}, errUnexpectedEOF
+				trace.out("invalid unparsed count")
+				return zeroNode, errUnexpectedEOF
 			}
 
 			return last.node, nil
@@ -866,16 +1113,17 @@ func parse(l traceLevel, g generator, r *tokenReader) (node, error) {
 
 		last, err = p.parse(t)
 		if err != nil {
-			return node{}, err
+			return zeroNode, err
 		}
 
 		if !last.accepting {
+			trace.out("not accepting")
 			if !last.valid {
-				return node{}, unexpectedToken("root", t)
+				return zeroNode, unexpectedToken("root", t)
 			}
 
 			if len(last.unparsed) > 0 {
-				return node{}, unexpectedToken("root", last.unparsed[0])
+				return zeroNode, unexpectedToken("root", last.unparsed[0])
 			}
 		}
 	}
