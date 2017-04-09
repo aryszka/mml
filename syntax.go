@@ -134,20 +134,20 @@ func init() {
 
 	union(
 		"expression",
-		// "int",
-		// "string",
+		"int",
+		"string",
 		"symbol",
 		"dynamic-symbol",
-		// "bool",
-		// "list",
-		// "mutable-list",
-		// "structure",
-		// "mutable-structure",
-		// "function",
-		// "effect-function",
+		"bool",
+		"list",
+		"mutable-list",
+		"structure",
+		"mutable-structure",
+		"function",
+		"effect-function",
 		"query",
-		// "function-call",
-		// "conditional",
+		"function-call",
+		"conditional",
 	)
 
 	optional("optional-single-eq", "single-eq")

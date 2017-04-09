@@ -323,6 +323,7 @@ func (c tokenCache) hasNoMatch(t token, name string) bool {
 }
 
 func (c tokenCache) setMatch(t token, name string, n node) {
+	log.Println("cached", t, name, n)
 	tci := c[t]
 	if tci.match == nil {
 		tci.match = make(map[string]node)
@@ -503,7 +504,7 @@ func (p *backtrackingParser) checkCache(t token) (parseResult, bool) {
 	}
 
 	if n, ok := cache.getMatch(ct, p.nodeType); ok {
-		p.trace.out("cached match", ct, p.nodeType, "the init:", p.init)
+		p.trace.out("cached match", ct, p.nodeType, "the init:", p.init, n)
 		return parseResult{
 			valid:     true,
 			node:      n,
@@ -516,6 +517,10 @@ func (p *backtrackingParser) checkCache(t token) (parseResult, bool) {
 }
 
 func (p *collectionParser) appendNode(n node) {
+	if n.zero() {
+		return
+	}
+
 	p.node.nodes = append(p.node.nodes, n)
 	if len(p.node.nodes) == 1 {
 		p.node.token = n.token
@@ -542,10 +547,18 @@ func (p *collectionParser) appendParsedItem(n node, fromCache bool) {
 		return
 	}
 
-	if n.length() < len(p.queue) {
-		p.queue = p.queue[n.length():]
-	} else {
-		p.queue, p.skip = nil, n.length()-len(p.queue)
+	t := n.tokens()
+	for i, ti := range t {
+		if ti == p.queue[0] {
+			c := len(t) - i
+			if c > len(p.queue) {
+				p.queue, p.skip = nil, c-len(p.queue)
+			} else {
+				p.queue = p.queue[len(t):]
+			}
+
+			break
+		}
 	}
 }
 
@@ -1049,6 +1062,7 @@ func (p *groupParser) nextParser() (parser, bool, error) {
 
 func (p *groupParser) parseOrDone() (parseResult, error) {
 	if len(p.items) > 0 {
+		p.trace.out("expects more items", len(p.node.nodes), p.node, len(p.items), "queue:", p.queue)
 		return p.parseNextToken(p)
 	}
 
@@ -1064,7 +1078,7 @@ func (p *groupParser) parseOrDone() (parseResult, error) {
 }
 
 func (p *groupParser) parse(t token) (parseResult, error) {
-	p.trace.out("parsing", t)
+	p.trace.out("parsing", t, p.node, p.node.typ, p.init)
 	p.checkDone(t)
 
 	if r, ok := p.checkSkip(); ok {
@@ -1114,12 +1128,13 @@ func (p *groupParser) parse(t token) (parseResult, error) {
 
 	p.parser = nil
 	p.queue = append(r.unparsed, p.queue...)
-	p.trace.out("item parse done, queue:", p.queue, r.valid, r.node.zero())
+	p.trace.out("item parse done, queue:", p.queue, r.valid, r.node)
 
-	if r.valid && !r.node.zero() {
+	if r.valid {
 		p.trace.out("continue group", r.valid, r.node.zero())
 		p.initEvaluated = true // only used for the first item
 		p.appendParsedItem(r.node, r.fromCache)
+		p.trace.out("checking parse or done", p.queue, p.node)
 		return p.parseOrDone()
 	}
 
@@ -1329,7 +1344,7 @@ func postParseNodes(n []node) []node {
 	return n
 }
 
-func (p *unionParser) setDone(t ...token) parseResult {
+func (p *unionParser) cacheKey(t ...token) token {
 	ct := p.node.token
 	if p.node.zero() {
 		if len(t) > 0 {
@@ -1341,6 +1356,11 @@ func (p *unionParser) setDone(t ...token) parseResult {
 		}
 	}
 
+	return ct
+}
+
+func (p *unionParser) setDone(t ...token) parseResult {
+	ct := p.cacheKey(t...)
 	if p.valid {
 		p.trace.out("union parse success", p.node)
 		cache.setMatch(ct, p.nodeType, p.node)
@@ -1398,13 +1418,13 @@ func (p *unionParser) parse(t token) (parseResult, error) {
 		p.parser = parser
 	}
 
-	if !p.cacheChecked {
-		p.cacheChecked = true
-		if r, ok := p.checkCache(t); ok {
-			p.done = true
-			return r, nil
-		}
-	}
+	// if !p.cacheChecked {
+	// 	p.cacheChecked = true
+	// 	if r, ok := p.checkCache(t); ok {
+	// 		p.done = true
+	// 		return r, nil
+	// 	}
+	// }
 
 	r, err := p.parser.parse(t)
 	if err != nil {
@@ -1446,6 +1466,8 @@ func (p *unionParser) parse(t token) (parseResult, error) {
 		p.trace.out("reset union")
 		p.node = r.node
 		p.valid = true
+		// ct := p.cacheKey()
+		// cache.setMatch(ct, p.node.typ, p.node)
 		p.activeElements = p.elements
 	}
 
@@ -1509,6 +1531,7 @@ func parse(l traceLevel, g generator, r *tokenReader) (node, error) {
 				return zeroNode, errUnexpectedEOF
 			}
 
+			trace.out("parsed", last.node)
 			return postParseNode(last.node), nil
 		}
 
