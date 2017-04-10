@@ -268,6 +268,7 @@ type sequenceParser struct {
 type groupGenerator struct {
 	nodeType  string
 	itemTypes []string
+	itemGenerators []generator
 }
 
 type groupParser struct {
@@ -279,6 +280,7 @@ type groupParser struct {
 type unionGenerator struct {
 	nodeType     string
 	elementTypes []string
+	expanded []generator
 }
 
 type unionParser struct {
@@ -323,7 +325,6 @@ func (c tokenCache) hasNoMatch(t token, name string) bool {
 }
 
 func (c tokenCache) setMatch(t token, name string, n node) {
-	log.Println("cached", t, name, n)
 	tci := c[t]
 	if tci.match == nil {
 		tci.match = make(map[string]node)
@@ -957,7 +958,7 @@ func group(nodeType string, itemTypes ...string) generator {
 	})
 }
 
-func (g *groupGenerator) itemGenerators() ([]generator, error) {
+func (g *groupGenerator) getItemGenerators() ([]generator, error) {
 	ig := make([]generator, len(g.itemTypes))
 	for i, it := range g.itemTypes {
 		g, ok := generators[it]
@@ -994,15 +995,19 @@ func (g *groupGenerator) canCreate(init node, excludedTypes []string) (bool, err
 }
 
 func (g *groupGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
-	ig, err := g.itemGenerators()
-	if err != nil {
-		return nil, err
+	if len(g.itemGenerators) == 0 {
+		ig, err := g.getItemGenerators()
+		if err != nil {
+			return nil, err
+		}
+
+		g.itemGenerators = ig
 	}
 
 	return newGroupParser(
 		t.extend(g.nodeType),
 		g.nodeType,
-		ig,
+		g.itemGenerators,
 		init,
 		excludedTypes,
 	), nil
@@ -1167,14 +1172,14 @@ func (p *groupParser) parse(t token) (parseResult, error) {
 
 	p.done = true
 	p.trace.out("returning from end of group", p.node.tokens(), p.queue)
-	var pn func(n node)
-	pn = func(n node) {
-		p.trace.out(n, n.tokens())
-		for _, ni := range n.nodes {
-			pn(ni)
-		}
-	}
-	pn(p.node)
+	// var pn func(n node)
+	// pn = func(n node) {
+	// 	p.trace.out(n, n.tokens())
+	// 	for _, ni := range n.nodes {
+	// 		pn(ni)
+	// 	}
+	// }
+	// pn(p.node)
 
 	unparsed := p.node.tokens()
 	if p.init.length() > len(unparsed) {
@@ -1222,16 +1227,20 @@ func (g *unionGenerator) expand(skip []string) ([]generator, error) {
 }
 
 func (g *unionGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
-	expanded, err := g.expand(nil)
-	if err != nil {
-		return false, err
+	if len(g.expanded) == 0 {
+		expanded, err := g.expand(nil)
+		if err != nil {
+			return false, err
+		}
+
+		if len(expanded) == 0 {
+			return false, unionWithoutElements(g.nodeType)
+		}
+
+		g.expanded = expanded
 	}
 
-	if len(expanded) == 0 {
-		return false, unionWithoutElements(g.nodeType)
-	}
-
-	for _, g := range expanded {
+	for _, g := range g.expanded {
 		if ok, err := g.canCreate(init, excludedTypes); ok || err != nil {
 			return ok, err
 		}
@@ -1241,13 +1250,8 @@ func (g *unionGenerator) canCreate(init node, excludedTypes []string) (bool, err
 }
 
 func (g *unionGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
-	expanded, err := g.expand(nil)
-	if err != nil {
-		return nil, err
-	}
-
 	var gen []generator
-	for _, g := range expanded {
+	for _, g := range g.expanded {
 		if ok, err := g.canCreate(init, excludedTypes); err != nil {
 			return nil, err
 		} else if ok {
@@ -1273,12 +1277,7 @@ func (g *unionGenerator) create(t trace, init node, excludedTypes []string) (par
 }
 
 func (g *unionGenerator) member(nodeType string) (bool, error) {
-	expanded, err := g.expand(nil)
-	if err != nil {
-		return false, err
-	}
-
-	for _, gi := range expanded {
+	for _, gi := range g.expanded {
 		if m, err := gi.member(nodeType); m || err != nil {
 			return m, err
 		}

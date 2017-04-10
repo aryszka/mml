@@ -48,155 +48,155 @@ fn ~ delimiterReader(readInput, def, chars) {
 		}
 	}
 
-// 	fn ~ readEscape(escapes) {
-// 		if or(escaped, eq(len(escapes), 0)) {
-// 			{err: errNoMatch, chars: readChars}
-// 		} else {
-// 			let (
-// 				readEscape readerByType(readInput, escapes[0].escape, readChars)
-// 				result readEscape()
-// 			)
-// 
-// 			set readChars result.chars
-// 			switch {
-// 			case eq(result.err, eof):
-// 				{err: errInvalidSequence, chars: readChars}
-// 			case eq(result.err, errNoMatch):
-// 				readEscape(escapes[1:])
-// 			case isError(result.err):
-// 				result
-// 			default:
-// 				set escaped true
-// 				set currentEscape escapes[0].escapable // should be any char if not defined
-// 				set escapeToken result.token
-// 				{err: noError, chars: readChars}
-// 			}
-// 		}
-// 	}
-// 
-// 	fn ~ readEscaped() {
-// 		let (
-// 			readEscaped readerByType(readInput, currentEscape, readChars)
-// 			result readEscaped()
-// 		)
-// 
-// 		set readChars result.chars
-// 		switch {
-// 		case eq(result.err, eof):
-// 			{err: errInvalidSequence, chars: readChars}
-// 		case eq(result.err, errNoMatch):
-// 			{err: errInvalidEscape, chars: readChars}
-// 		case isError(result.err):
-// 			result
-// 		default:
-// 			set token appendString(token, escapeToken, result.token)
-// 			set escaped false
-// 			read()
-// 		}
-// 	}
-// 
-// 	fn ~ readBanned(banned) {
-// 		if eq(len(banned), 0) {
-// 			{err: noError, chars: readChars}
-// 		} else {
-// 			let (
-// 				readBanned readerByType(readInput, banned[0], readChars)
-// 				result readBanned()
-// 			)
-// 
-// 			set readChars result.chars
-// 			switch {
-// 			case eq(result.err, errNoMatch):
-// 				readBanned(banned[1:])
-// 			case isError(result.err):
-// 				result
-// 			default:
-// 				{err: errInvalidSequence, chars: readChars}
-// 			}
-// 		}
-// 	}
-// 
-// 	fn ~ readAllowed(allowed) {
-// 		if eq(len(allowed), 0) {
-// 			{err: errInvalidSequence, chars: readChars}
-// 		} else {
-// 			let (
-// 				readAllowed readerByType(readInput, allowed[0], readChars)
-// 				result readAllowed()
-// 			)
-// 
-// 			set readChars result.chars
-// 			switch {
-// 			case eq(result.err, eof):
-// 				{err: errInvalidSequence, chars: readChars}
-// 			case eq(result.err, errNoMatch):
-// 				readAllowed(allowed[1:])
-// 			case isError(result.err):
-// 				result
-// 			default:
-// 				set token appendString(token, result.token)
-// 				read()
-// 			}
-// 		}
-// 	}
-// 
-// 	fn ~ readNormal() {
-// 		let result readBanned(def.banned)
-// 		switch {
-// 		case isError(result.err):
-// 			result
-// 		default:
-// 			readAllowed(def.allowed) // should contain any char if nothing else was set
-// 		}
-// 	}
-// 
-// 	fn ~ readBody() {
-// 		let result readEscape(def.escapes)
-// 		switch {
-// 		case eq(result.err, errNoMatch):
-// 			if escaped {
-// 				readEscaped()
-// 			} else {
-// 				readNormal()
-// 			}
-// 		case isError(result.err):
-// 			result
-// 		default:
-// 			read() // TODO: optimize, this now means recursion for the full delimited block
-// 		}
-// 	}
-// 
-// 	fn ~ readStarted() {
-// 		let (
-// 			chars if escaped { appendString(escapeToken, readChars) } else { readChars }
-// 			readDelimiter readerByType(readInput, def.rightDelimiter, chars)
-// 			result readDelimiter()
-// 		)
-// 
-// 		set readChars result.chars
-// 		switch {
-// 		case eq(result.err, eof):
-// 			{err: errInvalidSequence, chars: readChars}
-// 		case eq(result.err, errNoMatch):
-// 			readBody()
-// 		case isError(result.err):
-// 			result
-// 		default:
-// 			set token appendString(token, result.token)
-// 			{err: noError, token: token, chars: readChars}
-// 		}
-// 	}
-// 
-// 	fn ~ read() {
-// 		switch {
-// 		case not(started):
-// 			startToken()
-// 		default:
-// 			readStarted()
-// 		}
-// 	}
-// 
-// 	read
+	fn ~ readEscape(escapes) {
+		if or(escaped, eq(len(escapes), 0)) {
+			{err: errNoMatch, chars: readChars}
+		} else {
+			let (
+				readEscape readerByType(readInput, escapes[0].escape, readChars)
+				result readEscape()
+			)
+
+			set readChars result.chars
+			switch {
+			case eq(result.err, eof):
+				{err: errInvalidSequence, chars: readChars}
+			case eq(result.err, errNoMatch):
+				readEscape(escapes[1:])
+			case isError(result.err):
+				result
+			default:
+				set escaped true
+				set currentEscape escapes[0].escapable // should be any char if not defined
+				set escapeToken result.token
+				{err: noError, chars: readChars}
+			}
+		}
+	}
+
+	fn ~ readEscaped() {
+		let (
+			readEscaped readerByType(readInput, currentEscape, readChars)
+			result readEscaped()
+		)
+
+		set readChars result.chars
+		switch {
+		case eq(result.err, eof):
+			{err: errInvalidSequence, chars: readChars}
+		case eq(result.err, errNoMatch):
+			{err: errInvalidEscape, chars: readChars}
+		case isError(result.err):
+			result
+		default:
+			set token appendString(token, escapeToken, result.token)
+			set escaped false
+			read()
+		}
+	}
+
+	fn ~ readBanned(banned) {
+		if eq(len(banned), 0) {
+			{err: noError, chars: readChars}
+		} else {
+			let (
+				readBanned readerByType(readInput, banned[0], readChars)
+				result readBanned()
+			)
+
+			set readChars result.chars
+			switch {
+			case eq(result.err, errNoMatch):
+				readBanned(banned[1:])
+			case isError(result.err):
+				result
+			default:
+				{err: errInvalidSequence, chars: readChars}
+			}
+		}
+	}
+
+	fn ~ readAllowed(allowed) {
+		if eq(len(allowed), 0) {
+			{err: errInvalidSequence, chars: readChars}
+		} else {
+			let (
+				readAllowed readerByType(readInput, allowed[0], readChars)
+				result readAllowed()
+			)
+
+			set readChars result.chars
+			switch {
+			case eq(result.err, eof):
+				{err: errInvalidSequence, chars: readChars}
+			case eq(result.err, errNoMatch):
+				readAllowed(allowed[1:])
+			case isError(result.err):
+				result
+			default:
+				set token appendString(token, result.token)
+				read()
+			}
+		}
+	}
+
+	fn ~ readNormal() {
+		let result readBanned(def.banned)
+		switch {
+		case isError(result.err):
+			result
+		default:
+			readAllowed(def.allowed) // should contain any char if nothing else was set
+		}
+	}
+
+	fn ~ readBody() {
+		let result readEscape(def.escapes)
+		switch {
+		case eq(result.err, errNoMatch):
+			if escaped {
+				readEscaped()
+			} else {
+				readNormal()
+			}
+		case isError(result.err):
+			result
+		default:
+			read() // TODO: optimize, this now means recursion for the full delimited block
+		}
+	}
+
+	fn ~ readStarted() {
+		let (
+			chars if escaped { appendString(escapeToken, readChars) } else { readChars }
+			readDelimiter readerByType(readInput, def.rightDelimiter, chars)
+			result readDelimiter()
+		)
+
+		set readChars result.chars
+		switch {
+		case eq(result.err, eof):
+			{err: errInvalidSequence, chars: readChars}
+		case eq(result.err, errNoMatch):
+			readBody()
+		case isError(result.err):
+			result
+		default:
+			set token appendString(token, result.token)
+			{err: noError, token: token, chars: readChars}
+		}
+	}
+
+	fn ~ read() {
+		switch {
+		case not(started):
+			startToken()
+		default:
+			readStarted()
+		}
+	}
+
+	read
 }
 
 // // should allow alternatives with the same name

@@ -762,6 +762,7 @@ func Compile(in io.Reader, out io.Writer) error {
 		return err
 	}
 
+	return nil
 	if err := compileHead(out); err != nil {
 		return err
 	}
