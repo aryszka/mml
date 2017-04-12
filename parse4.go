@@ -381,10 +381,15 @@ func newTrace(l traceLevel) trace {
 }
 
 func (t trace) extend(nodeType string) trace {
-	return trace{
-		level:      t.level,
-		pathString: t.pathString + "/" + nodeType,
+	et := trace{
+		level: t.level,
 	}
+
+	if et.level > traceOff {
+		et.pathString = t.pathString + "/" + nodeType
+	}
+
+	return et
 }
 
 func (t trace) outLevel(l traceLevel, a ...interface{}) {
@@ -929,74 +934,89 @@ func (p *sequenceParser) nextParser() (parser, bool, error) {
 }
 
 func (p *sequenceParser) parse(t token) (parseResult, error) {
-	p.trace.out("parsing", t)
+parseLoop:
+	for {
+		p.trace.out("parsing", t)
 
-	p.checkDone(t)
-	if r, ok := p.checkSkip(); ok {
-		return r, nil
-	}
+		p.checkDone(t)
+		if r, ok := p.checkSkip(); ok {
+			return r, nil
+		}
 
-	if p.parser == nil {
-		parser, ok, err := p.nextParser()
-		if !ok || err != nil {
-			p.trace.out("failed to create next item parser")
+		if p.parser == nil {
+			parser, ok, err := p.nextParser()
+			if !ok || err != nil {
+				p.trace.out("failed to create next item parser")
+				p.done = true
+				return p.abort(err, t)
+			}
+
+			p.parser = parser
+		}
+
+		if !p.cacheChecked {
+			p.cacheChecked = true
+			if r, ok := p.checkCache(t); ok {
+				p.done = true
+				return r, nil
+			}
+		}
+
+		r, err := p.parser.parse(t)
+		if err != nil {
+			p.trace.out("failed to parse item")
 			p.done = true
 			return p.abort(err, t)
 		}
 
-		p.parser = parser
-	}
+		if r.accepting {
+			if len(p.queue) > 0 {
+				t, p.queue = p.queue[0], p.queue[1:]
+				continue parseLoop
+			}
 
-	if !p.cacheChecked {
-		p.cacheChecked = true
-		if r, ok := p.checkCache(t); ok {
-			p.done = true
-			return r, nil
+			return parseResult{accepting: true}, nil
 		}
-	}
 
-	r, err := p.parser.parse(t)
-	if err != nil {
-		p.trace.out("failed to parse item")
+		p.parser = nil
+		p.queue = append(r.unparsed, p.queue...)
+
+		if r.valid && !r.node.zero() {
+			p.appendParsedItem(r.node, r.fromCache)
+			if len(p.queue) > 0 {
+				t, p.queue = p.queue[0], p.queue[1:]
+				continue parseLoop
+			}
+
+			return parseResult{accepting: true}, nil
+		}
+
+		if !p.initEvaluated {
+			p.initEvaluated = true
+			if ok, err := p.appendInitIfMember(); err != nil {
+				p.trace.out("failed to check init item membership")
+				p.done = true
+				return p.abort(err)
+			} else if ok {
+				if len(p.queue) > 0 {
+					t, p.queue = p.queue[0], p.queue[1:]
+					continue parseLoop
+				}
+
+				return parseResult{accepting: true}, nil
+			}
+		}
+
+		p.trace.out("parse done", p.node, p.node.nodes)
 		p.done = true
-		return p.abort(err, t)
+
+		cache.setMatch(p.node.token, p.typeID, p.node)
+		return parseResult{
+			valid:    true,
+			unparsed: p.queue,
+			node:     p.node,
+		}, nil
 	}
-
-	if r.accepting {
-		return p.parseNextToken(p)
-	}
-
-	p.parser = nil
-	p.queue = append(r.unparsed, p.queue...)
-
-	if r.valid && !r.node.zero() {
-		p.appendParsedItem(r.node, r.fromCache)
-		return p.parseNextToken(p)
-	}
-
-	if !p.initEvaluated {
-		p.initEvaluated = true
-		if ok, err := p.appendInitIfMember(); err != nil {
-			p.trace.out("failed to check init item membership")
-			p.done = true
-			return p.abort(err)
-		} else if ok {
-			return p.parseNextToken(p)
-		}
-	}
-
-	p.trace.out("parse done", p.node, p.node.nodes)
-	p.done = true
-	if len(p.node.nodes) == 0 {
-		// p.node.token = p.queue[0]
-	}
-
-	cache.setMatch(p.node.token, p.typeID, p.node)
-	return parseResult{
-		valid:    true,
-		unparsed: p.queue,
-		node:     p.node,
-	}, nil
 }
 
 func group(nodeType string, itemTypes ...string) generator {
@@ -1122,11 +1142,6 @@ func (p *groupParser) nextParser() (parser, bool, error) {
 }
 
 func (p *groupParser) parseOrDone() (parseResult, error) {
-	if len(p.items) > 0 {
-		p.trace.out("expects more items", len(p.node.nodes), p.node, len(p.items), "queue:", p.queue)
-		return p.parseNextToken(p)
-	}
-
 	p.trace.out("parse done")
 	p.done = true
 	p.trace.out("caching group", p.node)
@@ -1139,113 +1154,151 @@ func (p *groupParser) parseOrDone() (parseResult, error) {
 }
 
 func (p *groupParser) parse(t token) (parseResult, error) {
-	p.trace.out("parsing", t, p.node, p.node.typ, p.init)
-	p.checkDone(t)
+parseLoop:
+	for {
+		p.trace.out("parsing", t, p.node, p.node.typ, p.init)
+		p.checkDone(t)
 
-	if r, ok := p.checkSkip(); ok {
-		return r, nil
-	}
+		if r, ok := p.checkSkip(); ok {
+			return r, nil
+		}
 
-	if p.parser == nil {
-		if parser, ok, err := p.nextParser(); err != nil {
-			p.trace.out("failed to create next item parser")
+		if p.parser == nil {
+			if parser, ok, err := p.nextParser(); err != nil {
+				p.trace.out("failed to create next item parser")
+				p.done = true
+				return p.abort(err, t)
+			} else if !ok {
+				panic("this should not happen")
+			} else {
+				p.parser = parser
+			}
+		}
+
+		// this prevents checking if the init can be the first item
+		if !p.cacheChecked {
+			p.cacheChecked = true
+			if r, ok := p.checkCache(t); ok {
+				if !r.valid {
+					p.trace.out("group from cache, unparsed:", len(r.unparsed))
+					p.done = true
+					return r, nil
+				}
+
+				if p.init.zero() {
+					p.trace.out("group from cache, unparsed:", len(r.unparsed))
+					p.done = true
+					return r, nil
+				}
+			}
+		}
+
+		r, err := p.parser.parse(t)
+		if err != nil {
+			p.trace.out("failed to parse item")
 			p.done = true
 			return p.abort(err, t)
-		} else if !ok {
-			panic("this should not happen")
-		} else {
-			p.parser = parser
 		}
-	}
 
-	// this prevents checking if the init can be the first item
-	if !p.cacheChecked {
-		p.cacheChecked = true
-		if r, ok := p.checkCache(t); ok {
-			if !r.valid {
-				p.trace.out("group from cache, unparsed:", len(r.unparsed))
-				p.done = true
-				return r, nil
+		if r.accepting {
+			if len(p.queue) > 0 {
+				t, p.queue = p.queue[0], p.queue[1:]
+				continue parseLoop
 			}
 
-			if p.init.zero() {
-				p.trace.out("group from cache, unparsed:", len(r.unparsed))
-				p.done = true
-				return r, nil
-			}
+			return parseResult{accepting: true}, nil
 		}
-	}
 
-	r, err := p.parser.parse(t)
-	if err != nil {
-		p.trace.out("failed to parse item")
-		p.done = true
-		return p.abort(err, t)
-	}
+		p.parser = nil
+		p.queue = append(r.unparsed, p.queue...)
+		p.trace.out("item parse done, queue:", p.queue, r.valid, r.node)
 
-	if r.accepting {
-		return p.parseNextToken(p)
-	}
+		if r.valid {
+			p.trace.out("continue group", r.valid, r.node.zero())
+			p.initEvaluated = true // only used for the first item
+			p.appendParsedItem(r.node, r.fromCache)
+			p.trace.out("checking parse or done", p.queue, p.node)
+			if len(p.items) > 0 {
+				p.trace.out("expects more items", len(p.node.nodes), p.node, len(p.items), "queue:", p.queue)
+				if len(p.queue) > 0 {
+					t, p.queue = p.queue[0], p.queue[1:]
+					continue parseLoop
+				}
 
-	p.parser = nil
-	p.queue = append(r.unparsed, p.queue...)
-	p.trace.out("item parse done, queue:", p.queue, r.valid, r.node)
+				return parseResult{accepting: true}, nil
+			}
 
-	if r.valid {
-		p.trace.out("continue group", r.valid, r.node.zero())
-		p.initEvaluated = true // only used for the first item
-		p.appendParsedItem(r.node, r.fromCache)
-		p.trace.out("checking parse or done", p.queue, p.node)
-		return p.parseOrDone()
-	}
-
-	if !p.initEvaluated {
-		p.initEvaluated = true
-		if ok, err := p.appendInitIfMember(); err != nil {
-			p.trace.out("failed to check init item membership")
-			p.done = true
-			return p.abort(err)
-		} else if ok {
-			p.trace.out("continuing with init")
 			return p.parseOrDone()
 		}
+
+		if !p.initEvaluated {
+			p.initEvaluated = true
+			if ok, err := p.appendInitIfMember(); err != nil {
+				p.trace.out("failed to check init item membership")
+				p.done = true
+				return p.abort(err)
+			} else if ok {
+				p.trace.out("continuing with init")
+				if len(p.items) > 0 {
+					p.trace.out("expects more items", len(p.node.nodes), p.node, len(p.items), "queue:", p.queue)
+					if len(p.queue) > 0 {
+						t, p.queue = p.queue[0], p.queue[1:]
+						continue parseLoop
+					}
+
+					return parseResult{accepting: true}, nil
+				}
+
+				return p.parseOrDone()
+			}
+		}
+
+		if r.valid {
+			if len(p.items) > 0 {
+				p.trace.out("expects more items", len(p.node.nodes), p.node, len(p.items), "queue:", p.queue)
+				if len(p.queue) > 0 {
+					t, p.queue = p.queue[0], p.queue[1:]
+					continue parseLoop
+				}
+
+				return parseResult{accepting: true}, nil
+			}
+
+			return p.parseOrDone()
+		}
+
+		p.trace.out("group invalid item")
+
+		var ct token
+		if p.node.zero() {
+			ct = p.queue[0]
+		} else {
+			ct = p.node.token
+		}
+
+		cache.setNoMatch(ct, p.typeID)
+
+		p.done = true
+		p.trace.out("returning from end of group", p.node.tokens(), p.queue)
+		// var pn func(n node)
+		// pn = func(n node) {
+		// 	p.trace.out(n, n.tokens())
+		// 	for _, ni := range n.nodes {
+		// 		pn(ni)
+		// 	}
+		// }
+		// pn(p.node)
+
+		unparsed := p.node.tokens()
+		if p.init.length() > len(unparsed) {
+			unparsed = nil
+		} else {
+			unparsed = unparsed[p.init.length():]
+		}
+		unparsed = append(unparsed, p.queue...)
+
+		return parseResult{unparsed: unparsed}, nil
 	}
-
-	if r.valid {
-		return p.parseOrDone()
-	}
-
-	p.trace.out("group invalid item")
-
-	var ct token
-	if p.node.zero() {
-		ct = p.queue[0]
-	} else {
-		ct = p.node.token
-	}
-
-	cache.setNoMatch(ct, p.typeID)
-
-	p.done = true
-	p.trace.out("returning from end of group", p.node.tokens(), p.queue)
-	// var pn func(n node)
-	// pn = func(n node) {
-	// 	p.trace.out(n, n.tokens())
-	// 	for _, ni := range n.nodes {
-	// 		pn(ni)
-	// 	}
-	// }
-	// pn(p.node)
-
-	unparsed := p.node.tokens()
-	if p.init.length() > len(unparsed) {
-		unparsed = nil
-	} else {
-		unparsed = unparsed[p.init.length():]
-	}
-	unparsed = append(unparsed, p.queue...)
-
-	return parseResult{unparsed: unparsed}, nil
 }
 
 func union(nodeType string, elementTypes ...string) generator {
@@ -1439,109 +1492,127 @@ func (p *unionParser) setDone(t ...token) parseResult {
 }
 
 func (p *unionParser) parse(t token) (parseResult, error) {
-	p.trace.out("parsing", t, p.node, p.node.typ)
+parseLoop:
+	for {
+		p.trace.out("parsing", t, p.node, p.node.typ)
 
-	p.checkDone(t)
-	if r, ok := p.checkSkip(); ok {
-		return r, nil
-	}
-
-	// it's a combo
-	for p.parser == nil {
-		if len(p.activeElements) == 0 {
-			p.done = true
-			p.trace.out("normal done")
-			return p.setDone(t), nil
+		p.checkDone(t)
+		if r, ok := p.checkSkip(); ok {
+			return r, nil
 		}
 
-		var element generator
-		element, p.activeElements = p.activeElements[0], p.activeElements[1:]
+		// it's a combo
+		for p.parser == nil {
+			if len(p.activeElements) == 0 {
+				p.done = true
+				p.trace.out("normal done")
+				return p.setDone(t), nil
+			}
 
-		init := p.init
-		if !p.node.zero() {
-			init = p.node
+			var element generator
+			element, p.activeElements = p.activeElements[0], p.activeElements[1:]
+
+			init := p.init
+			if !p.node.zero() {
+				init = p.node
+			}
+
+			ok, err := element.canCreate(init, p.excludedTypes)
+			if err != nil {
+				p.done = true
+				return p.abort(err, t)
+			}
+
+			if !ok {
+				continue
+			}
+
+			parser, err := element.create(p.trace, init, p.excludedTypes)
+			if err != nil {
+				p.done = true
+				return p.abort(err, t)
+			}
+
+			p.parser = parser
 		}
 
-		ok, err := element.canCreate(init, p.excludedTypes)
+		// if !p.cacheChecked {
+		// 	p.cacheChecked = true
+		// 	if r, ok := p.checkCache(t); ok {
+		// 		p.done = true
+		// 		return r, nil
+		// 	}
+		// }
+
+		r, err := p.parser.parse(t)
 		if err != nil {
 			p.done = true
 			return p.abort(err, t)
 		}
 
-		if !ok {
-			continue
+		if r.accepting {
+			if len(p.queue) > 0 {
+				t, p.queue = p.queue[0], p.queue[1:]
+				continue parseLoop
+			}
+
+			return parseResult{accepting: true}, nil
 		}
 
-		parser, err := element.create(p.trace, init, p.excludedTypes)
-		if err != nil {
-			p.done = true
-			return p.abort(err, t)
+		p.parser = nil
+		p.queue = append(r.unparsed, p.queue...)
+		p.trace.out("parser returned", r.unparsed, p.queue, r.fromCache)
+
+		if !r.valid {
+			// if len(p.activeElements) == 0 {
+			// 	p.done = true
+			// 	return p.setDone(), nil
+			// }
+
+			if len(p.queue) > 0 {
+				t, p.queue = p.queue[0], p.queue[1:]
+				continue parseLoop
+			}
+
+			return parseResult{accepting: true}, nil
 		}
 
-		p.parser = parser
-	}
+		p.trace.out("union successful")
 
-	// if !p.cacheChecked {
-	// 	p.cacheChecked = true
-	// 	if r, ok := p.checkCache(t); ok {
-	// 		p.done = true
-	// 		return r, nil
-	// 	}
-	// }
+		if !p.valid || r.node.length() > p.node.length() {
+			// TODO: the union cache is more complicated
+			// TODO: the init item cache can be complicated in other case, too
 
-	r, err := p.parser.parse(t)
-	if err != nil {
-		p.done = true
-		return p.abort(err, t)
-	}
+			if r.fromCache {
+				if r.node.length() > len(p.queue) {
+					p.queue, p.skip = nil, r.node.length()-len(p.queue)
+				} else {
+					p.queue = p.queue[r.node.length():]
+				}
+			}
 
-	if r.accepting {
-		return p.parseNextToken(p)
-	}
+			p.trace.out("reset union")
+			p.node = r.node
+			p.valid = true
+			// ct := p.cacheKey()
+			// cache.setMatch(ct, p.node.typ, p.node)
+			p.activeElements = p.elements
+		}
 
-	p.parser = nil
-	p.queue = append(r.unparsed, p.queue...)
-	p.trace.out("parser returned", r.unparsed, p.queue, r.fromCache)
-
-	if !r.valid {
+		// need to do the skip:
 		// if len(p.activeElements) == 0 {
 		// 	p.done = true
+		// 	p.trace.out("no more elements to try", len(p.queue))
 		// 	return p.setDone(), nil
 		// }
 
-		return p.parseNextToken(p)
-	}
-
-	p.trace.out("union successful")
-
-	if !p.valid || r.node.length() > p.node.length() {
-		// TODO: the union cache is more complicated
-		// TODO: the init item cache can be complicated in other case, too
-
-		if r.fromCache {
-			if r.node.length() > len(p.queue) {
-				p.queue, p.skip = nil, r.node.length()-len(p.queue)
-			} else {
-				p.queue = p.queue[r.node.length():]
-			}
+		if len(p.queue) > 0 {
+			t, p.queue = p.queue[0], p.queue[1:]
+			continue parseLoop
 		}
 
-		p.trace.out("reset union")
-		p.node = r.node
-		p.valid = true
-		// ct := p.cacheKey()
-		// cache.setMatch(ct, p.node.typ, p.node)
-		p.activeElements = p.elements
+		return parseResult{accepting: true}, nil
 	}
-
-	// need to do the skip:
-	// if len(p.activeElements) == 0 {
-	// 	p.done = true
-	// 	p.trace.out("no more elements to try", len(p.queue))
-	// 	return p.setDone(), nil
-	// }
-
-	return p.parseNextToken(p)
 }
 
 func setPostParse(p map[string]func(node) node) {
