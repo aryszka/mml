@@ -41,18 +41,18 @@ func TestParse(t *testing.T) {
 		gen    string
 		single bool
 	}{{
-		// 	msg:    "int",
-		// 	code:   "42",
-		// 	nodes:  []node{{typ: "int", token: token{value: "42"}}},
-		// 	gen:    "int",
-		// 	single: true,
-		// }, {
-		// 	msg:    "int, with empty input",
-		// 	code:   "",
-		// 	nodes:  []node{{typ: "int", token: token{value: "42"}}},
-		// 	gen:    "int",
-		// 	single: true,
-		// 	fail:   true,
+		msg:    "int",
+		code:   "42",
+		nodes:  []node{{typ: "int", token: token{value: "42"}}},
+		gen:    "int",
+		single: true,
+	}, {
+		msg:    "int, with empty input",
+		code:   "",
+		nodes:  []node{{typ: "int", token: token{value: "42"}}},
+		gen:    "int",
+		single: true,
+		fail:   true,
 		// }, {
 		// 	msg:    "optional int",
 		// 	code:   "42",
@@ -280,7 +280,7 @@ func TestParse(t *testing.T) {
 		// 	}},
 		// gen: "int-or-group-with-optional",
 		// single: true,
-		// }, {
+	}, {
 		msg:  "multiple ints",
 		code: "1 2; 3",
 		nodes: []node{{
@@ -936,9 +936,9 @@ func TestParse(t *testing.T) {
 		t.Run(ti.msg, func(t *testing.T) {
 			cache = make(tokenCache)
 			r := newTokenReader(bytes.NewBufferString(ti.code), "<test>")
-			g := generators["document"]
+			g := generatorsByName["document"]
 			if ti.gen != "" {
-				g = generators[ti.gen]
+				g = generatorsByName[ti.gen]
 			}
 
 			n, err := parse(traceDebug, g, r)

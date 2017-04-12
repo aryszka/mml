@@ -28,23 +28,19 @@ fn ~ delimiterReader(readInput, def, chars) {
 	)
 
 	fn ~ startToken() {
-		if 1 {
-			2
-		} else {
-			let (
-				readDelimiter readerByType(readInput, def.leftDelimiter, readChars)
-				result readDelimiter()
-			)
+		let (
+			readDelimiter readerByType(readInput, def.leftDelimiter, readChars)
+			result readDelimiter()
+		)
 
-			set readChars result.chars
-			switch {
-			case isError(result.err):
-				result
-			default:
-				set started true
-				set token result.token
-				read()
-			}
+		set readChars result.chars
+		switch {
+		case isError(result.err):
+			result
+		default:
+			set started true
+			set token result.token
+			read()
 		}
 	}
 

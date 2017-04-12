@@ -168,14 +168,16 @@ import (
 
 type node struct {
 	token
-	typ   string
-	nodes []node
+	typ    string
+	typeID int
+	nodes  []node
 }
 
 type generator interface {
-	canCreate(init node, excludedTypes []string) (bool, error)
-	create(t trace, init node, excludedTypes []string) (parser, error)
-	member(nodeType string) (bool, error)
+	setTypeID(int)
+	canCreate(init node, excludedTypes []int) (bool, error)
+	create(t trace, init node, excludedTypes []int) (parser, error)
+	member(typeID int) (bool, error)
 }
 
 type parseResult struct {
@@ -191,8 +193,8 @@ type parser interface {
 }
 
 type cacheItem struct {
-	match   map[string]node
-	noMatch map[string]bool
+	match   map[int]node
+	noMatch map[int]bool
 }
 
 type tokenCache map[token]cacheItem
@@ -207,15 +209,14 @@ const (
 
 type trace struct {
 	level      traceLevel
-	path       []string
 	pathString string
 }
 
 type baseParser struct {
 	trace         trace
-	nodeType      string
+	typeID        int
 	init          node
-	excludedTypes []string
+	excludedTypes []int
 	done          bool
 	skip          int
 }
@@ -236,6 +237,7 @@ type collectionParser struct {
 
 type primitiveGenerator struct {
 	nodeType  string
+	typeID    int
 	tokenType tokenType
 }
 
@@ -246,7 +248,8 @@ type primitiveParser struct {
 
 type optionalGenerator struct {
 	nodeType string
-	optional string
+	typeID   int
+	optional int
 }
 
 type optionalParser struct {
@@ -257,7 +260,8 @@ type optionalParser struct {
 
 type sequenceGenerator struct {
 	nodeType string
-	itemType string
+	typeID   int
+	itemType int
 }
 
 type sequenceParser struct {
@@ -266,8 +270,9 @@ type sequenceParser struct {
 }
 
 type groupGenerator struct {
-	nodeType  string
-	itemTypes []string
+	nodeType       string
+	typeID         int
+	itemTypes      []int
 	itemGenerators []generator
 }
 
@@ -279,8 +284,9 @@ type groupParser struct {
 
 type unionGenerator struct {
 	nodeType     string
-	elementTypes []string
-	expanded []generator
+	typeID       int
+	elementTypes []int
+	expanded     []generator
 }
 
 type unionParser struct {
@@ -292,7 +298,10 @@ type unionParser struct {
 }
 
 var (
-	generators              = make(map[string]generator)
+	generators              = make(map[int]generator)
+	generatorsByName        = make(map[string]generator)
+	typeNames               = make(map[int]string)
+	typeIDs                 = make(map[string]int)
 	isSep                   func(node) bool
 	postParse               = make(map[string]func(node) node)
 	cache                   = make(tokenCache)
@@ -301,7 +310,12 @@ var (
 	voidResult              = parseResult{}
 	errInvalidRootGenerator = errors.New("invalid root generator")
 	errUnexpectedEOF        = errors.New("unexpected EOF")
+	typeIDFeed              int
 )
+
+func init() {
+	registerType("zero")
+}
 
 func stringsContain(strc []string, stri ...string) bool {
 	for _, sc := range strc {
@@ -315,38 +329,50 @@ func stringsContain(strc []string, stri ...string) bool {
 	return false
 }
 
-func (c tokenCache) getMatch(t token, name string) (node, bool) {
-	ci, ok := c[t].match[name]
+func intsContain(ic []int, i ...int) bool {
+	for _, ici := range ic {
+		for _, ii := range i {
+			if ii == ici {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (c tokenCache) getMatch(t token, id int) (node, bool) {
+	ci, ok := c[t].match[id]
 	return ci, ok
 }
 
-func (c tokenCache) hasNoMatch(t token, name string) bool {
-	return c[t].noMatch[name]
+func (c tokenCache) hasNoMatch(t token, id int) bool {
+	return c[t].noMatch[id]
 }
 
-func (c tokenCache) setMatch(t token, name string, n node) {
+func (c tokenCache) setMatch(t token, id int, n node) {
 	tci := c[t]
 	if tci.match == nil {
-		tci.match = make(map[string]node)
+		tci.match = make(map[int]node)
 	}
 
-	tci.match[name] = n
+	tci.match[id] = n
 	c[t] = tci
 }
 
-func (c tokenCache) setNoMatch(t token, name string) {
+func (c tokenCache) setNoMatch(t token, id int) {
 	// reasonable to leak this check over to here:
 	// a shorter variant may already have been parsed
-	if _, ok := c.getMatch(t, name); ok {
+	if _, ok := c.getMatch(t, id); ok {
 		return
 	}
 
 	tci := c[t]
 	if tci.noMatch == nil {
-		tci.noMatch = make(map[string]bool)
+		tci.noMatch = make(map[int]bool)
 	}
 
-	tci.noMatch[name] = true
+	tci.noMatch[id] = true
 	c[t] = tci
 }
 
@@ -355,11 +381,9 @@ func newTrace(l traceLevel) trace {
 }
 
 func (t trace) extend(nodeType string) trace {
-	p := append(t.path, nodeType)
 	return trace{
 		level:      t.level,
-		path:       p,
-		pathString: strings.Join(p, "/"),
+		pathString: t.pathString + "/" + nodeType,
 	}
 }
 
@@ -385,7 +409,7 @@ func (t trace) debug(a ...interface{}) {
 }
 
 func (n node) zero() bool {
-	return n.typ == ""
+	return n.typeID == 0
 }
 
 func (n node) tokens() []token {
@@ -422,8 +446,23 @@ func (n node) String() string {
 	return fmt.Sprintf("node:%s:%v(%s)", n.typ, n.token, strings.Join(nodes, ", "))
 }
 
+func registerType(nodeType string) int {
+	if id, ok := typeIDs[nodeType]; ok {
+		return id
+	}
+
+	id := typeIDFeed
+	typeIDFeed++
+	typeIDs[nodeType] = id
+	typeNames[id] = nodeType
+	return id
+}
+
 func register(nodeType string, g generator) generator {
-	generators[nodeType] = g
+	id := registerType(nodeType)
+	g.setTypeID(id)
+	generators[id] = g
+	generatorsByName[nodeType] = g
 	return g
 }
 
@@ -431,8 +470,8 @@ func unexpectedToken(nodeType string, t token) error {
 	return fmt.Errorf("unexpected token: %v, %v", nodeType, t)
 }
 
-func unspecifiedParser(nodeType string) error {
-	return fmt.Errorf("unspecified parser: %s", nodeType)
+func unspecifiedParser(typeID int) error {
+	return fmt.Errorf("unspecified parser: %s", typeNames[typeID])
 }
 
 func optionalContainingSelf(nodeType string) error {
@@ -462,13 +501,14 @@ func invalidParserState(nodeType string) error {
 func primitive(nodeType string, token tokenType) generator {
 	return register(nodeType, &primitiveGenerator{
 		nodeType:  nodeType,
+		typeID:    registerType(nodeType),
 		tokenType: token,
 	})
 }
 
 func (p *baseParser) checkDone(currentToken token) {
 	if p.done {
-		panic(unexpectedToken(p.nodeType, currentToken))
+		panic(unexpectedToken(typeNames[p.typeID], currentToken))
 	}
 }
 
@@ -499,13 +539,13 @@ func (p *backtrackingParser) checkCache(t token) (parseResult, bool) {
 		ct = p.init.token
 	}
 
-	if cache.hasNoMatch(ct, p.nodeType) {
+	if cache.hasNoMatch(ct, p.typeID) {
 		p.trace.out("no match identified in cache")
 		return p.unparsed(t), true
 	}
 
-	if n, ok := cache.getMatch(ct, p.nodeType); ok {
-		p.trace.out("cached match", ct, p.nodeType, "the init:", p.init, n)
+	if n, ok := cache.getMatch(ct, p.typeID); ok {
+		p.trace.out("cached match", ct, typeNames[p.typeID], "the init:", p.init, n)
 		return parseResult{
 			valid:     true,
 			node:      n,
@@ -534,7 +574,7 @@ func (p *collectionParser) appendInitIfMember() (bool, error) {
 		return false, nil
 	}
 
-	if m, err := p.firstGenerator.member(p.init.typ); !m || err != nil {
+	if m, err := p.firstGenerator.member(p.init.typeID); !m || err != nil {
 		return m, err
 	}
 
@@ -573,27 +613,29 @@ func (p *backtrackingParser) parseNextToken(parser parser) (parseResult, error) 
 	return parseResult{accepting: true}, nil
 }
 
-func (g *primitiveGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
-	if stringsContain(excludedTypes, g.nodeType) {
+func (g *primitiveGenerator) setTypeID(id int) { g.typeID = id }
+
+func (g *primitiveGenerator) canCreate(init node, excludedTypes []int) (bool, error) {
+	if intsContain(excludedTypes, g.typeID) {
 		return false, nil
 	}
 
 	return init.zero(), nil
 }
 
-func (g *primitiveGenerator) create(t trace, _ node, excludedTypes []string) (parser, error) {
-	return newPrimitiveParser(t.extend(g.nodeType), g.nodeType, g.tokenType), nil
+func (g *primitiveGenerator) create(t trace, _ node, excludedTypes []int) (parser, error) {
+	return newPrimitiveParser(t.extend(g.nodeType), g.typeID, g.tokenType), nil
 }
 
-func (g *primitiveGenerator) member(nodeType string) (bool, error) {
-	return nodeType == g.nodeType, nil
+func (g *primitiveGenerator) member(typeID int) (bool, error) {
+	return typeID == g.typeID, nil
 }
 
-func newPrimitiveParser(t trace, nodeType string, token tokenType) *primitiveParser {
+func newPrimitiveParser(t trace, typeID int, token tokenType) *primitiveParser {
 	return &primitiveParser{
 		baseParser: baseParser{
-			trace:    t,
-			nodeType: nodeType,
+			trace:  t,
+			typeID: typeID,
 		},
 		token: token,
 	}
@@ -613,44 +655,47 @@ func (p *primitiveParser) parse(t token) (parseResult, error) {
 	}
 
 	p.trace.out("valid token")
-	n := node{typ: p.nodeType, token: t}
+	n := node{typeID: p.typeID, typ: typeNames[p.typeID], token: t}
 	return parseResult{
 		valid: true,
 		node:  n,
 	}, nil
 }
 
-func optional(nodeType, optionalType string) generator {
+func optional(nodeType string, optionalType string) generator {
 	return register(nodeType, &optionalGenerator{
 		nodeType: nodeType,
-		optional: optionalType,
+		typeID:   registerType(nodeType),
+		optional: registerType(optionalType),
 	})
 }
 
-func (g *optionalGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
+func (g *optionalGenerator) setTypeID(id int) { g.typeID = id }
+
+func (g *optionalGenerator) canCreate(init node, excludedTypes []int) (bool, error) {
 	optional, ok := generators[g.optional]
 	if !ok {
 		return false, unspecifiedParser(g.optional)
 	}
 
-	if m, err := optional.member(g.nodeType); err != nil {
+	if m, err := optional.member(g.typeID); err != nil {
 		return false, err
 	} else if m {
 		return false, optionalContainingSelf(g.nodeType)
 	}
 
-	if stringsContain(excludedTypes, g.nodeType) {
+	if intsContain(excludedTypes, g.typeID) {
 		return false, nil
 	}
 
-	if ok, err := optional.canCreate(init, append(excludedTypes, g.nodeType)); ok || err != nil {
+	if ok, err := optional.canCreate(init, append(excludedTypes, g.typeID)); ok || err != nil {
 		return ok, err
 	}
 
 	return g.member(g.optional)
 }
 
-func (g *optionalGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
+func (g *optionalGenerator) create(t trace, init node, excludedTypes []int) (parser, error) {
 	optional, ok := generators[g.optional]
 	if !ok {
 		return nil, unspecifiedParser(g.optional)
@@ -658,39 +703,39 @@ func (g *optionalGenerator) create(t trace, init node, excludedTypes []string) (
 
 	return newOptionalParser(
 		t.extend(g.nodeType),
-		g.nodeType,
+		g.typeID,
 		optional,
 		init,
-		append(excludedTypes, g.nodeType),
+		append(excludedTypes, g.typeID),
 	), nil
 }
 
-func (g *optionalGenerator) member(nodeType string) (bool, error) {
+func (g *optionalGenerator) member(typeID int) (bool, error) {
 	optional, ok := generators[g.optional]
 	if !ok {
 		return false, unspecifiedParser(g.optional)
 	}
 
-	if m, err := optional.member(nodeType); m || err != nil {
+	if m, err := optional.member(typeID); m || err != nil {
 		return m, err
 	}
 
-	return nodeType == g.nodeType, nil
+	return typeID == g.typeID, nil
 }
 
 func newOptionalParser(
 	t trace,
-	nodeType string,
+	typeID int,
 	optional generator,
 	init node,
-	excludedTypes []string,
+	excludedTypes []int,
 ) *optionalParser {
 	return &optionalParser{
 		baseParser: baseParser{
 			trace:         t,
-			nodeType:      nodeType,
 			init:          init,
-			excludedTypes: append(excludedTypes, nodeType),
+			excludedTypes: append(excludedTypes, typeID),
+			typeID:        typeID,
 		},
 		optional: optional,
 	}
@@ -707,7 +752,7 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 			r := parseResult{unparsed: []token{t}}
 
 			if !p.init.zero() {
-				if m, err := p.optional.member(p.init.typ); err != nil {
+				if m, err := p.optional.member(p.init.typeID); err != nil {
 					return r, err
 				} else if m {
 					p.trace.out("init is a member")
@@ -735,13 +780,13 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 		ct = p.init.token
 	}
 
-	if cache.hasNoMatch(ct, p.nodeType) {
+	if cache.hasNoMatch(ct, p.typeID) {
 		p.trace.out("cached mismatch")
 		p.done = true
 		return parseResult{unparsed: []token{t}}, nil
 	}
 
-	if cn, ok := cache.getMatch(ct, p.nodeType); ok {
+	if cn, ok := cache.getMatch(ct, p.typeID); ok {
 		p.trace.out("cached match")
 		p.done = true
 		return parseResult{
@@ -769,13 +814,13 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 	ct = r.node.token
 	if r.node.zero() {
 		if len(r.unparsed) == 0 {
-			panic(unexpectedResult(p.nodeType))
+			panic(unexpectedResult(typeNames[p.typeID]))
 		}
 
 		ct = r.unparsed[0]
 	}
 
-	cache.setMatch(ct, p.nodeType, r.node)
+	cache.setMatch(ct, p.typeID, r.node)
 	r.valid = true
 	return r, nil
 }
@@ -783,32 +828,35 @@ func (p *optionalParser) parse(t token) (parseResult, error) {
 func sequence(nodeType, itemType string) generator {
 	return register(nodeType, &sequenceGenerator{
 		nodeType: nodeType,
-		itemType: itemType,
+		typeID:   registerType(nodeType),
+		itemType: registerType(itemType),
 	})
 }
 
-func (g *sequenceGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
+func (g *sequenceGenerator) setTypeID(id int) { g.typeID = id }
+
+func (g *sequenceGenerator) canCreate(init node, excludedTypes []int) (bool, error) {
 	item, ok := generators[g.itemType]
 	if !ok {
 		return false, unspecifiedParser(g.itemType)
 	}
 
-	if m, err := item.member(g.nodeType); err != nil {
+	if m, err := item.member(g.typeID); err != nil {
 		return false, err
 	} else if m {
 		return false, sequenceContainingSelf(g.nodeType)
 	}
 
-	if stringsContain(excludedTypes, g.nodeType) {
+	if intsContain(excludedTypes, g.typeID) {
 		return false, nil
 	}
 
-	excludedTypes = append(excludedTypes, g.nodeType)
+	excludedTypes = append(excludedTypes, g.typeID)
 
 	if !init.zero() {
-		if m, err := item.member(init.typ); err != nil {
+		if m, err := item.member(init.typeID); err != nil {
 			return false, err
-		} else if m && !stringsContain(excludedTypes, init.typ) {
+		} else if m && !intsContain(excludedTypes, init.typeID) {
 			return true, nil
 		}
 	}
@@ -816,7 +864,7 @@ func (g *sequenceGenerator) canCreate(init node, excludedTypes []string) (bool, 
 	return item.canCreate(init, excludedTypes)
 }
 
-func (g *sequenceGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
+func (g *sequenceGenerator) create(t trace, init node, excludedTypes []int) (parser, error) {
 	item, ok := generators[g.itemType]
 	if !ok {
 		return nil, unspecifiedParser(g.itemType)
@@ -824,34 +872,34 @@ func (g *sequenceGenerator) create(t trace, init node, excludedTypes []string) (
 
 	return newSequenceParser(
 		t.extend(g.nodeType),
-		g.nodeType,
+		g.typeID,
 		item,
 		init,
-		append(excludedTypes, g.nodeType),
+		append(excludedTypes, g.typeID),
 	), nil
 }
 
-func (g *sequenceGenerator) member(nodeType string) (bool, error) {
-	return nodeType == g.nodeType, nil
+func (g *sequenceGenerator) member(typeID int) (bool, error) {
+	return typeID == g.typeID, nil
 }
 
 func newSequenceParser(
 	t trace,
-	nodeType string,
+	typeID int,
 	item generator,
 	init node,
-	excludedTypes []string,
+	excludedTypes []int,
 ) *sequenceParser {
 	return &sequenceParser{
 		collectionParser: collectionParser{
 			backtrackingParser: backtrackingParser{
 				baseParser: baseParser{
 					trace:         t,
-					nodeType:      nodeType,
 					init:          init,
 					excludedTypes: excludedTypes,
+					typeID:        typeID,
 				},
-				node: node{typ: nodeType},
+				node: node{typeID: typeID, typ: typeNames[typeID]},
 			},
 			firstGenerator: item,
 		},
@@ -862,11 +910,11 @@ func newSequenceParser(
 func (p *sequenceParser) nextParser() (parser, bool, error) {
 	var (
 		init     node
-		excluded []string
+		excluded []int
 	)
 
 	if len(p.node.nodes) > 0 {
-		excluded = []string{p.nodeType}
+		excluded = []int{p.typeID}
 	} else {
 		init = p.init
 		excluded = p.excludedTypes
@@ -943,7 +991,7 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 		// p.node.token = p.queue[0]
 	}
 
-	cache.setMatch(p.node.token, p.nodeType, p.node)
+	cache.setMatch(p.node.token, p.typeID, p.node)
 	return parseResult{
 		valid:    true,
 		unparsed: p.queue,
@@ -952,11 +1000,19 @@ func (p *sequenceParser) parse(t token) (parseResult, error) {
 }
 
 func group(nodeType string, itemTypes ...string) generator {
+	itemTypeIDs := make([]int, len(itemTypes))
+	for i, t := range itemTypes {
+		itemTypeIDs[i] = registerType(t)
+	}
+
 	return register(nodeType, &groupGenerator{
 		nodeType:  nodeType,
-		itemTypes: itemTypes,
+		itemTypes: itemTypeIDs,
+		typeID:    registerType(nodeType),
 	})
 }
+
+func (g *groupGenerator) setTypeID(id int) { g.typeID = id }
 
 func (g *groupGenerator) getItemGenerators() ([]generator, error) {
 	ig := make([]generator, len(g.itemTypes))
@@ -972,29 +1028,29 @@ func (g *groupGenerator) getItemGenerators() ([]generator, error) {
 	return ig, nil
 }
 
-func (g *groupGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
+func (g *groupGenerator) canCreate(init node, excludedTypes []int) (bool, error) {
 	if len(g.itemTypes) == 0 {
 		return false, groupWithoutItems(g.nodeType)
 	}
 
-	if stringsContain(excludedTypes, g.nodeType) {
+	if intsContain(excludedTypes, g.typeID) {
 		return false, nil
 	}
 
 	first := generators[g.itemTypes[0]]
 
-	if ok, err := first.canCreate(init, append(excludedTypes, g.nodeType)); ok || err != nil {
+	if ok, err := first.canCreate(init, append(excludedTypes, g.typeID)); ok || err != nil {
 		return ok, err
 	}
 
-	if ok, err := first.member(init.typ); ok || err != nil {
+	if ok, err := first.member(init.typeID); ok || err != nil {
 		return ok, err
 	}
 
 	return false, nil
 }
 
-func (g *groupGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
+func (g *groupGenerator) create(t trace, init node, excludedTypes []int) (parser, error) {
 	if len(g.itemGenerators) == 0 {
 		ig, err := g.getItemGenerators()
 		if err != nil {
@@ -1006,23 +1062,23 @@ func (g *groupGenerator) create(t trace, init node, excludedTypes []string) (par
 
 	return newGroupParser(
 		t.extend(g.nodeType),
-		g.nodeType,
+		g.typeID,
 		g.itemGenerators,
 		init,
 		excludedTypes,
 	), nil
 }
 
-func (g *groupGenerator) member(nodeType string) (bool, error) {
-	return nodeType == g.nodeType, nil
+func (g *groupGenerator) member(typeID int) (bool, error) {
+	return typeID == g.typeID, nil
 }
 
 func newGroupParser(
 	t trace,
-	nodeType string,
+	typeID int,
 	items []generator,
 	init node,
-	excludedTypes []string,
+	excludedTypes []int,
 ) *groupParser {
 	t.out("create, excluded:", excludedTypes)
 	return &groupParser{
@@ -1030,11 +1086,11 @@ func newGroupParser(
 			backtrackingParser: backtrackingParser{
 				baseParser: baseParser{
 					trace:         t,
-					nodeType:      nodeType,
+					typeID:        typeID,
 					init:          init,
 					excludedTypes: excludedTypes,
 				},
-				node: node{typ: nodeType},
+				node: node{typeID: typeID, typ: typeNames[typeID]},
 			},
 			firstGenerator: items[0],
 		},
@@ -1049,12 +1105,12 @@ func (p *groupParser) nextParser() (parser, bool, error) {
 
 	var (
 		init     node
-		excluded []string
+		excluded []int
 	)
 
 	if len(p.node.nodes) == 0 {
 		init = p.init
-		excluded = append(p.excludedTypes, p.nodeType)
+		excluded = append(p.excludedTypes, p.typeID)
 	}
 
 	if ok, err := item.canCreate(init, excluded); !ok || err != nil {
@@ -1074,7 +1130,7 @@ func (p *groupParser) parseOrDone() (parseResult, error) {
 	p.trace.out("parse done")
 	p.done = true
 	p.trace.out("caching group", p.node)
-	cache.setMatch(p.node.token, p.nodeType, p.node)
+	cache.setMatch(p.node.token, p.typeID, p.node)
 	return parseResult{
 		valid:    true,
 		node:     p.node,
@@ -1168,7 +1224,7 @@ func (p *groupParser) parse(t token) (parseResult, error) {
 		ct = p.node.token
 	}
 
-	cache.setNoMatch(ct, p.nodeType)
+	cache.setNoMatch(ct, p.typeID)
 
 	p.done = true
 	p.trace.out("returning from end of group", p.node.tokens(), p.queue)
@@ -1193,14 +1249,22 @@ func (p *groupParser) parse(t token) (parseResult, error) {
 }
 
 func union(nodeType string, elementTypes ...string) generator {
+	elementTypeIDs := make([]int, len(elementTypes))
+	for i, t := range elementTypes {
+		elementTypeIDs[i] = registerType(t)
+	}
+
 	return register(nodeType, &unionGenerator{
 		nodeType:     nodeType,
-		elementTypes: elementTypes,
+		elementTypes: elementTypeIDs,
+		typeID:       registerType(nodeType),
 	})
 }
 
-func (g *unionGenerator) expand(skip []string) ([]generator, error) {
-	if stringsContain(skip, g.nodeType) {
+func (g *unionGenerator) setTypeID(id int) { g.typeID = id }
+
+func (g *unionGenerator) expand(skip []int) ([]generator, error) {
+	if intsContain(skip, g.typeID) {
 		return nil, nil
 	}
 
@@ -1212,13 +1276,13 @@ func (g *unionGenerator) expand(skip []string) ([]generator, error) {
 		}
 
 		if ug, ok := eg.(*unionGenerator); ok {
-			ugx, err := ug.expand(append(skip, g.nodeType))
+			ugx, err := ug.expand(append(skip, g.typeID))
 			if err != nil {
 				return nil, err
 			}
 
 			expanded = append(expanded, ugx...)
-		} else if !stringsContain(skip, et) {
+		} else if !intsContain(skip, et) {
 			expanded = append(expanded, eg)
 		}
 	}
@@ -1226,7 +1290,7 @@ func (g *unionGenerator) expand(skip []string) ([]generator, error) {
 	return expanded, nil
 }
 
-func (g *unionGenerator) canCreate(init node, excludedTypes []string) (bool, error) {
+func (g *unionGenerator) canCreate(init node, excludedTypes []int) (bool, error) {
 	if len(g.expanded) == 0 {
 		expanded, err := g.expand(nil)
 		if err != nil {
@@ -1246,10 +1310,10 @@ func (g *unionGenerator) canCreate(init node, excludedTypes []string) (bool, err
 		}
 	}
 
-	return g.member(init.typ)
+	return g.member(init.typeID)
 }
 
-func (g *unionGenerator) create(t trace, init node, excludedTypes []string) (parser, error) {
+func (g *unionGenerator) create(t trace, init node, excludedTypes []int) (parser, error) {
 	var gen []generator
 	for _, g := range g.expanded {
 		if ok, err := g.canCreate(init, excludedTypes); err != nil {
@@ -1260,7 +1324,7 @@ func (g *unionGenerator) create(t trace, init node, excludedTypes []string) (par
 	}
 
 	var n node
-	if ok, err := g.member(init.typ); err != nil {
+	if ok, err := g.member(init.typeID); err != nil {
 		return nil, err
 	} else if ok {
 		n = init
@@ -1268,7 +1332,7 @@ func (g *unionGenerator) create(t trace, init node, excludedTypes []string) (par
 
 	return newUnionParser(
 		t.extend(g.nodeType),
-		g.nodeType,
+		g.typeID,
 		gen,
 		n,
 		init,
@@ -1276,9 +1340,9 @@ func (g *unionGenerator) create(t trace, init node, excludedTypes []string) (par
 	), nil
 }
 
-func (g *unionGenerator) member(nodeType string) (bool, error) {
+func (g *unionGenerator) member(typeID int) (bool, error) {
 	for _, gi := range g.expanded {
-		if m, err := gi.member(nodeType); m || err != nil {
+		if m, err := gi.member(typeID); m || err != nil {
 			return m, err
 		}
 	}
@@ -1288,17 +1352,17 @@ func (g *unionGenerator) member(nodeType string) (bool, error) {
 
 func newUnionParser(
 	t trace,
-	nodeType string,
+	typeID int,
 	elements []generator,
 	node node,
 	init node,
-	excludedTypes []string,
+	excludedTypes []int,
 ) *unionParser {
 	return &unionParser{
 		backtrackingParser: backtrackingParser{
 			baseParser: baseParser{
 				trace:         t,
-				nodeType:      nodeType,
+				typeID:        typeID,
 				init:          init,
 				excludedTypes: excludedTypes,
 			},
@@ -1351,7 +1415,7 @@ func (p *unionParser) cacheKey(t ...token) token {
 		} else if len(p.queue) > 0 {
 			ct = p.queue[0]
 		} else {
-			panic(invalidParserState(p.nodeType))
+			panic(invalidParserState(typeNames[p.typeID]))
 		}
 	}
 
@@ -1362,10 +1426,10 @@ func (p *unionParser) setDone(t ...token) parseResult {
 	ct := p.cacheKey(t...)
 	if p.valid {
 		p.trace.out("union parse success", p.node)
-		cache.setMatch(ct, p.nodeType, p.node)
+		cache.setMatch(ct, p.typeID, p.node)
 	} else {
 		p.trace.out("parse failed", t)
-		cache.setNoMatch(ct, p.nodeType)
+		cache.setNoMatch(ct, p.typeID)
 	}
 
 	r := p.unparsed(t...)
