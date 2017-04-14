@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func compareNode(t *testing.T, a, b node) {
+func compareNode(t *testing.T, a, b *node) {
 	if a.typ != b.typ {
 		t.Fatal("invalid node type", a.typ, b.typ)
 	}
@@ -17,7 +17,7 @@ func compareNode(t *testing.T, a, b node) {
 	compareNodes(t, a.nodes, b.nodes)
 }
 
-func compareNodes(t *testing.T, a, b []node) {
+func compareNodes(t *testing.T, a, b []*node) {
 	if len(a) != len(b) {
 		for _, ai := range a {
 			t.Log(ai)
@@ -36,57 +36,57 @@ func TestParse(t *testing.T) {
 	for _, ti := range []struct {
 		msg    string
 		code   string
-		nodes  []node
+		nodes  []*node
 		fail   bool
 		gen    string
 		single bool
 	}{{
 		msg:    "int",
 		code:   "42",
-		nodes:  []node{{typ: "int", token: token{value: "42"}}},
+		nodes:  []*node{{typ: "int", token: &token{value: "42"}}},
 		gen:    "int",
 		single: true,
 	}, {
 		msg:    "int, with empty input",
 		code:   "",
-		nodes:  []node{{typ: "int", token: token{value: "42"}}},
+		nodes:  []*node{{typ: "int", token: &token{value: "42"}}},
 		gen:    "int",
 		single: true,
 		fail:   true,
 		// }, {
 		// 	msg:    "optional int",
 		// 	code:   "42",
-		// 	nodes:  []node{{typ: "int", token: token{value: "42"}}},
+		// 	nodes:  []*node{{typ: "int", token: &token{value: "42"}}},
 		// 	gen:    "optional-int",
 		// 	single: true,
 		// }, {
 		// 	msg:    "optional int, empty",
 		// 	code:   "",
-		// 	nodes:  []node{{}},
+		// 	nodes:  []*node{{}},
 		// 	gen:    "optional-int",
 		// 	single: true,
 		// }, {
 		// 	msg:    "optional int, not int",
 		// 	code:   "\"foo\"",
-		// 	nodes:  []node{{}},
+		// 	nodes:  []*node{{}},
 		// 	gen:    "optional-int",
 		// 	single: true,
 		// 	fail:   true,
 		// }, {
 		// 	msg:  "int sequence, optional",
 		// 	code: "1 2 3",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "int-sequence",
-		// 		token: token{value: "1"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "1"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "1"},
+		// 			token: &token{value: "1"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "2"},
+		// 			token: &token{value: "2"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "3"},
+		// 			token: &token{value: "3"},
 		// 		}},
 		// 	}},
 		// 	gen:    "int-sequence-optional",
@@ -94,24 +94,24 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:    "int sequence, optional, empty",
 		// 	code:   "",
-		// 	nodes:  []node{{typ: "int-sequence"}},
+		// 	nodes:  []*node{{typ: "int-sequence"}},
 		// 	gen:    "int-sequence-optional",
 		// 	single: true,
 		// }, {
 		// 	msg:    "empty sequence",
 		// 	code:   "",
-		// 	nodes:  []node{{typ: "int-sequence"}},
+		// 	nodes:  []*node{{typ: "int-sequence"}},
 		// 	gen:    "int-sequence",
 		// 	single: true,
 		// }, {
 		// 	msg:  "sequence with a single item",
 		// 	code: "42",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "int-sequence",
-		// 		token: token{value: "42"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "42"},
+		// 			token: &token{value: "42"},
 		// 		}},
 		// 	}},
 		// 	gen:    "int-sequence",
@@ -119,18 +119,18 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "sequence with multiple items",
 		// 	code: "1 2 3",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "int-sequence",
-		// 		token: token{value: "1"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "1"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "1"},
+		// 			token: &token{value: "1"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "2"},
+		// 			token: &token{value: "2"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "3"},
+		// 			token: &token{value: "3"},
 		// 		}},
 		// 	}},
 		// 	gen:    "int-sequence",
@@ -138,12 +138,12 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "sequence with optional item",
 		// 	code: "42",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "optional-int-sequence",
-		// 		token: token{value: "42"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "42"},
+		// 			token: &token{value: "42"},
 		// 		}},
 		// 	}},
 		// 	gen:    "optional-int-sequence",
@@ -151,18 +151,18 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "sequence with multiple optional items",
 		// 	code: "1 2 3",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "optional-int-sequence",
-		// 		token: token{value: "1"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "1"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "1"},
+		// 			token: &token{value: "1"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "2"},
+		// 			token: &token{value: "2"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "3"},
+		// 			token: &token{value: "3"},
 		// 		}},
 		// 	}},
 		// 	gen:    "optional-int-sequence",
@@ -170,12 +170,12 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "group with single int",
 		// 	code: "42",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "single-int",
-		// 		token: token{value: "42"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "42"},
+		// 			token: &token{value: "42"},
 		// 		}},
 		// 	}},
 		// 	gen:    "single-int",
@@ -183,12 +183,12 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "group with single optional int",
 		// 	code: "42",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "single-optional-int",
-		// 		token: token{value: "42"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "42"},
+		// 			token: &token{value: "42"},
 		// 		}},
 		// 	}},
 		// 	gen:    "single-optional-int",
@@ -196,12 +196,12 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "group with single int, not int",
 		// 	code: "\"foo\"",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "single-int",
-		// 		token: token{value: "42"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "42"},
+		// 			token: &token{value: "42"},
 		// 		}},
 		// 	}},
 		// 	gen:    "single-int",
@@ -210,18 +210,18 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "group with multiple ints",
 		// 	code: "1 2 3",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "multiple-ints",
-		// 		token: token{value: "1"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "1"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "1"},
+		// 			token: &token{value: "1"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "2"},
+		// 			token: &token{value: "2"},
 		// 		}, {
 		// 			typ:   "int",
-		// 			token: token{value: "3"},
+		// 			token: &token{value: "3"},
 		// 		}},
 		// 	}},
 		// 	gen:    "multiple-ints",
@@ -229,15 +229,15 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "group with optional item",
 		// 	code: "1 \"foo\"",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "group-with-optional-item",
-		// 		token: token{value: "1"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "1"},
+		// 		nodes: []*node{{
 		// 			typ:   "int",
-		// 			token: token{value: "1"},
+		// 			token: &token{value: "1"},
 		// 		}, {
 		// 			typ:   "string",
-		// 			token: token{value: "\"foo\""},
+		// 			token: &token{value: "\"foo\""},
 		// 		}},
 		// 	}},
 		// 	gen:    "group-with-optional-item",
@@ -245,12 +245,12 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg:  "group with optional item, missing",
 		// 	code: "\"foo\"",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ:   "group-with-optional-item",
-		// 		token: token{value: "\"foo\""},
-		// 		nodes: []node{{
+		// 		token: &token{value: "\"foo\""},
+		// 		nodes: []*node{{
 		// 			typ:   "string",
-		// 			token: token{value: "\"foo\""},
+		// 			token: &token{value: "\"foo\""},
 		// 		}},
 		// 	}},
 		// 	gen:    "group-with-optional-item",
@@ -258,24 +258,24 @@ func TestParse(t *testing.T) {
 		// }, {
 		// 	msg: "union of int and string",
 		// 	code: "\"foo\"",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ: "string",
-		// 		token: token{value: "\"foo\""},
+		// 		token: &token{value: "\"foo\""},
 		// 	}},
 		// 	gen: "int-or-string",
 		// 	single: true,
 		// }, {
 		// 	msg: "union of int and group with optional int",
 		// 	code: "42 \"foo\"",
-		// 	nodes: []node{{
+		// 	nodes: []*node{{
 		// 		typ: "group-with-optional-item",
-		// 		token: token{value: "42"},
-		// 		nodes: []node{{
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
 		// 			typ: "int",
-		// 			token: token{value: "42"},
+		// 			token: &token{value: "42"},
 		// 		}, {
 		// 			typ: "string",
-		// 			token: token{value: "\"foo\""},
+		// 			token: &token{value: "\"foo\""},
 		// 		}},
 		// 	}},
 		// gen: "int-or-group-with-optional",
@@ -283,207 +283,207 @@ func TestParse(t *testing.T) {
 	}, {
 		msg:  "multiple ints",
 		code: "1 2; 3",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "int",
-			token: token{value: "1"},
+			token: &token{value: "1"},
 		}, {
 			typ:   "int",
-			token: token{value: "2"},
+			token: &token{value: "2"},
 		}, {
 			typ:   "int",
-			token: token{value: "3"},
+			token: &token{value: "3"},
 		}},
 	}, {
 		msg:  "string",
 		code: "\"abc\"",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "string",
-			token: token{value: "\"abc\""},
+			token: &token{value: "\"abc\""},
 		}},
 	}, {
 		msg:  "symbol",
 		code: "a",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "symbol",
-			token: token{value: "a"},
+			token: &token{value: "a"},
 		}},
 	}, {
 		msg:  "dynamic symbol",
 		code: "symbol(f(a))",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "dynamic-symbol",
-			token: token{value: "symbol"},
-			nodes: []node{{
+			token: &token{value: "symbol"},
+			nodes: []*node{{
 				typ:   "function-call",
-				token: token{value: "f"},
-				nodes: []node{{
+				token: &token{value: "f"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "f"},
+					token: &token{value: "f"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "bool",
 		code: "true false",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "true",
-			token: token{value: "true"},
+			token: &token{value: "true"},
 		}, {
 			typ:   "false",
-			token: token{value: "false"},
+			token: &token{value: "false"},
 		}},
 	}, {
 		msg:  "empty list",
 		code: "[]",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "list",
-			token: token{value: "["},
+			token: &token{value: "["},
 		}},
 	}, {
 		msg:  "list",
 		code: "[1, 2, f(a), [3, 4, []]]",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "list",
-			token: token{value: "["},
-			nodes: []node{{
+			token: &token{value: "["},
+			nodes: []*node{{
 				typ:   "int",
-				token: token{value: "1"},
+				token: &token{value: "1"},
 			}, {
 				typ:   "int",
-				token: token{value: "2"},
+				token: &token{value: "2"},
 			}, {
 				typ:   "function-call",
-				token: token{value: "f"},
-				nodes: []node{{
+				token: &token{value: "f"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "f"},
+					token: &token{value: "f"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}, {
 				typ:   "list",
-				token: token{value: "["},
-				nodes: []node{{
+				token: &token{value: "["},
+				nodes: []*node{{
 					typ:   "int",
-					token: token{value: "3"},
+					token: &token{value: "3"},
 				}, {
 					typ:   "int",
-					token: token{value: "4"},
+					token: &token{value: "4"},
 				}, {
 					typ:   "list",
-					token: token{value: "["},
+					token: &token{value: "["},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "mutable-list",
 		code: "~[1, 2, f(a), [3, 4, ~[]]]",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "mutable-list",
-			token: token{value: "~"},
-			nodes: []node{{
+			token: &token{value: "~"},
+			nodes: []*node{{
 				typ:   "int",
-				token: token{value: "1"},
+				token: &token{value: "1"},
 			}, {
 				typ:   "int",
-				token: token{value: "2"},
+				token: &token{value: "2"},
 			}, {
 				typ:   "function-call",
-				token: token{value: "f"},
-				nodes: []node{{
+				token: &token{value: "f"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "f"},
+					token: &token{value: "f"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}, {
 				typ:   "list",
-				token: token{value: "["},
-				nodes: []node{{
+				token: &token{value: "["},
+				nodes: []*node{{
 					typ:   "int",
-					token: token{value: "3"},
+					token: &token{value: "3"},
 				}, {
 					typ:   "int",
-					token: token{value: "4"},
+					token: &token{value: "4"},
 				}, {
 					typ:   "mutable-list",
-					token: token{value: "~"},
+					token: &token{value: "~"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "empty structure",
 		code: "{}",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "structure",
-			token: token{value: "{"},
+			token: &token{value: "{"},
 		}},
 	}, {
 		msg:  "structure",
 		code: "{a: 1, b: 2, ...c, d: {e: 3, f: {}}}",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "structure",
-			token: token{value: "{"},
-			nodes: []node{{
+			token: &token{value: "{"},
+			nodes: []*node{{
 				typ:   "structure-definition",
-				token: token{value: "a"},
-				nodes: []node{{
+				token: &token{value: "a"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}, {
 					typ:   "int",
-					token: token{value: "1"},
+					token: &token{value: "1"},
 				}},
 			}, {
 				typ:   "structure-definition",
-				token: token{value: "b"},
-				nodes: []node{{
+				token: &token{value: "b"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "b"},
+					token: &token{value: "b"},
 				}, {
 					typ:   "int",
-					token: token{value: "2"},
+					token: &token{value: "2"},
 				}},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}, {
 				typ:   "structure-definition",
-				token: token{value: "d"},
-				nodes: []node{{
+				token: &token{value: "d"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "d"},
+					token: &token{value: "d"},
 				}, {
 					typ:   "structure",
-					token: token{value: "{"},
-					nodes: []node{{
+					token: &token{value: "{"},
+					nodes: []*node{{
 						typ:   "structure-definition",
-						token: token{value: "e"},
-						nodes: []node{{
+						token: &token{value: "e"},
+						nodes: []*node{{
 							typ:   "symbol",
-							token: token{value: "e"},
+							token: &token{value: "e"},
 						}, {
 							typ:   "int",
-							token: token{value: "3"},
+							token: &token{value: "3"},
 						}},
 					}, {
 						typ:   "structure-definition",
-						token: token{value: "f"},
-						nodes: []node{{
+						token: &token{value: "f"},
+						nodes: []*node{{
 							typ:   "symbol",
-							token: token{value: "f"},
+							token: &token{value: "f"},
 						}, {
 							typ:   "structure",
-							token: token{value: "{"},
+							token: &token{value: "{"},
 						}},
 					}},
 				}},
@@ -492,64 +492,64 @@ func TestParse(t *testing.T) {
 	}, {
 		msg:  "mutable structure",
 		code: "~{a: 1, b: 2, ...c, d: {e: 3, f: ~{}}}",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "mutable-structure",
-			token: token{value: "~"},
-			nodes: []node{{
+			token: &token{value: "~"},
+			nodes: []*node{{
 				typ:   "structure-definition",
-				token: token{value: "a"},
-				nodes: []node{{
+				token: &token{value: "a"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}, {
 					typ:   "int",
-					token: token{value: "1"},
+					token: &token{value: "1"},
 				}},
 			}, {
 				typ:   "structure-definition",
-				token: token{value: "b"},
-				nodes: []node{{
+				token: &token{value: "b"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "b"},
+					token: &token{value: "b"},
 				}, {
 					typ:   "int",
-					token: token{value: "2"},
+					token: &token{value: "2"},
 				}},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}, {
 				typ:   "structure-definition",
-				token: token{value: "d"},
-				nodes: []node{{
+				token: &token{value: "d"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "d"},
+					token: &token{value: "d"},
 				}, {
 					typ:   "structure",
-					token: token{value: "{"},
-					nodes: []node{{
+					token: &token{value: "{"},
+					nodes: []*node{{
 						typ:   "structure-definition",
-						token: token{value: "e"},
-						nodes: []node{{
+						token: &token{value: "e"},
+						nodes: []*node{{
 							typ:   "symbol",
-							token: token{value: "e"},
+							token: &token{value: "e"},
 						}, {
 							typ:   "int",
-							token: token{value: "3"},
+							token: &token{value: "3"},
 						}},
 					}, {
 						typ:   "structure-definition",
-						token: token{value: "f"},
-						nodes: []node{{
+						token: &token{value: "f"},
+						nodes: []*node{{
 							typ:   "symbol",
-							token: token{value: "f"},
+							token: &token{value: "f"},
 						}, {
 							typ:   "mutable-structure",
-							token: token{value: "~"},
+							token: &token{value: "~"},
 						}},
 					}},
 				}},
@@ -558,309 +558,309 @@ func TestParse(t *testing.T) {
 	}, {
 		msg:  "symbol query",
 		code: "a.b",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "symbol-query",
-			token: token{value: "a"},
-			nodes: []node{{
+			token: &token{value: "a"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}},
 		}},
 	}, {
 		msg:  "chained symbol query",
 		code: "a.b.c",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "symbol-query",
-			token: token{value: "a"},
-			nodes: []node{{
+			token: &token{value: "a"},
+			nodes: []*node{{
 				typ:   "symbol-query",
-				token: token{value: "a"},
-				nodes: []node{{
+				token: &token{value: "a"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "b"},
+					token: &token{value: "b"},
 				}},
 			}, {
 				typ:   "symbol",
-				token: token{value: "c"},
+				token: &token{value: "c"},
 			}},
 		}},
 	}, {
 		msg:  "noop function",
 		code: "fn () {;}",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function",
-			token: token{value: "fn"},
-			nodes: []node{{
+			token: &token{value: "fn"},
+			nodes: []*node{{
 				typ:   "statement-sequence",
-				token: token{value: ";"},
+				token: &token{value: ";"},
 			}},
 		}},
 	}, {
 		msg:  "simple function",
 		code: "fn () 3",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function",
-			token: token{value: "fn"},
-			nodes: []node{{
+			token: &token{value: "fn"},
+			nodes: []*node{{
 				typ:   "int",
-				token: token{value: "3"},
+				token: &token{value: "3"},
 			}},
 		}},
 	}, {
 		msg:  "identity",
 		code: "fn (x) x",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function",
-			token: token{value: "fn"},
-			nodes: []node{{
+			token: &token{value: "fn"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "x"},
+				token: &token{value: "x"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "x"},
+				token: &token{value: "x"},
 			}},
 		}},
 	}, {
 		msg:  "list",
 		code: "fn (...x) x",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function",
-			token: token{value: "fn"},
-			nodes: []node{{
+			token: &token{value: "fn"},
+			nodes: []*node{{
 				typ:   "collect-symbol",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "x"},
+					token: &token{value: "x"},
 				}},
 			}, {
 				typ:   "symbol",
-				token: token{value: "x"},
+				token: &token{value: "x"},
 			}},
 		}},
 	}, {
 		msg:  "function",
 		code: "fn (a, b, ...c) { c }",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function",
-			token: token{value: "fn"},
-			nodes: []node{{
+			token: &token{value: "fn"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}, {
 				typ:   "collect-symbol",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}, {
 				typ:   "statement-sequence",
-				token: token{value: "c"},
-				nodes: []node{{
+				token: &token{value: "c"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "function with sequence",
 		code: "fn (a, b, ...c) { a(b); c }",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function",
-			token: token{value: "fn"},
-			nodes: []node{{
+			token: &token{value: "fn"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}, {
 				typ:   "collect-symbol",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}, {
 				typ:   "statement-sequence",
-				token: token{value: "a"},
-				nodes: []node{{
+				token: &token{value: "a"},
+				nodes: []*node{{
 					typ:   "function-call",
-					token: token{value: "a"},
-					nodes: []node{{
+					token: &token{value: "a"},
+					nodes: []*node{{
 						typ:   "symbol",
-						token: token{value: "a"},
+						token: &token{value: "a"},
 					}, {
 						typ:   "symbol",
-						token: token{value: "b"},
+						token: &token{value: "b"},
 					}},
 				}, {
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "function call",
 		code: "f(a)",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "f"},
+				token: &token{value: "f"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}},
 		}},
 	}, {
 		msg:  "chained function call",
 		code: "f(a)(b)",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "function-call",
-				token: token{value: "f"},
-				nodes: []node{{
+				token: &token{value: "f"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "f"},
+					token: &token{value: "f"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}},
 		}},
 	}, {
 		msg:  "chained function call, whitespace",
 		code: "f(a) (b)",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "function-call",
-				token: token{value: "f"},
-				nodes: []node{{
+				token: &token{value: "f"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "f"},
+					token: &token{value: "f"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}},
 		}},
 	}, {
 		msg:  "function call argument",
 		code: "f(g(a))",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "f"},
+				token: &token{value: "f"},
 			}, {
 				typ:   "function-call",
-				token: token{value: "g"},
-				nodes: []node{{
+				token: &token{value: "g"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "g"},
+					token: &token{value: "g"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "function call sequence",
 		code: "f(a) f(b)g(a)",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "f"},
+				token: &token{value: "f"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}},
 		}, {
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "f"},
+				token: &token{value: "f"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}},
 		}, {
 			typ:   "function-call",
-			token: token{value: "g"},
-			nodes: []node{{
+			token: &token{value: "g"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "g"},
+				token: &token{value: "g"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}},
 		}},
 	}, {
 		msg:  "function call with multiple arguments",
 		code: "f(...a, b, ...c)",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "function-call",
-			token: token{value: "f"},
-			nodes: []node{{
+			token: &token{value: "f"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "f"},
+				token: &token{value: "f"},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}, {
 				typ:   "spread-expression",
-				token: token{value: "."},
-				nodes: []node{{
+				token: &token{value: "."},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "switch conditional with default only",
 		code: "switch{default: 42}",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "switch-conditional",
-			token: token{value: "switch"},
-			nodes: []node{{
+			token: &token{value: "switch"},
+			nodes: []*node{{
 				typ:   "default-clause",
-				token: token{value: "default"},
-				nodes: []node{{
+				token: &token{value: "default"},
+				nodes: []*node{{
 					typ:   "int",
-					token: token{value: "42"},
+					token: &token{value: "42"},
 				}},
 			}},
 		}},
@@ -872,69 +872,69 @@ func TestParse(t *testing.T) {
 					default: x
 					case c: d
 				}`,
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "switch-conditional",
-			token: token{value: "switch"},
-			nodes: []node{{
+			token: &token{value: "switch"},
+			nodes: []*node{{
 				typ:   "switch-clause",
-				token: token{value: "case"},
-				nodes: []node{{
+				token: &token{value: "case"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "a"},
+					token: &token{value: "a"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "b"},
+					token: &token{value: "b"},
 				}},
 			}, {
 				typ:   "default-clause",
-				token: token{value: "default"},
-				nodes: []node{{
+				token: &token{value: "default"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "x"},
+					token: &token{value: "x"},
 				}},
 			}, {
 				typ:   "switch-clause",
-				token: token{value: "case"},
-				nodes: []node{{
+				token: &token{value: "case"},
+				nodes: []*node{{
 					typ:   "symbol",
-					token: token{value: "c"},
+					token: &token{value: "c"},
 				}, {
 					typ:   "symbol",
-					token: token{value: "d"},
+					token: &token{value: "d"},
 				}},
 			}},
 		}},
 	}, {
 		msg:  "definition",
 		code: "let a b",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "value-definition",
-			token: token{value: "let"},
-			nodes: []node{{
+			token: &token{value: "let"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}},
 		}},
 	}, {
 		msg:  "mutable definition",
 		code: "let ~ a b",
-		nodes: []node{{
+		nodes: []*node{{
 			typ:   "mutable-value-definition",
-			token: token{value: "let"},
-			nodes: []node{{
+			token: &token{value: "let"},
+			nodes: []*node{{
 				typ:   "symbol",
-				token: token{value: "a"},
+				token: &token{value: "a"},
 			}, {
 				typ:   "symbol",
-				token: token{value: "b"},
+				token: &token{value: "b"},
 			}},
 		}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
-			cache = make(tokenCache)
+			cache = &tokenCache{}
 			r := newTokenReader(bytes.NewBufferString(ti.code), "<test>")
 			g := generatorsByName["document"]
 			if ti.gen != "" {
@@ -952,7 +952,7 @@ func TestParse(t *testing.T) {
 
 			ns := n.nodes
 			if ti.single {
-				ns = []node{n}
+				ns = []*node{n}
 			}
 
 			compareNodes(t, ns, ti.nodes)

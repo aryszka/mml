@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime/pprof"
@@ -9,6 +11,13 @@ import (
 )
 
 func main() {
+	b, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r := bytes.NewReader(b)
+
 	f, err := os.Create("cpu.out")
 	if err != nil {
 		log.Fatal(err)
@@ -17,7 +26,10 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	if err := mml.Compile(os.Stdin, os.Stdout); err != nil {
-		log.Fatal(err)
+	for i := 0; i < 1; i++ {
+		r.Seek(0, 0)
+		if err := mml.Compile(r, os.Stdout); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

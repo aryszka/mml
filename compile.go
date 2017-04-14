@@ -22,27 +22,27 @@ func resolveSymbol(s string) string {
 	return rs
 }
 
-func compileInt(w io.Writer, n node) error {
+func compileInt(w io.Writer, n *node) error {
 	_, err := fmt.Fprintf(w, "mml.SysIntToInt(%s)", n.token.value)
 	return err
 }
 
-func compileString(w io.Writer, n node) error {
+func compileString(w io.Writer, n *node) error {
 	_, err := fmt.Fprintf(w, "mml.SysStringToString(%s)", n.token.value)
 	return err
 }
 
-// func compileChannel(w io.Writer, n node) error {
+// func compileChannel(w io.Writer, n *node) error {
 // 	_, err := fmt.Fprint(w, "mml.MakeChannel()")
 // 	return err
 // }
 
-func compileSymbol(w io.Writer, n node) error {
+func compileSymbol(w io.Writer, n *node) error {
 	_, err := fmt.Fprint(w, resolveSymbol(n.token.value))
 	return err
 }
 
-func compileDynamicSymbol(w io.Writer, n node) error {
+func compileDynamicSymbol(w io.Writer, n *node) error {
 	if _, err := fmt.Fprint(w, "mml.SymbolFromValue("); err != nil {
 		return err
 	}
@@ -58,12 +58,12 @@ func compileDynamicSymbol(w io.Writer, n node) error {
 	return nil
 }
 
-func compileLookup(w io.Writer, n node) error {
+func compileLookup(w io.Writer, n *node) error {
 	// if _, err := fmt.Fprint(w, "mml.Lookup(env, "); err != nil {
 	// 	return err
 	// }
 
-	var c func(io.Writer, node) error
+	var c func(io.Writer, *node) error
 	switch n.typ {
 	case "symbol":
 		c = compileSymbol
@@ -82,7 +82,7 @@ func compileLookup(w io.Writer, n node) error {
 	return nil
 }
 
-// func compileBoolean(w io.Writer, n node) error {
+// func compileBoolean(w io.Writer, n *node) error {
 // 	s := "mml.True"
 // 	if n.token.value == "false" {
 // 		s = "mml.False"
@@ -92,7 +92,7 @@ func compileLookup(w io.Writer, n node) error {
 // 	return err
 // }
 //
-// func compileListVariant(w io.Writer, n node, variant string) error {
+// func compileListVariant(w io.Writer, n *node, variant string) error {
 // 	if _, err := fmt.Fprintf(w, "mml.%s(", variant); err != nil {
 // 		return err
 // 	}
@@ -116,20 +116,20 @@ func compileLookup(w io.Writer, n node) error {
 // 	return nil
 // }
 //
-// func compileList(w io.Writer, n node) error {
+// func compileList(w io.Writer, n *node) error {
 // 	return compileListVariant(w, n, "List")
 // }
 //
-// func compileMutableList(w io.Writer, n node) error {
+// func compileMutableList(w io.Writer, n *node) error {
 // 	return compileListVariant(w, n, "MutableList")
 // }
 
-func compileSymbolLiteral(w io.Writer, n node) error {
+func compileSymbolLiteral(w io.Writer, n *node) error {
 	_, err := fmt.Fprintf(w, "\"%s\"", n.token.value)
 	return err
 }
 
-func compileSymbolExpression(w io.Writer, n node) error {
+func compileSymbolExpression(w io.Writer, n *node) error {
 	switch n.typ {
 	case "symbol":
 		return compileSymbolLiteral(w, n)
@@ -142,7 +142,7 @@ func compileSymbolExpression(w io.Writer, n node) error {
 	}
 }
 
-func compileStructureVariant(w io.Writer, n node, variant string) error {
+func compileStructureVariant(w io.Writer, n *node, variant string) error {
 	if _, err := fmt.Fprintf(w, "mml.%s(", variant); err != nil {
 		return err
 	}
@@ -174,75 +174,75 @@ func compileStructureVariant(w io.Writer, n node, variant string) error {
 	return nil
 }
 
-// func compileStructure(w io.Writer, n node) error {
+// func compileStructure(w io.Writer, n *node) error {
 // 	return compileStructureVariant(w, n, "Structure")
 // }
 
-func compileMutableStructure(w io.Writer, n node) error {
+func compileMutableStructure(w io.Writer, n *node) error {
 	return compileStructureVariant(w, n, "MutableStructure")
 }
 
-// func andToSwitch(n node) node {
+// func andToSwitch(n *node) *node {
 // 	if len(n.nodes) == 0 {
-// 		return node{typ: trueNode, token: n.token}
+// 		return &node{typ: trueNode, token: n.token}
 // 	}
 //
 // 	first, rest := n.nodes[0], n.nodes[1:]
-// 	return node{
+// 	return &node{
 // 		typ:   switchConditionalNode,
 // 		token: n.token,
-// 		nodes: []node{{
+// 		nodes: []*node{{
 // 			typ:   switchClauseNode,
 // 			token: first.token,
-// 			nodes: []node{
+// 			nodes: []*node{
 // 				first,
-// 				andToSwitch(node{nodes: rest}),
+// 				andToSwitch(*node{nodes: rest}),
 // 			},
 // 		}, {
 // 			typ:   defaultClauseNode,
 // 			token: n.token,
-// 			nodes: []node{
+// 			nodes: []*node{
 // 				{typ: falseNode, token: n.token},
 // 			},
 // 		}},
 // 	}
 // }
 //
-// func compileAnd(w io.Writer, n node) error {
+// func compileAnd(w io.Writer, n *node) error {
 // 	return compile(w, andToSwitch(n))
 // }
 //
-// func orToSwitch(n node) node {
+// func orToSwitch(n *node) *node {
 // 	if len(n.nodes) == 0 {
-// 		return node{typ: falseNode, token: n.token}
+// 		return &node{typ: falseNode, token: n.token}
 // 	}
 //
 // 	first, rest := n.nodes[0], n.nodes[1:]
-// 	return node{
+// 	return &node{
 // 		typ:   switchConditionalNode,
 // 		token: n.token,
-// 		nodes: []node{{
+// 		nodes: []*node{{
 // 			typ:   switchClauseNode,
 // 			token: first.token,
-// 			nodes: []node{
+// 			nodes: []*node{
 // 				first,
 // 				{typ: trueNode, token: n.token},
 // 			},
 // 		}, {
 // 			typ:   defaultClauseNode,
 // 			token: n.token,
-// 			nodes: []node{
-// 				orToSwitch(node{nodes: rest}),
+// 			nodes: []*node{
+// 				orToSwitch(&node{nodes: rest}),
 // 			},
 // 		}},
 // 	}
 // }
 //
-// func compileOr(w io.Writer, n node) error {
+// func compileOr(w io.Writer, n *node) error {
 // 	return compile(w, orToSwitch(n))
 // }
 
-func compileStatementList(w io.Writer, sep string, ret bool, n []node) error {
+func compileStatementList(w io.Writer, sep string, ret bool, n []*node) error {
 	if len(n) == 0 {
 		return nil
 	}
@@ -271,16 +271,16 @@ func compileStatementList(w io.Writer, sep string, ret bool, n []node) error {
 	return nil
 }
 
-func compileSequence(w io.Writer, n []node) error {
+func compileSequence(w io.Writer, n []*node) error {
 	return compileStatementList(w, ";", false, n)
 }
 
-func compileStaticSymbol(w io.Writer, n node) error {
+func compileStaticSymbol(w io.Writer, n *node) error {
 	_, err := fmt.Fprint(w, resolveSymbol(n.token.value))
 	return err
 }
 
-func compileFunction(w io.Writer, n node) error {
+func compileFunction(w io.Writer, n *node) error {
 	valueIndex := len(n.nodes) - 1
 	value := n.nodes[valueIndex]
 
@@ -314,7 +314,7 @@ func compileFunction(w io.Writer, n node) error {
 		// 	}
 		// }
 
-		// var c func(io.Writer, node) error
+		// var c func(io.Writer, *node) error
 		// switch ai.typ {
 		// case stringNode:
 		// 	c = compileString
@@ -386,7 +386,7 @@ func compileFunction(w io.Writer, n node) error {
 	return nil
 }
 
-// func compileQuery(w io.Writer, n node) error {
+// func compileQuery(w io.Writer, n *node) error {
 // 	if _, err := fmt.Fprint(w, "mml.Query("); err != nil {
 // 		return err
 // 	}
@@ -425,7 +425,7 @@ func compileFunction(w io.Writer, n node) error {
 // 	return nil
 // }
 
-// func compileValueList(w io.Writer, n []node) error {
+// func compileValueList(w io.Writer, n []*node) error {
 // 	return compileStatementList(w, ",", false, n)
 // }
 
@@ -440,7 +440,7 @@ func compileFunction(w io.Writer, n node) error {
 //
 // // do the recursion
 
-func compileArgList(w io.Writer, n []node, forceList bool) (int, error) {
+func compileArgList(w io.Writer, n []*node, forceList bool) (int, error) {
 	if len(n) == 0 {
 		fmt.Fprint(w, "nil")
 		return 0, nil
@@ -589,7 +589,7 @@ func compileArgList(w io.Writer, n []node, forceList bool) (int, error) {
 	}
 }
 
-func compileFunctionCall(w io.Writer, n node) error {
+func compileFunctionCall(w io.Writer, n *node) error {
 	if _, err := fmt.Fprint(w, "mml.ApplySys("); err != nil {
 		return err
 	}
@@ -613,7 +613,7 @@ func compileFunctionCall(w io.Writer, n node) error {
 	return nil
 }
 
-// func compileSwitch(w io.Writer, n node) error {
+// func compileSwitch(w io.Writer, n *node) error {
 // 	if _, err := fmt.Fprint(w, "func() *mml.Val {"); err != nil {
 // 		return err
 // 	}
@@ -658,7 +658,7 @@ func compileFunctionCall(w io.Writer, n node) error {
 // 	return nil
 // }
 
-func compileValueDefinition(w io.Writer, n node) error {
+func compileValueDefinition(w io.Writer, n *node) error {
 	if err := compileStaticSymbol(w, n.nodes[0]); err != nil {
 		return err
 	}
@@ -674,7 +674,7 @@ func compileValueDefinition(w io.Writer, n node) error {
 	return nil
 }
 
-func compile(w io.Writer, n node) error {
+func compile(w io.Writer, n *node) error {
 	switch n.typ {
 	case "int":
 		return compileInt(w, n)

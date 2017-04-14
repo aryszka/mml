@@ -209,7 +209,9 @@ func init() {
 
 	union("document", "statement-sequence")
 
-	isSep = func(n node) bool {
+	cacheMembers()
+
+	isSep = func(n *node) bool {
 		switch n.typ {
 		case "nl", "semicolon", "comma", "nls":
 			return true
@@ -218,52 +220,52 @@ func init() {
 		}
 	}
 
-	setPostParse(map[string]func(node) node{
-		"dynamic-symbol": func(n node) node {
+	setPostParse(map[string]func(*node) *node{
+		"dynamic-symbol": func(n *node) *node {
 			n.nodes = n.nodes[2:3]
 			return n
 		},
 
-		"collect-symbol": func(n node) node {
+		"collect-symbol": func(n *node) *node {
 			n.nodes = n.nodes[1:]
 			return n
 		},
 
-		"spread-expression": func(n node) node {
+		"spread-expression": func(n *node) *node {
 			n.nodes = n.nodes[1:]
 			return n
 		},
 
-		"list": func(n node) node {
+		"list": func(n *node) *node {
 			n.nodes = n.nodes[1].nodes
 			return n
 		},
 
-		"mutable-list": func(n node) node {
+		"mutable-list": func(n *node) *node {
 			n.nodes = n.nodes[1].nodes
 			return n
 		},
 
-		"structure-definition": func(n node) node {
+		"structure-definition": func(n *node) *node {
 			n.nodes = append(n.nodes[:1], n.nodes[2])
 			return n
 		},
 
-		"structure": func(n node) node {
+		"structure": func(n *node) *node {
 			n.nodes = n.nodes[1].nodes
 			return n
 		},
 
-		"mutable-structure": func(n node) node {
+		"mutable-structure": func(n *node) *node {
 			n.nodes = n.nodes[1].nodes
 			return n
 		},
 
-		"function": func(n node) node {
+		"function": func(n *node) *node {
 			fact := n.nodes[1].nodes
 			args := fact[1].nodes
 
-			var value node
+			var value *node
 			if len(fact) == 5 {
 				// when has varargs:
 				args = append(args, fact[2])
@@ -280,11 +282,11 @@ func init() {
 			return n
 		},
 
-		"effect-function": func(n node) node {
+		"effect-function": func(n *node) *node {
 			fact := n.nodes[2].nodes
 			args := fact[2].nodes
 
-			var value node
+			var value *node
 			if len(fact) == 5 {
 				// when has varargs:
 				args = append(args, fact[2])
@@ -301,19 +303,19 @@ func init() {
 			return n
 		},
 
-		"symbol-query": func(n node) node {
+		"symbol-query": func(n *node) *node {
 			n.nodes = append(n.nodes[:1], n.nodes[2])
 			return n
 		},
 
-		"range-expression": func(n node) node {
+		"range-expression": func(n *node) *node {
 			if len(n.nodes) == 1 {
-				n.nodes = make([]node, 2)
+				n.nodes = make([]*node, 2)
 				return n
 			}
 
 			if n.nodes[0].typ == "colon" {
-				n.nodes = []node{{}, n.nodes[1]}
+				n.nodes = []*node{{}, n.nodes[1]}
 				return n
 			}
 
@@ -321,30 +323,30 @@ func init() {
 			return n
 		},
 
-		"expression-query": func(n node) node {
+		"expression-query": func(n *node) *node {
 			n.nodes = append(n.nodes[:1], n.nodes[2])
 			return n
 		},
 
-		"function-call": func(n node) node {
+		"function-call": func(n *node) *node {
 			n.nodes = append(n.nodes[:1], n.nodes[2].nodes...)
 			return n
 		},
 
-		"switch-clause": func(n node) node {
+		"switch-clause": func(n *node) *node {
 			n.nodes = append(n.nodes[1:2], n.nodes[3].nodes...)
 			return n
 		},
 
-		"default-clause": func(n node) node {
+		"default-clause": func(n *node) *node {
 			n.nodes = n.nodes[2].nodes
 			return n
 		},
 
-		"switch-conditional": func(n node) node {
+		"switch-conditional": func(n *node) *node {
 			n.nodes = n.nodes[2 : len(n.nodes)-1]
 
-			var nodes []node
+			var nodes []*node
 			for _, ni := range n.nodes {
 				switch ni.typ {
 				case "switch-clause-sequence":
@@ -360,11 +362,11 @@ func init() {
 			return n
 		},
 
-		"if-conditional": func(n node) node {
+		"if-conditional": func(n *node) *node {
 			return n
 		},
 
-		"definition-item": func(n node) node {
+		"definition-item": func(n *node) *node {
 			if len(n.nodes) == 2 {
 				return n
 			}
@@ -373,22 +375,22 @@ func init() {
 			return n
 		},
 
-		"value-definition": func(n node) node {
+		"value-definition": func(n *node) *node {
 			n.nodes = n.nodes[1].nodes
 			return n
 		},
 
-		"mutable-value-definition": func(n node) node {
+		"mutable-value-definition": func(n *node) *node {
 			n.nodes = n.nodes[2].nodes
 			return n
 		},
 
-		"function-definition": func(n node) node {
+		"function-definition": func(n *node) *node {
 			n.nodes = n.nodes[1:]
 			return n
 		},
 
-		"effect-function-definition": func(n node) node {
+		"effect-function-definition": func(n *node) *node {
 			n.nodes = n.nodes[2:]
 			return n
 		},
