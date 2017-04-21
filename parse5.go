@@ -3,7 +3,9 @@ package mml
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"strings"
 )
 
 type traceLevel int
@@ -21,6 +23,7 @@ type typeList []nodeType
 type node struct {
 	token    *token
 	nodeType nodeType
+	typeName string
 	nodes    []*node
 	toks     []*token
 }
@@ -47,6 +50,7 @@ type parser interface {
 type generator interface {
 	create(trace, nodeType, typeList) (*generatorResult, error)
 	member(nodeType) (bool, error)
+	nodeType() nodeType
 }
 
 type trace interface {
@@ -99,8 +103,9 @@ type parserRegistry struct {
 }
 
 type primitiveGenerator struct {
-	nodeType  nodeType
+	typ       nodeType
 	tokenType tokenType
+	registry  registry
 }
 
 type primitiveParser struct {
@@ -112,7 +117,7 @@ type primitiveParser struct {
 }
 
 type optionalGenerator struct {
-	nodeType nodeType
+	typ      nodeType
 	optional nodeType
 	registry registry
 }
@@ -132,7 +137,7 @@ type optionalParser struct {
 }
 
 type sequenceGenerator struct {
-	nodeType nodeType
+	typ      nodeType
 	item     nodeType
 	registry registry
 }
@@ -158,7 +163,7 @@ type sequenceParser struct {
 }
 
 type groupGenerator struct {
-	nodeType nodeType
+	typ      nodeType
 	items    []nodeType
 	registry registry
 }
@@ -182,11 +187,44 @@ type groupParser struct {
 	itemResult        *parseResult
 }
 
+type unionGenerator struct {
+	typ          nodeType
+	registry     registry
+	elements     []generator
+	elementTypes []nodeType
+}
+
+type unionParser struct {
+	trace             trace
+	cache             *cache
+	registry          registry
+	tokenStack        *tokenStack
+	parsers           [][]parser
+	initIsMember      bool
+	initNode          *node
+	result            *parseResult
+	initTypeIndex     int
+	parserIndex       int
+	skip              int
+	skippingAfterDone bool
+	cacheChecked      bool
+	cacheToken        *token
+	itemResult        *parseResult
+}
+
+type syntax struct {
+	registry   registry
+	traceLevel traceLevel
+}
+
 var (
-	errUnexpectedInitNode = errors.New("unexpected init node")
-	errNoParsersDefined   = errors.New("no parser defined")
+	errUnexpectedInitNode   = errors.New("unexpected init node")
+	errNoParsersDefined     = errors.New("no parser defined")
+	errFailedToCreateParser = errors.New("failed to create parser")
+	errUnexpectedEOF        = errors.New("unexpected EOF")
 
 	zeroNode = &node{}
+	eofToken = &token{offset: -1}
 )
 
 func unspecifiedParser(typeName string) error {
@@ -213,6 +251,14 @@ func groupWithoutItems(nodeType string) error {
 	return fmt.Errorf("group without items: %s", nodeType)
 }
 
+func unionWithoutElements(nodeType string) error {
+	return fmt.Errorf("union without elements: %s", nodeType)
+}
+
+func unexpectedToken(nodeType string, t *token) error {
+	return fmt.Errorf("unexpected token: %v, %v", nodeType, t)
+}
+
 func (l typeList) contains(t nodeType) bool {
 	for _, ti := range l {
 		if ti == t {
@@ -223,6 +269,8 @@ func (l typeList) contains(t nodeType) bool {
 	return false
 }
 
+// TODO: better not to do this, we never use the whole slice
+// it is better to just collect the length
 func (n *node) tokens() []*token {
 	return n.toks
 }
@@ -252,6 +300,15 @@ func (n *node) append(na *node) {
 func (n *node) clearNodes() {
 	n.nodes = nil
 	n.toks = nil
+}
+
+func (n *node) String() string {
+	nc := make([]string, len(n.nodes))
+	for i, ni := range n.nodes {
+		nc[i] = ni.String()
+	}
+
+	return fmt.Sprintf("{%s:%v:[%s]}", n.typeName, n.token, strings.Join(nc, ", "))
 }
 
 func newTokenStack(t trace, expectedSize int) *tokenStack {
@@ -289,6 +346,7 @@ func (s *tokenStack) merge(from *tokenStack) {
 func (s *tokenStack) mergeTokens(t []*token) {
 	for len(t) > 0 {
 		s.append(t[len(t)-1])
+		t = t[:len(t)-1]
 	}
 }
 
@@ -338,11 +396,10 @@ func (s *tokenStack) findCachedNode(n *node) int {
 	return 0
 }
 
-func newTrace(r registry, l traceLevel, root nodeType) *parserTrace {
+func newTrace(l traceLevel, r registry) *parserTrace {
 	return &parserTrace{
 		registry: r,
 		level:    l,
-		path:     "/" + r.typeName(root),
 	}
 }
 
@@ -359,8 +416,7 @@ func (t *parserTrace) outLevel(l traceLevel, a ...interface{}) {
 		return
 	}
 
-	log.Printf("%s: ", t.path)
-	log.Println(a...)
+	log.Println(append([]interface{}{t.path}, a...)...)
 }
 
 func (t *parserTrace) out(a ...interface{}) {
@@ -372,7 +428,6 @@ func (t *parserTrace) debug(a ...interface{}) {
 }
 
 func (c *cache) set(offset int, r *parseResult) {
-	r.fromCache = true
 	c.offset = offset
 	c.result = r
 }
@@ -386,6 +441,7 @@ func (c *cache) has(offset int) bool {
 }
 
 func (c *cache) get() *parseResult {
+	c.result.fromCache = true
 	return c.result
 }
 
@@ -406,6 +462,7 @@ func (r *parserRegistry) nodeType(typeName string) nodeType {
 	t = r.idSeed
 	r.idSeed++
 	r.typeIDs[typeName] = t
+	r.typeNames[t] = typeName
 	return t
 }
 
@@ -438,31 +495,32 @@ func (r *parserRegistry) register(nt nodeType, g generator) error {
 
 func (r *parserRegistry) primitive(typeName string, t tokenType) error {
 	g := &primitiveGenerator{
-		nodeType:  r.nodeType(typeName),
+		typ:       r.nodeType(typeName),
 		tokenType: t,
+		registry:  r,
 	}
 
-	return r.register(g.nodeType, g)
+	return r.register(g.typ, g)
 }
 
 func (r *parserRegistry) optional(typeName string, optional string) error {
 	g := &optionalGenerator{
-		nodeType: r.nodeType(typeName),
+		typ:      r.nodeType(typeName),
 		optional: r.nodeType(optional),
 		registry: r,
 	}
 
-	return r.register(g.nodeType, g)
+	return r.register(g.typ, g)
 }
 
 func (r *parserRegistry) sequence(typeName string, itemType string) error {
 	g := &sequenceGenerator{
-		nodeType: r.nodeType(typeName),
+		typ:      r.nodeType(typeName),
 		item:     r.nodeType(itemType),
 		registry: r,
 	}
 
-	return r.register(g.nodeType, g)
+	return r.register(g.typ, g)
 }
 
 func (r *parserRegistry) group(typeName string, itemTypes ...string) error {
@@ -472,34 +530,35 @@ func (r *parserRegistry) group(typeName string, itemTypes ...string) error {
 	}
 
 	g := &groupGenerator{
-		nodeType: r.nodeType(typeName),
+		typ:      r.nodeType(typeName),
 		items:    items,
 		registry: r,
 	}
 
-	return r.register(g.nodeType, g)
+	return r.register(g.typ, g)
 }
 
 func (r *parserRegistry) union(typeName string, elementTypes ...string) error {
-	return nil
+	g := &unionGenerator{}
+	return r.register(g.typ, g)
 }
 
 func (g *primitiveGenerator) create(t trace, init nodeType, excluded typeList) (*generatorResult, error) {
-	if excluded.contains(g.nodeType) || init != 0 {
+	if excluded.contains(g.typ) || init != 0 {
 		return &generatorResult{}, nil
 	}
 
-	t = t.extend(g.nodeType)
+	t = t.extend(g.typ)
 	n := &node{
-		nodeType: g.nodeType,
-		toks:     []*token{nil},
+		nodeType: g.typ,
+		typeName: g.registry.typeName(g.typ),
 	}
 
 	return &generatorResult{
 		valid: true,
 		parser: &primitiveParser{
 			trace:     t,
-			nodeType:  g.nodeType,
+			nodeType:  g.typ,
 			tokenType: g.tokenType,
 			result: &parseResult{
 				node:     n,
@@ -512,12 +571,26 @@ func (g *primitiveGenerator) create(t trace, init nodeType, excluded typeList) (
 }
 
 func (g *primitiveGenerator) member(t nodeType) (bool, error) {
-	return t == g.nodeType, nil
+	return t == g.typ, nil
 }
 
+func (g *primitiveGenerator) nodeType() nodeType {
+	return g.typ
+}
+
+// TODO: must create a new node on every init
+
 func (p *primitiveParser) init(n *node) {
-	if n != nil {
+	if n != zeroNode {
+		p.trace.debug("unexpected init node", n)
 		panic(errUnexpectedInitNode)
+	}
+
+	p.trace.debug("initializing primitive", p.result.node)
+	p.result.node = &node{
+		nodeType: p.result.node.nodeType,
+		typeName: p.result.node.typeName,
+		toks:     []*token{nil},
 	}
 
 	p.result.unparsed.clear()
@@ -539,6 +612,7 @@ func (p *primitiveParser) parse(t *token) *parseResult {
 		p.result.node.setToken(t)
 	} else {
 		p.trace.out("invalid")
+		p.result.valid = false
 		p.result.unparsed.append(t)
 	}
 
@@ -546,24 +620,26 @@ func (p *primitiveParser) parse(t *token) *parseResult {
 	return p.result
 }
 
+// TODO: handle item/element parser create failed everywhere
+
 func (g *optionalGenerator) create(t trace, init nodeType, excluded typeList) (*generatorResult, error) {
 	optional, ok := g.registry.get(g.optional)
 	if !ok {
 		return nil, unspecifiedParser(g.registry.typeName(g.optional))
 	}
 
-	if m, err := optional.member(g.nodeType); err != nil {
+	if m, err := optional.member(g.typ); err != nil {
 		return nil, err
 	} else if m {
 		return nil, optionalContainingSelf(g.registry.typeName(g.optional))
 	}
 
-	if excluded.contains(g.nodeType) {
+	if excluded.contains(g.typ) {
 		return &generatorResult{}, nil
 	}
 
-	t = t.extend(g.nodeType)
-	excluded = append(excluded, g.nodeType)
+	t = t.extend(g.typ)
+	excluded = append(excluded, g.typ)
 	optParser, err := optional.create(t, init, excluded)
 	if err != nil {
 		return nil, err
@@ -583,7 +659,7 @@ func (g *optionalGenerator) create(t trace, init nodeType, excluded typeList) (*
 		parser: &optionalParser{
 			trace:        t,
 			registry:     g.registry,
-			nodeType:     g.nodeType,
+			nodeType:     g.typ,
 			optional:     optParser.parser,
 			initIsMember: initIsMember,
 			result: &parseResult{
@@ -603,6 +679,10 @@ func (g *optionalGenerator) member(t nodeType) (bool, error) {
 	}
 
 	return optional.member(t)
+}
+
+func (g *optionalGenerator) nodeType() nodeType {
+	return g.typ
 }
 
 func (p *optionalParser) init(n *node) {
@@ -676,16 +756,16 @@ func (g *sequenceGenerator) create(t trace, init nodeType, excluded typeList) (*
 	if m, err := g.member(g.item); err != nil {
 		return nil, err
 	} else if m {
-		return nil, sequenceContainingSelf(g.registry.typeName(g.nodeType))
+		return nil, sequenceContainingSelf(g.registry.typeName(g.typ))
 	}
 
-	if excluded.contains(g.nodeType) {
+	if excluded.contains(g.typ) {
 		return &generatorResult{}, nil
 	}
 
-	t = t.extend(g.nodeType)
-	allExcluded := append(excluded, g.nodeType)
-	selfExcluded := typeList{g.nodeType}
+	t = t.extend(g.typ)
+	allExcluded := append(excluded, g.typ)
+	selfExcluded := typeList{g.typ}
 
 	first, err := item.create(t, init, allExcluded)
 	if err != nil {
@@ -716,6 +796,7 @@ func (g *sequenceGenerator) create(t trace, init nodeType, excluded typeList) (*
 	}
 
 	return &generatorResult{
+		valid: true,
 		parser: &sequenceParser{
 			trace:        t,
 			registry:     g.registry,
@@ -724,7 +805,8 @@ func (g *sequenceGenerator) create(t trace, init nodeType, excluded typeList) (*
 			initIsMember: initIsMember,
 			result: &parseResult{
 				node: &node{
-					nodeType: g.nodeType,
+					nodeType: g.typ,
+					typeName: g.registry.typeName(g.typ),
 				},
 				unparsed: newTokenStack(t, expectedLength),
 			},
@@ -736,7 +818,11 @@ func (g *sequenceGenerator) create(t trace, init nodeType, excluded typeList) (*
 }
 
 func (g *sequenceGenerator) member(t nodeType) (bool, error) {
-	return t == g.nodeType, nil
+	return t == g.typ, nil
+}
+
+func (g *sequenceGenerator) nodeType() nodeType {
+	return g.typ
 }
 
 func (p *sequenceParser) init(n *node) {
@@ -752,11 +838,13 @@ func (p *sequenceParser) init(n *node) {
 	p.skippingAfterDone = false
 }
 
-func (p *sequenceParser) parse(t *token) *parseResult {
-	p.trace.out("parsing", t)
+// TODO: cannot call init before item/element result was consumed
 
+func (p *sequenceParser) parse(t *token) *parseResult {
 parseLoop:
 	for {
+		p.trace.out("parsing", t)
+
 		if p.skip > 0 {
 			p.skip--
 			p.result.accepting = true
@@ -797,14 +885,21 @@ parseLoop:
 
 		p.tokenStack.merge(p.itemResult.unparsed)
 		p.currentParser = p.rest
-		p.currentParser.init(nil)
 
+		p.trace.debug("item done")
 		if p.itemResult.valid && p.itemResult.node != zeroNode {
+			p.trace.debug("appending item", p.result.node, p.itemResult.node)
 			p.initEvaluated = true
 			p.result.node.append(p.itemResult.node)
+			p.trace.debug("item appended", p.result.node)
 			if p.itemResult.fromCache {
+				p.trace.debug("item from cache")
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
 			}
+
+			p.trace.debug("call init", p.itemResult.node)
+			p.currentParser.init(zeroNode)
+			p.trace.debug("init called", p.itemResult.node)
 
 			if p.tokenStack.has() {
 				t = p.tokenStack.pop()
@@ -818,6 +913,10 @@ parseLoop:
 		if p.initIsMember && !p.initEvaluated {
 			p.initEvaluated = true
 			p.result.node.append(p.initNode)
+
+			p.trace.debug("call init", p.itemResult.node)
+			p.currentParser.init(zeroNode)
+			p.trace.debug("init called", p.itemResult.node)
 
 			if p.tokenStack.has() {
 				t = p.tokenStack.pop()
@@ -857,10 +956,10 @@ parseLoop:
 
 func (g *groupGenerator) create(t trace, init nodeType, excluded typeList) (*generatorResult, error) {
 	if len(g.items) == 0 {
-		return nil, groupWithoutItems(g.registry.typeName(g.nodeType))
+		return nil, groupWithoutItems(g.registry.typeName(g.typ))
 	}
 
-	if excluded.contains(g.nodeType) {
+	if excluded.contains(g.typ) {
 		return &generatorResult{}, nil
 	}
 
@@ -874,8 +973,8 @@ func (g *groupGenerator) create(t trace, init nodeType, excluded typeList) (*gen
 		items[i] = gi
 	}
 
-	t = t.extend(g.nodeType)
-	excluded = append(excluded, g.nodeType)
+	t = t.extend(g.typ)
+	excluded = append(excluded, g.typ)
 
 	first, err := items[0].create(t, init, excluded)
 	if err != nil {
@@ -918,7 +1017,9 @@ func (g *groupGenerator) create(t trace, init nodeType, excluded typeList) (*gen
 			initIsMember: initIsMember,
 			result: &parseResult{
 				node: &node{
-					nodeType: g.nodeType,
+					nodeType: g.typ,
+					typeName: g.registry.typeName(g.typ),
+					nodes:    make([]*node, 0, len(parsers)),
 				},
 				unparsed: newTokenStack(t, expectedLength),
 			},
@@ -930,7 +1031,11 @@ func (g *groupGenerator) create(t trace, init nodeType, excluded typeList) (*gen
 }
 
 func (g *groupGenerator) member(t nodeType) (bool, error) {
-	return t == g.nodeType, nil
+	return t == g.typ, nil
+}
+
+func (g *groupGenerator) nodeType() nodeType {
+	return g.typ
 }
 
 func (p *groupParser) init(n *node) {
@@ -941,7 +1046,7 @@ func (p *groupParser) init(n *node) {
 	p.parserIndex = 0
 	p.cacheChecked = false
 	p.initEvaluated = false
-	p.result.node.nodes = nil
+	p.result.node.nodes = p.result.node.nodes[:0]
 	p.skip = 0
 	p.skippingAfterDone = false
 }
@@ -985,7 +1090,7 @@ parseLoop:
 			if p.parserIndex == 0 {
 				p.currentParser.init(p.initNode)
 			} else {
-				p.currentParser.init(nil)
+				p.currentParser.init(zeroNode)
 			}
 
 			p.parserIndex++
@@ -1011,7 +1116,6 @@ parseLoop:
 			p.result.node.append(p.itemResult.node)
 			if p.itemResult.fromCache {
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
-				// TODO: skip should be always discarded
 			}
 
 			if p.parserIndex == len(p.parsers) {
@@ -1099,5 +1203,395 @@ parseLoop:
 		}
 
 		return p.result
+	}
+}
+
+func (g *unionGenerator) expand(ignore typeList) ([]generator, error) {
+	if ignore.contains(g.typ) {
+		return nil, nil
+	}
+
+	var generators []generator
+	for _, et := range g.elementTypes {
+		eg, ok := g.registry.get(et)
+		if !ok {
+			return nil, unspecifiedParser(g.registry.typeName(et))
+		}
+
+		if ug, ok := eg.(*unionGenerator); ok {
+			ugx, err := ug.expand(append(ignore, g.typ))
+			if err != nil {
+				return nil, err
+			}
+
+			generators = append(generators, ugx...)
+		} else if !ignore.contains(et) {
+			generators = append(generators, eg)
+		}
+	}
+
+	return generators, nil
+}
+
+func (g *unionGenerator) checkExpand() error {
+	if len(g.elements) > 0 {
+		return nil
+	}
+
+	elements, err := g.expand(nil)
+	if err != nil {
+		return err
+	}
+
+	if len(elements) == 0 {
+		return unionWithoutElements(g.registry.typeName(g.typ))
+	}
+
+	g.elements = elements
+	return nil
+}
+
+func (g *unionGenerator) create(t trace, init nodeType, exclude typeList) (*generatorResult, error) {
+	if err := g.checkExpand(); err != nil {
+		return nil, err
+	}
+
+	t = t.extend(g.typ)
+
+	expandedTypes := make([]nodeType, len(g.elements))
+	for i, e := range g.elements {
+		expandedTypes[i] = e.nodeType()
+	}
+
+	var expectedLength int
+	parsers := make([][]parser, len(g.elements)+1) // TODO: check the index shift
+	for i, it := range append([]nodeType{init}, expandedTypes...) {
+		p := make([]parser, len(g.elements))
+		for j, e := range g.elements {
+			gr, err := e.create(t, it, exclude)
+			if err != nil {
+				return nil, err
+			}
+
+			if gr.valid {
+				p[j] = gr.parser
+				if gr.expectedLength > expectedLength {
+					expectedLength = gr.expectedLength
+				}
+			}
+		}
+
+		parsers[i] = p
+	}
+
+	var initIsMember bool
+	if init != 0 {
+		if m, err := g.member(init); err != nil {
+			return nil, err
+		} else {
+			initIsMember = m
+		}
+	}
+
+	if !initIsMember && len(parsers[0]) == 0 {
+		return &generatorResult{}, nil
+	}
+
+	return &generatorResult{
+		valid: true,
+		parser: &unionParser{
+			trace:        t,
+			registry:     g.registry,
+			parsers:      parsers,
+			initIsMember: initIsMember,
+			result: &parseResult{
+				unparsed: newTokenStack(t, expectedLength),
+				node:     zeroNode,
+			},
+			tokenStack: newTokenStack(t, expectedLength),
+			cache:      &cache{},
+		},
+		expectedLength: expectedLength,
+	}, nil
+}
+
+func (g *unionGenerator) member(t nodeType) (bool, error) {
+	if err := g.checkExpand(); err != nil {
+		return false, err
+	}
+
+	for _, e := range g.elements {
+		if m, err := e.member(t); m || err != nil {
+			return m, err
+		}
+	}
+
+	return false, nil
+}
+
+func (g *unionGenerator) nodeType() nodeType {
+	return g.typ
+}
+
+func (p *unionParser) init(n *node) {
+	p.initNode = n
+	if p.initIsMember {
+		p.result.node = n
+	} else {
+		p.result.node = zeroNode
+	}
+
+	p.tokenStack.clear()
+	p.result.unparsed.clear()
+	p.initTypeIndex = 0
+	p.parserIndex = 0
+	p.parsers[0][0].init(n)
+}
+
+func (p *unionParser) parse(t *token) *parseResult {
+parseLoop:
+	for {
+		p.trace.out("parsing", t)
+
+		if p.skip > 0 {
+			p.skip--
+			p.result.accepting = true
+			return p.result
+		}
+
+		if p.skippingAfterDone {
+			p.result.accepting = false
+			return p.result
+		}
+
+		// parse4 not using cache in union
+		// maybe the new caching style helps
+		if !p.cacheChecked {
+			p.cacheChecked = true
+
+			p.cacheToken = t
+			if p.initNode != zeroNode {
+				p.cacheToken = p.initNode.token
+			}
+
+			if p.cache.has(p.cacheToken.offset) {
+				p.trace.out("found in cache, valid:", p.result.valid)
+				p.result = p.cache.get()
+				p.result.unparsed.append(t)
+				return p.result
+			}
+		}
+
+		p.itemResult = p.parsers[p.initTypeIndex][p.parserIndex].parse(t)
+		if p.itemResult.accepting {
+			if p.tokenStack.has() {
+				t = p.tokenStack.pop()
+				continue parseLoop
+			}
+
+			p.result.accepting = true
+			return p.result
+		}
+
+		for {
+			p.parserIndex++
+
+			if p.parserIndex == len(p.parsers[p.initTypeIndex]) {
+				break
+			}
+
+			if p.parsers[p.initTypeIndex][p.parserIndex] != nil {
+				break
+			}
+		}
+
+		p.tokenStack.merge(p.itemResult.unparsed)
+
+		if !p.itemResult.valid {
+			if p.parserIndex == len(p.parsers[p.initTypeIndex]) {
+				p.trace.out("done, valid:", p.result.node != zeroNode)
+				p.result.accepting = false
+				p.result.valid = p.result.node != zeroNode
+
+				p.cacheToken = p.result.node.token
+
+				if p.cacheToken == nil {
+					p.cacheToken = p.initNode.token
+				}
+
+				if p.cacheToken == nil {
+					if !p.tokenStack.has() {
+						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+					}
+
+					p.cacheToken = p.tokenStack.peek()
+				}
+
+				p.cache.set(p.cacheToken.offset, p.result)
+
+				p.result.unparsed.merge(p.tokenStack)
+				return p.result
+			}
+
+			p.parsers[p.initTypeIndex][p.parserIndex].init(p.result.node)
+
+			if p.tokenStack.has() {
+				t = p.tokenStack.pop()
+				continue parseLoop
+			}
+
+			p.result.accepting = true
+			return p.result
+		}
+
+		if p.result.node == zeroNode || p.result.node.len() < p.itemResult.node.len() {
+			p.result.node = p.itemResult.node
+
+			p.initTypeIndex = p.parserIndex
+			p.parserIndex = 0
+			for {
+				if p.parsers[p.initTypeIndex][p.parserIndex] != nil {
+					break
+				}
+
+				p.parserIndex++
+
+				if p.parserIndex == len(p.parsers[p.initTypeIndex]) {
+					break
+				}
+			}
+
+			if p.itemResult.fromCache {
+				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
+			}
+		}
+
+		if p.parserIndex < len(p.parsers[p.initTypeIndex]) {
+			p.parsers[p.initTypeIndex][p.parserIndex].init(p.result.node)
+
+			if p.tokenStack.has() {
+				t = p.tokenStack.pop()
+				continue parseLoop
+			}
+
+			p.result.accepting = true
+			return p.result
+		}
+
+		p.result.valid = p.result.node != zeroNode
+
+		p.cacheToken = p.result.node.token
+
+		if p.cacheToken == nil {
+			p.cacheToken = p.initNode.token
+		}
+
+		if p.cacheToken == nil {
+			if !p.tokenStack.has() {
+				panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+			}
+
+			p.cacheToken = p.tokenStack.peek()
+		}
+
+		p.cache.set(p.cacheToken.offset, p.result)
+
+		p.result.unparsed.merge(p.tokenStack)
+
+		if p.skip > 0 {
+			p.skippingAfterDone = true
+			p.result.accepting = true
+			return p.result
+		}
+
+		return p.result
+	}
+}
+
+func newSyntax() *syntax {
+	return &syntax{
+		registry: newRegistry(),
+	}
+}
+
+func (s *syntax) primitive(typeName string, t tokenType) error {
+	return s.registry.primitive(typeName, t)
+}
+
+func (s *syntax) optional(typeName string, optional string) error {
+	return s.registry.optional(typeName, optional)
+}
+
+func (s *syntax) sequence(typeName string, item string) error {
+	return s.registry.sequence(typeName, item)
+}
+
+func (s *syntax) group(typeName string, items ...string) error {
+	return s.registry.group(typeName, items...)
+}
+
+func (s *syntax) union(typeName string, elements ...string) error {
+	return s.registry.union(typeName, elements...)
+}
+
+func (s *syntax) parse(r *tokenReader) (*node, error) {
+	root, err := s.registry.root()
+	if err != nil {
+		return zeroNode, err
+	}
+
+	trace := newTrace(s.traceLevel, s.registry)
+
+	gr, err := root.create(trace, 0, nil)
+	if err != nil {
+		return zeroNode, err
+	}
+
+	if !gr.valid {
+		panic(errFailedToCreateParser)
+	}
+
+	parser := gr.parser
+	parser.init(zeroNode)
+
+	last := &parseResult{accepting: true, node: zeroNode}
+	for {
+		t, err := r.next()
+		if err != nil && err != io.EOF {
+			return zeroNode, err
+		}
+
+		if !last.accepting {
+			if err != io.EOF {
+				return zeroNode, unexpectedToken("root", &t)
+			}
+
+			return last.node, nil
+		}
+
+		if err == io.EOF {
+			last = parser.parse(eofToken)
+
+			if !last.valid {
+				return zeroNode, errUnexpectedEOF
+			}
+
+			if !last.unparsed.has() || last.unparsed.peek() != eofToken {
+				return zeroNode, errUnexpectedEOF
+			}
+
+			return last.node, nil
+		}
+
+		last = parser.parse(&t)
+		if !last.accepting {
+			if !last.valid {
+				return zeroNode, unexpectedToken("root", &t)
+			}
+
+			if last.unparsed.has() {
+				return zeroNode, unexpectedToken("root", last.unparsed.peek())
+			}
+		}
 	}
 }

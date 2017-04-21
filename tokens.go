@@ -191,11 +191,11 @@ type tokenReader struct {
 }
 
 func (t token) String() string {
-	switch t.typ {
-	case nl:
-		return "<newline>"
-	case noToken:
+	switch t.value {
+	case "":
 		return "<empty>"
+	case "\n":
+		return "<newline>"
 	default:
 		return t.value
 	}
