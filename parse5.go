@@ -1380,7 +1380,7 @@ func (g *unionGenerator) create(t trace, init nodeType, exclude typeList) (*gene
 		}
 	}
 
-	if !initIsMember && len(parsers[0]) == 0 {
+	if !initIsMember && (len(parsers[0]) == 0 || parsers[0][0] == nil) {
 		return &generatorResult{}, nil
 	}
 

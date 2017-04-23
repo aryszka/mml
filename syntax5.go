@@ -1,6 +1,6 @@
 package mml
 
-func mmlSyntax() (*syntax, error) {
+func syntax5() (*syntax, error) {
 	s := newSyntax()
 
 	var err error
