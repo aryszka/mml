@@ -322,6 +322,103 @@ func TestParse(t *testing.T) {
 				token:    &token{value: "\"foo\""},
 			}},
 		},
+	}, {
+		msg: "union of int and string",
+		syntax: def(
+			func(s *syntax) error { return s.primitive("int", intToken) },
+			func(s *syntax) error { return s.primitive("string", stringToken) },
+			func(s *syntax) error { return s.union("int-or-string", "int", "string") },
+		),
+		text: "\"foo\"",
+		node: &node{
+			typeName: "string",
+			token:    &token{value: "\"foo\""},
+		},
+	}, {
+		msg: "union of int and group with optional int",
+		syntax: def(
+			func(s *syntax) error { return s.primitive("int", intToken) },
+			func(s *syntax) error { return s.primitive("string", stringToken) },
+			func(s *syntax) error { return s.optional("optional-int", "int") },
+			func(s *syntax) error { return s.group("group-with-optional", "optional-int", "string") },
+			func(s *syntax) error {
+				return s.union("int-or-group-with-optional", "int", "group-with-optional")
+			},
+		),
+		text: "42 \"foo\"",
+		node: &node{
+			typeName: "group-with-optional",
+			token:    &token{value: "42"},
+			nodes: []*node{{
+				typeName: "int",
+				token:    &token{value: "42"},
+			}, {
+				typeName: "string",
+				token:    &token{value: "\"foo\""},
+			}},
+		},
+	}, {
+		msg: "union of int and group with optional int, token fall through",
+		syntax: def(
+			func(s *syntax) error { return s.primitive("int", intToken) },
+			func(s *syntax) error { return s.primitive("string", stringToken) },
+			func(s *syntax) error { return s.optional("optional-int", "int") },
+			func(s *syntax) error {
+				return s.group(
+					"group-with-optional",
+					"optional-int",
+					"optional-int",
+					"string",
+					"string",
+				)
+			},
+			func(s *syntax) error {
+				return s.union("int-or-group-with-optional", "int", "group-with-optional")
+			},
+		),
+		text: "\"foo\" \"bar\"",
+		node: &node{
+			typeName: "group-with-optional",
+			token:    &token{value: "\"foo\""},
+			nodes: []*node{{
+				typeName: "string",
+				token:    &token{value: "\"foo\""},
+			}, {
+				typeName: "string",
+				token:    &token{value: "\"bar\""},
+			}},
+		},
+	}, {
+		msg: "union of int and group with optional int, init fall through",
+		syntax: def(
+			func(s *syntax) error { return s.primitive("int", intToken) },
+			func(s *syntax) error { return s.primitive("string", stringToken) },
+			func(s *syntax) error { return s.optional("optional-int", "int") },
+			func(s *syntax) error {
+				return s.group(
+					"group-with-optional",
+					"optional-int",
+					"optional-int",
+					"string",
+					"string",
+				)
+			},
+			func(s *syntax) error {
+				return s.union("int-or-group-with-optional", "string", "group-with-optional")
+			},
+		),
+		text: "\"foo\" \"bar\"",
+		node: &node{
+			typeName: "group-with-optional",
+			token:    &token{value: "\"foo\""},
+			nodes: []*node{{
+				typeName: "string",
+				token:    &token{value: "\"foo\""},
+			}, {
+				typeName: "string",
+				token:    &token{value: "\"bar\""},
+			}},
+		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s := newSyntax()
