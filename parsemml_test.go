@@ -67,6 +67,16 @@ func TestParseMML(t *testing.T) {
 			token:    &token{value: "\"foo\""},
 		}},
 	}, {
+		msg:  "bool",
+		text: "true false",
+		nodes: []*node{{
+			typeName: "true",
+			token:    &token{value: "true"},
+		}, {
+			typeName: "false",
+			token:    &token{value: "false"},
+		}},
+	}, {
 		msg:  "symbol",
 		text: "foo",
 		nodes: []*node{{
@@ -97,6 +107,23 @@ func TestParseMML(t *testing.T) {
 			}, {
 				typeName: "close-paren",
 				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "empty list",
+		text: "[]",
+		nodes: []*node{{
+			typeName: "list",
+			token:    &token{value: "["},
+			nodes: []*node{{
+				typeName: "open-square",
+				token:    &token{value: "["},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "]"},
+			}, {
+				typeName: "close-square",
+				token:    &token{value: "]"},
 			}},
 		}},
 	}} {

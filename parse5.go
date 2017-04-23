@@ -691,9 +691,6 @@ func (p *primitiveParser) parse(t *token) *parserResult {
 	return p.result
 }
 
-// TODO: the group should hanlde when an optional item in the beginning doesn't accept the init node that
-// otherwise can be good for a later node
-
 func (g *optionalGenerator) create(init nodeType, excluded typeList) (*generatorResult, error) {
 	if p, ok := g.registry.getParser(g.typ, init, excluded); ok {
 		return p, nil
@@ -719,7 +716,12 @@ func (g *optionalGenerator) create(init nodeType, excluded typeList) (*generator
 		}
 
 		p.preallocated = false
+
+		// TODO: this is not enough, need to check the other order since the parser relies on having
+		// this nil. The same thing is required for the union. Best would be to merge the parser and the
+		// generatorResult and validate on the first init or in a post create round.
 		p.parser = nil
+
 		return p, nil
 	}
 
@@ -1074,9 +1076,6 @@ parseLoop:
 	}
 }
 
-// TODO: if there is an init, then cannot return valid in group when there is an init unless everyting is
-// optional. Can check the expected length.
-
 func (g *groupGenerator) create(init nodeType, excluded typeList) (*generatorResult, error) {
 	if p, ok := g.registry.getParser(g.typ, init, excluded); ok {
 		return p, nil
@@ -1275,6 +1274,7 @@ parseLoop:
 
 		if p.currentParser == nil {
 			if p.initNode == zeroNode || p.initEvaluated {
+				p.trace.debug("taking non-init parser", p.parserIndex, len(p.parsers))
 				p.currentParser = p.parsers[p.parserIndex]
 				p.currentParser.init(p.trace, zeroNode)
 			} else if p.parserIndex < len(p.initParsers) {
@@ -1346,6 +1346,27 @@ parseLoop:
 		}
 
 		if p.itemResult != nil && p.itemResult.valid {
+			if p.parserIndex == len(p.parsers) {
+				p.trace.out("group done, valid")
+				p.result.valid = true
+
+				p.cacheToken = p.result.node.token
+				if p.cacheToken == nil {
+					if !p.tokenStack.has() {
+						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+					}
+
+					p.cacheToken = p.tokenStack.peek()
+				}
+
+				p.cache.set(p.cacheToken.offset, p.result)
+
+				p.result.unparsed.merge(p.tokenStack)
+				p.skippingAfterDone = p.skip > 0
+				p.result.accepting = p.skippingAfterDone
+				return p.result
+			}
+
 			if p.tokenStack.has() {
 				t = p.tokenStack.pop()
 				continue parseLoop
@@ -1476,7 +1497,7 @@ func (g *unionGenerator) create(init nodeType, excluded typeList) (*generatorRes
 	}
 
 	var expectedLength int
-	parsers := make([][]parser, len(g.elements)+1) // TODO: check the index shift
+	parsers := make([][]parser, len(g.elements)+1)
 	for i, it := range append([]nodeType{init}, expandedTypes...) {
 		p := make([]parser, len(g.elements))
 		for j, e := range g.elements {
@@ -1839,4 +1860,36 @@ func (s *syntax) parse(r *tokenReader) (*node, error) {
 			}
 		}
 	}
+}
+
+func defineSyntax(primitive [][]interface{}, complex [][]string) (*syntax, error) {
+	s := newSyntax()
+
+	for _, p := range primitive {
+		if err := s.primitive(p[0].(string), p[1].(tokenType)); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, c := range complex {
+		var err error
+		switch c[0] {
+		case "optional":
+			err = s.optional(c[1], c[2])
+		case "sequence":
+			err = s.sequence(c[1], c[2])
+		case "group":
+			err = s.group(c[1], c[2:]...)
+		case "union":
+			err = s.union(c[1], c[2:]...)
+		default:
+			panic("invalid parser type")
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s, nil
 }

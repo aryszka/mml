@@ -61,56 +61,51 @@ func def(f ...func(s *syntax) error) func(s *syntax) error {
 
 func TestParse(t *testing.T) {
 	for _, ti := range []struct {
-		msg    string
-		syntax func(s *syntax) error
-		text   string
-		node   *node
-		fail   bool
+		msg       string
+		primitive [][]interface{}
+		complex   [][]string
+		text      string
+		node      *node
+		fail      bool
 	}{{
-		msg:    "int",
-		syntax: func(s *syntax) error { return s.primitive("int", intToken) },
-		text:   "42",
+		msg:       "int",
+		primitive: [][]interface{}{{"int", intToken}},
+		text:      "42",
 		node: &node{
 			typeName: "int",
 			token:    &token{value: "42"},
 		},
 	}, {
-		msg:    "int, with empty input",
-		syntax: func(s *syntax) error { return s.primitive("int", intToken) },
-		fail:   true,
+		msg:       "int, with empty input",
+		primitive: [][]interface{}{{"int", intToken}},
+		fail:      true,
 	}, {
-		msg: "optional int",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-		),
-		text: "42",
+		msg:       "optional int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"optional", "optional-int", "int"}},
+		text:      "42",
 		node: &node{
 			typeName: "int",
 			token:    &token{value: "42"},
 		},
 	}, {
-		msg: "optional int, empty",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-		),
-		node: zeroNode,
+		msg:       "optional int, empty",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"optional", "optional-int", "int"}},
+		node:      zeroNode,
 	}, {
-		msg: "optional int, not int",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-		),
-		text: "\"foo\"",
-		fail: true,
+		msg:       "optional int, not int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"optional", "optional-int", "int"}},
+		text:      "\"foo\"",
+		fail:      true,
 	}, {
-		msg: "int sequence, optional",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.sequence("int-sequence", "int") },
-			func(s *syntax) error { return s.optional("optional-int-sequence", "int-sequence") },
-		),
+		msg:       "int sequence, optional",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"sequence", "int-sequence", "int"},
+			{"optional", "optional-int-sequence", "int-sequence"},
+		},
 		text: "1 2 3",
 		node: &node{
 			typeName: "int-sequence",
@@ -127,33 +122,29 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "int sequence, optional, empty",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.sequence("int-sequence", "int") },
-			func(s *syntax) error { return s.optional("optional-int-sequence", "int-sequence") },
-		),
+		msg:       "int sequence, optional, empty",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"sequence", "int-sequence", "int"},
+			{"optional", "optional-int-sequence", "int-sequence"},
+		},
 		node: &node{
 			typeName: "int-sequence",
 			token:    eofToken,
 		},
 	}, {
-		msg: "empty sequence",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.sequence("int-sequence", "int") },
-		),
+		msg:       "empty sequence",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"sequence", "int-sequence", "int"}},
 		node: &node{
 			typeName: "int-sequence",
 			token:    eofToken,
 		},
 	}, {
-		msg: "sequence with a single item",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.sequence("int-sequence", "int") },
-		),
-		text: "42",
+		msg:       "sequence with a single item",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"sequence", "int-sequence", "int"}},
+		text:      "42",
 		node: &node{
 			typeName: "int-sequence",
 			token:    &token{value: "42"},
@@ -163,12 +154,10 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "sequence with multiple items",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.sequence("int-sequence", "int") },
-		),
-		text: "1 2 3",
+		msg:       "sequence with multiple items",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"sequence", "int-sequence", "int"}},
+		text:      "1 2 3",
 		node: &node{
 			typeName: "int-sequence",
 			token:    &token{value: "1"},
@@ -184,15 +173,15 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "sequence with optional item",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error { return s.sequence("int-sequence", "optional-int") },
-		),
+		msg:       "sequence with optional item",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "optional-int-sequence", "optional-int"},
+		},
 		text: "42",
 		node: &node{
-			typeName: "int-sequence",
+			typeName: "optional-int-sequence",
 			token:    &token{value: "42"},
 			nodes: []*node{{
 				typeName: "int",
@@ -200,15 +189,15 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "sequence with multiple optional items",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error { return s.sequence("int-sequence", "optional-int") },
-		),
+		msg:       "sequence with multiple optional items",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "optional-int-sequence", "optional-int"},
+		},
 		text: "1 2 3",
 		node: &node{
-			typeName: "int-sequence",
+			typeName: "optional-int-sequence",
 			token:    &token{value: "1"},
 			nodes: []*node{{
 				typeName: "int",
@@ -222,12 +211,10 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "group with single int",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.group("int-group", "int") },
-		),
-		text: "42",
+		msg:       "group with single int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"group", "int-group", "int"}},
+		text:      "42",
 		node: &node{
 			typeName: "int-group",
 			token:    &token{value: "42"},
@@ -237,15 +224,15 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "group with single optional int",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error { return s.group("int-group", "optional-int") },
-		),
+		msg:       "group with single optional int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"group", "optional-int-group", "optional-int"},
+		},
 		text: "42",
 		node: &node{
-			typeName: "int-group",
+			typeName: "optional-int-group",
 			token:    &token{value: "42"},
 			nodes: []*node{{
 				typeName: "int",
@@ -253,20 +240,16 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "group with single int, not int",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.group("int-group", "int") },
-		),
-		text: "\"foo\"",
-		fail: true,
+		msg:       "group with single int, not int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"group", "int-group", "int"}},
+		text:      "\"foo\"",
+		fail:      true,
 	}, {
-		msg: "group with multiple ints",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.group("int-group", "int", "int", "int") },
-		),
-		text: "1 2 3",
+		msg:       "group with multiple ints",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"group", "int-group", "int", "int", "int"}},
+		text:      "1 2 3",
 		node: &node{
 			typeName: "int-group",
 			token:    &token{value: "1"},
@@ -283,14 +266,14 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		msg: "group with optional item",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.primitive("string", stringToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error {
-				return s.group("group-with-optional", "optional-int", "string")
-			},
-		),
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"group", "group-with-optional", "optional-int", "string"},
+		},
 		text: "42 \"foo\"",
 		node: &node{
 			typeName: "group-with-optional",
@@ -305,14 +288,14 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		msg: "group with optional item, missing",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.primitive("string", stringToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error {
-				return s.group("group-with-optional", "optional-int", "string")
-			},
-		),
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"group", "group-with-optional", "optional-int", "string"},
+		},
 		text: "\"foo\"",
 		node: &node{
 			typeName: "group-with-optional",
@@ -323,12 +306,98 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
+		msg:       "group with only optional, empty",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"group",
+				"group-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		node: &node{
+			typeName: "group-with-only-optional",
+		},
+	}, {
+		msg:       "group with only optional, less",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"group",
+				"group-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		text: "1 2",
+		node: &node{
+			typeName: "group-with-only-optional",
+			token:    &token{value: "1"},
+			nodes: []*node{{
+				typeName: "int",
+				token:    &token{value: "1"},
+			}, {
+				typeName: "int",
+				token:    &token{value: "2"},
+			}},
+		},
+	}, {
+		msg:       "group with only optional, exact",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"group",
+				"group-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		text: "1 2 3",
+		node: &node{
+			typeName: "group-with-only-optional",
+			token:    &token{value: "1"},
+			nodes: []*node{{
+				typeName: "int",
+				token:    &token{value: "1"},
+			}, {
+				typeName: "int",
+				token:    &token{value: "2"},
+			}, {
+				typeName: "int",
+				token:    &token{value: "3"},
+			}},
+		},
+	}, {
+		msg:       "group with only optional, more",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"group",
+				"group-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		text: "1 2 3 4",
+		fail: true,
+	}, {
 		msg: "union of int and string",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.primitive("string", stringToken) },
-			func(s *syntax) error { return s.union("int-or-string", "int", "string") },
-		),
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"union", "int-or-string", "int", "string"},
+		},
 		text: "\"foo\"",
 		node: &node{
 			typeName: "string",
@@ -336,15 +405,15 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		msg: "union of int and group with optional int",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.primitive("string", stringToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error { return s.group("group-with-optional", "optional-int", "string") },
-			func(s *syntax) error {
-				return s.union("int-or-group-with-optional", "int", "group-with-optional")
-			},
-		),
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"group", "group-with-optional", "optional-int", "string"},
+			{"union", "int-or-group-with-optional", "int", "group-with-optional"},
+		},
 		text: "42 \"foo\"",
 		node: &node{
 			typeName: "group-with-optional",
@@ -359,23 +428,22 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		msg: "union of int and group with optional int, token fall through",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.primitive("string", stringToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error {
-				return s.group(
-					"group-with-optional",
-					"optional-int",
-					"optional-int",
-					"string",
-					"string",
-				)
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"group",
+				"group-with-optional",
+				"optional-int",
+				"optional-int",
+				"string",
+				"string",
 			},
-			func(s *syntax) error {
-				return s.union("int-or-group-with-optional", "int", "group-with-optional")
-			},
-		),
+			{"union", "int-or-group-with-optional", "int", "group-with-optional"},
+		},
 		text: "\"foo\" \"bar\"",
 		node: &node{
 			typeName: "group-with-optional",
@@ -390,23 +458,22 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		msg: "union of int and group with optional int, init fall through",
-		syntax: def(
-			func(s *syntax) error { return s.primitive("int", intToken) },
-			func(s *syntax) error { return s.primitive("string", stringToken) },
-			func(s *syntax) error { return s.optional("optional-int", "int") },
-			func(s *syntax) error {
-				return s.group(
-					"group-with-optional",
-					"optional-int",
-					"optional-int",
-					"string",
-					"string",
-				)
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"group",
+				"group-with-optional",
+				"optional-int",
+				"optional-int",
+				"string",
+				"string",
 			},
-			func(s *syntax) error {
-				return s.union("int-or-group-with-optional", "string", "group-with-optional")
-			},
-		),
+			{"union", "int-or-group-with-optional", "int", "group-with-optional"},
+		},
 		text: "\"foo\" \"bar\"",
 		node: &node{
 			typeName: "group-with-optional",
@@ -421,12 +488,13 @@ func TestParse(t *testing.T) {
 		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
-			s := newSyntax()
-			s.traceLevel = traceDebug
-			if err := ti.syntax(s); err != nil {
+			s, err := defineSyntax(ti.primitive, ti.complex)
+			if err != nil {
 				t.Error(err)
 				return
 			}
+
+			s.traceLevel = traceDebug
 
 			b := bytes.NewBufferString(ti.text)
 			r := newTokenReader(b, "<test>")
