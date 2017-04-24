@@ -85,7 +85,7 @@ func TestParseMML(t *testing.T) {
 		}},
 	}, {
 		msg:  "dynamic symbol",
-		text: "symbol(a)",
+		text: "symbol(f(a))",
 		nodes: []*node{{
 			typeName: "dynamic-symbol",
 			token:    &token{value: "symbol"},
@@ -97,10 +97,27 @@ func TestParseMML(t *testing.T) {
 				token:    &token{value: "("},
 			}, {
 				typeName: "nls",
-				token:    &token{value: "a"},
+				token:    &token{value: "f"},
 			}, {
-				typeName: "symbol",
-				token:    &token{value: "a"},
+				typeName: "function-call",
+				token:    &token{value: "f"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "f"},
+				}, {
+					typeName: "open-paren",
+					token:    &token{value: "("},
+				}, {
+					typeName: "list-sequence",
+					token:    &token{value: "a"},
+					nodes: []*node{{
+						typeName: "symbol",
+						token:    &token{value: "a"},
+					}},
+				}, {
+					typeName: "close-paren",
+					token:    &token{value: ")"},
+				}},
 			}, {
 				typeName: "nls",
 				token:    &token{value: ")"},
@@ -161,7 +178,9 @@ func TestParseMML(t *testing.T) {
 
 			for i, ni := range n.nodes {
 				if !checkNodes(ni, ti.nodes[i]) {
-					t.Error("failed to match nodes", ni, ti.nodes[i])
+					t.Error("failed to match nodes")
+					t.Log(ni)
+					t.Log(ti.nodes[i])
 				}
 			}
 		})

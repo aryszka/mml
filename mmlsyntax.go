@@ -41,6 +41,7 @@ func newMMLSyntax() (*syntax, error) {
 		{"union", "list-item", "expression", "spread-expression", "list-sep"},
 		{"sequence", "list-sequence", "list-item"},
 		{"group", "list", "open-square", "list-sequence", "close-square"},
+		{"group", "function-call", "expression", "open-paren", "list-sequence", "close-paren"},
 
 		{
 			"union",
@@ -51,6 +52,7 @@ func newMMLSyntax() (*syntax, error) {
 			"bool",
 			"dynamic-symbol",
 			"list",
+			"function-call",
 		},
 
 		{"union", "statement", "expression"},

@@ -486,6 +486,50 @@ func TestParse(t *testing.T) {
 				token:    &token{value: "\"bar\""},
 			}},
 		},
+	}, {
+		msg: "expression inside expression",
+		primitive: [][]interface{}{
+			{"symbol", symbolToken},
+			{"symbol-word", symbolWord},
+			{"open-paren", openParen},
+			{"close-paren", closeParen},
+		},
+		complex: [][]string{
+			{"group", "function-call", "expression", "open-paren", "expression", "close-paren"},
+			{"group", "dynamic-symbol", "symbol-word", "open-paren", "expression", "close-paren"},
+			{"union", "expression", "symbol", "function-call", "dynamic-symbol"},
+		},
+		text: "symbol(f(a))",
+		node: &node{
+			typeName: "dynamic-symbol",
+			token:    &token{value: "symbol"},
+			nodes: []*node{{
+				typeName: "symbol-word",
+				token:    &token{value: "symbol"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "function-call",
+				token:    &token{value: "f"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "f"},
+				}, {
+					typeName: "open-paren",
+					token:    &token{value: "("},
+				}, {
+					typeName: "symbol",
+					token:    &token{value: "a"},
+				}, {
+					typeName: "close-paren",
+					token:    &token{value: ")"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax(ti.primitive, ti.complex)
