@@ -12,6 +12,7 @@ type traceLevel int
 
 const (
 	traceOff traceLevel = iota
+	traceWarn
 	traceOn
 	traceDebug
 )
@@ -57,6 +58,7 @@ type trace interface {
 	outLevel(traceLevel, ...interface{})
 	out(...interface{})
 	debug(...interface{})
+	warn(...interface{})
 }
 
 type registry interface {
@@ -76,6 +78,8 @@ type registry interface {
 	group(string, ...string) error
 	union(string, ...string) error
 }
+
+// TODO: there are appends/merges beyond the prealloacted
 
 type tokenStack struct {
 	trace      trace
@@ -242,6 +246,8 @@ var (
 	errUnexpectedEOF        = errors.New("unexpected EOF")
 
 	zeroNode = &node{}
+
+	// TODO: can optimize with special handling of eof
 	eofToken = &token{offset: -1, value: "<eof>", cache: newCache()}
 )
 
@@ -353,7 +359,7 @@ func newTokenStack(expectedSize int) *tokenStack {
 
 func (s *tokenStack) append(t *token) {
 	if len(s.stack) == cap(s.stack) {
-		s.trace.debug("token stack exceeded expected size on append", s.stack, t)
+		s.trace.warn("token stack exceeded expected size on append", s.stack, t)
 	}
 
 	s.stack = append(s.stack, t)
@@ -362,7 +368,7 @@ func (s *tokenStack) append(t *token) {
 func (s *tokenStack) merge(from *tokenStack) {
 	s.need = len(s.stack) + len(from.stack) - cap(s.stack)
 	if s.need > 0 {
-		s.trace.debug("token stack exceeded expected size on merge", s.stack, from.stack)
+		s.trace.warn("token stack exceeded expected size on merge", s.stack, from.stack)
 
 		s.stack = s.stack[:cap(s.stack)]
 		for s.need > 0 {
@@ -399,7 +405,7 @@ func (s *tokenStack) pop() *token {
 func (s *tokenStack) drop(n int) {
 	s.nextLength = len(s.stack) - n
 	if s.nextLength < 0 {
-		s.trace.debug("stack dropping more tokens than it contains")
+		s.trace.warn("stack dropping more tokens than it contains")
 		s.nextLength = 0
 	}
 
@@ -411,9 +417,7 @@ func (s *tokenStack) clear() {
 }
 
 func (s *tokenStack) findCachedNode(n *node) int {
-	s.trace.debug("finding cached node", n.tokens())
 	for s.tokenIndex, s.token = range n.tokens() {
-		s.trace.debug("iterating", s.tokenIndex, s.token)
 		if s.token != s.peek() {
 			continue
 		}
@@ -426,7 +430,6 @@ func (s *tokenStack) findCachedNode(n *node) int {
 			s.drop(n.len() - s.tokenIndex)
 		}
 
-		s.trace.debug("returning", s.skip)
 		return s.skip
 	}
 
@@ -465,6 +468,10 @@ func (t *parserTrace) out(a ...interface{}) {
 	t.outLevel(traceOn, a...)
 }
 
+func (t *parserTrace) warn(a ...interface{}) {
+	t.outLevel(traceWarn, a...)
+}
+
 func (t *parserTrace) debug(a ...interface{}) {
 	t.outLevel(traceDebug, a...)
 }
@@ -474,6 +481,8 @@ func (t *parserTrace) debug(a ...interface{}) {
 // non-matches can be stored as id sets also on the token. Maybe it is enough to cache the union elements. Or we
 // can check in an id set whether something exists in the cache, and only look it up when it does. The lookup
 // also can be in a balanced tree.
+
+// TODO: check the cache before instantiation
 
 func newRegistry() *parserRegistry {
 	return &parserRegistry{
@@ -495,7 +504,7 @@ func (r *parserRegistry) nodeType(typeName string) nodeType {
 	r.idSeed++
 	r.typeIDs[typeName] = t
 	r.typeNames[t] = typeName
-	log.Println("registered type", typeName, t)
+	// log.Println("registered type", typeName, t)
 	return t
 }
 
@@ -544,7 +553,6 @@ func (r *parserRegistry) finalize(t trace) error {
 		done = true
 		for k, p := range r.parsers {
 			if !p.valid() {
-				t.debug("dropping", p.nodeType())
 				delete(r.parsers, k)
 				done = false
 				continue
@@ -555,7 +563,6 @@ func (r *parserRegistry) finalize(t trace) error {
 			}
 
 			if !p.valid() {
-				t.debug("dropping", p.nodeType())
 				delete(r.parsers, k)
 				done = false
 				continue
@@ -844,18 +851,22 @@ func (p *optionalParser) parse(t *token) *parserResult {
 		p.cacheToken = p.initNode.token
 	}
 
-	p.trace.debug("checking cache", p.cacheToken == nil, p.cacheToken.cache == nil)
 	if n, m, ok := p.cacheToken.cache.get(p.typ); ok {
 		if m {
-			p.result.valid = true
-			p.result.node = n
+			if !p.initIsMember {
+				p.result.valid = true
+				p.result.node = n
+				p.result.unparsed.append(t)
+				p.result.fromCache = true
+				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+			}
 		} else {
 			p.result.valid = false
+			p.result.unparsed.append(t)
+			p.result.fromCache = true
+			p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
 		}
 
-		p.result.unparsed.append(t)
-		p.result.fromCache = true
-		p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
 		return p.result
 	}
 
@@ -1047,16 +1058,21 @@ parseLoop:
 
 			if n, m, ok := p.cacheToken.cache.get(p.typ); ok {
 				if m {
-					p.result.valid = true
-					p.result.node = n
+					if !p.initIsMember {
+						p.result.valid = true
+						p.result.node = n
+						p.result.unparsed.append(t)
+						p.result.fromCache = true
+						p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+						return p.result
+					}
 				} else {
 					p.result.valid = false
+					p.result.unparsed.append(t)
+					p.result.fromCache = true
+					p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+					return p.result
 				}
-
-				p.result.unparsed.append(t)
-				p.result.fromCache = true
-				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
-				return p.result
 			}
 		}
 
@@ -1276,7 +1292,7 @@ func (g *groupGenerator) nodeType() nodeType {
 func (p *groupParser) check(trace) error {
 	for _, pi := range p.parsers {
 		if pi != nil && !pi.valid() {
-			return groupItemParserNotFound(p.result.node.typeName)
+			return groupItemParserNotFound(p.typeName)
 		}
 	}
 
@@ -1375,17 +1391,17 @@ parseLoop:
 		p.trace.out("parsing", t)
 
 		if p.skip > 0 {
-			p.trace.debug("skipping after done", p.skip)
 			p.skip--
 			p.result.accepting = true
 			return p.result
 		}
 
 		if p.skippingAfterDone {
-			p.trace.debug("skipping after donem, done")
 			p.result.accepting = false
 			return p.result
 		}
+
+		// need to check membership before the cache check
 
 		if !p.cacheChecked {
 			p.cacheChecked = true
@@ -1397,17 +1413,23 @@ parseLoop:
 
 			if n, m, ok := p.cacheToken.cache.get(p.typ); ok {
 				if m {
-					p.result.valid = true
-					p.result.node = n
+					if len(p.initIsMember) > p.parserIndex && !p.initIsMember[p.parserIndex] {
+						p.result.valid = true
+						p.result.node = n
+						p.result.unparsed.append(t)
+						p.result.fromCache = true
+						p.result.accepting = false
+						p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+						return p.result
+					}
 				} else {
 					p.result.valid = false
+					p.result.unparsed.append(t)
+					p.result.fromCache = true
+					p.result.accepting = false
+					p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+					return p.result
 				}
-
-				p.result.unparsed.append(t)
-				p.result.fromCache = true
-				p.result.accepting = false
-				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
-				return p.result
 			}
 		}
 
@@ -1423,11 +1445,9 @@ parseLoop:
 
 		// can be nil with init, only to check membership:
 		if p.currentParser == nil {
-			p.trace.debug("no parser")
 			p.tokenStack.append(t)
 			p.itemResult = nil
 		} else {
-			p.trace.debug("parsing item")
 			p.itemResult = p.currentParser.parse(t)
 			if p.itemResult.accepting {
 				p.result.accepting = true
@@ -1446,14 +1466,11 @@ parseLoop:
 
 		p.parserIndex++
 
-		p.trace.debug("checking valid item result with non-zero node")
 		if p.itemResult != nil && p.itemResult.valid && p.itemResult.node != zeroNode {
 			p.initEvaluated = true
 			p.result.node.append(p.itemResult.node)
 			if p.itemResult.fromCache {
-				p.trace.debug("setting skip", p.tokenStack.stack, p.itemResult.node)
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
-				p.trace.debug("skip set", p.tokenStack.stack, p.skip)
 			}
 
 			if p.parserIndex == len(p.parsers) {
@@ -1463,7 +1480,7 @@ parseLoop:
 				p.cacheToken = p.result.node.token
 				if p.cacheToken == nil {
 					if !p.tokenStack.has() {
-						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+						panic(unexpectedResult(p.typeName))
 					}
 
 					p.cacheToken = p.tokenStack.peek()
@@ -1486,7 +1503,6 @@ parseLoop:
 			return p.result
 		}
 
-		p.trace.debug("checking valid item result")
 		if p.itemResult != nil && p.itemResult.valid {
 			if p.parserIndex == len(p.parsers) {
 				p.trace.out("group done, valid", p.result.node)
@@ -1495,7 +1511,7 @@ parseLoop:
 				p.cacheToken = p.result.node.token
 				if p.cacheToken == nil {
 					if !p.tokenStack.has() {
-						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+						panic(unexpectedResult(p.typeName))
 					}
 
 					p.cacheToken = p.tokenStack.peek()
@@ -1518,9 +1534,7 @@ parseLoop:
 			return p.result
 		}
 
-		p.trace.debug("checking to evaluate init node")
 		if p.initNode != nil && !p.initEvaluated && len(p.initIsMember) >= p.parserIndex && p.initIsMember[p.parserIndex-1] {
-			p.trace.debug("evaluating init node")
 			p.initEvaluated = true
 
 			p.result.node.append(p.initNode)
@@ -1532,7 +1546,7 @@ parseLoop:
 				p.cacheToken = p.result.node.token
 				if p.cacheToken == nil {
 					if !p.tokenStack.has() {
-						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+						panic(unexpectedResult(p.typeName))
 					}
 
 					p.cacheToken = p.tokenStack.peek()
@@ -1562,7 +1576,7 @@ parseLoop:
 		p.cacheToken = p.result.node.token
 		if p.cacheToken == nil {
 			if !p.tokenStack.has() {
-				panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+				panic(unexpectedResult(p.typeName))
 			}
 
 			p.cacheToken = p.tokenStack.peek()
@@ -1778,13 +1792,11 @@ parseLoop:
 		if p.skip > 0 {
 			p.skip--
 			p.result.accepting = true
-			p.trace.debug("skipping")
 			return p.result
 		}
 
 		if p.skippingAfterDone {
 			p.result.accepting = false
-			p.trace.debug("done after skipping")
 			return p.result
 		}
 
@@ -1800,17 +1812,23 @@ parseLoop:
 
 			if n, m, ok := p.cacheToken.cache.get(p.typ); ok {
 				if m {
-					p.result.valid = true
-					p.result.node = n
+					if !p.initIsMember {
+						p.result.valid = true
+						p.result.node = n
+						p.result.unparsed.append(t)
+						p.result.fromCache = true
+						p.result.accepting = false
+						p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+						return p.result
+					}
 				} else {
 					p.result.valid = false
+					p.result.unparsed.append(t)
+					p.result.fromCache = true
+					p.result.accepting = false
+					p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+					return p.result
 				}
-
-				p.result.unparsed.append(t)
-				p.result.fromCache = true
-				p.result.accepting = false
-				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
-				return p.result
 			}
 		}
 
@@ -1823,7 +1841,6 @@ parseLoop:
 				}
 
 				p.result.accepting = true
-				p.trace.debug("accepting")
 				return p.result
 			}
 
@@ -1858,7 +1875,7 @@ parseLoop:
 
 				if p.cacheToken == nil {
 					if !p.tokenStack.has() {
-						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+						panic(unexpectedResult(p.typeName))
 					}
 
 					p.cacheToken = p.tokenStack.peek()
@@ -1867,7 +1884,6 @@ parseLoop:
 				p.cacheToken.cache.set(p.result.node, p.result.valid)
 
 				p.result.unparsed.merge(p.tokenStack)
-				p.trace.debug("no more parsers", p.result.valid)
 				return p.result
 			}
 
@@ -1879,7 +1895,6 @@ parseLoop:
 			}
 
 			p.result.accepting = true
-			p.trace.debug("accepting after invalid", p.result.valid)
 			return p.result
 		}
 
@@ -1928,7 +1943,6 @@ parseLoop:
 			}
 
 			p.result.accepting = true
-			p.trace.debug("has more parsers to try", p.result.valid)
 			return p.result
 		}
 
@@ -1943,7 +1957,7 @@ parseLoop:
 
 		if p.cacheToken == nil {
 			if !p.tokenStack.has() {
-				panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
+				panic(unexpectedResult(p.typeName))
 			}
 
 			p.cacheToken = p.tokenStack.peek()
@@ -1956,11 +1970,9 @@ parseLoop:
 		if p.skip > 0 {
 			p.skippingAfterDone = true
 			p.result.accepting = true
-			p.trace.debug("skipping", p.result.valid)
 			return p.result
 		}
 
-		p.trace.debug("done", p.result.valid)
 		return p.result
 	}
 }
@@ -2043,7 +2055,6 @@ func (s *syntax) parse(r *tokenReader) (*node, error) {
 
 			// TODO: should we check here if it is valid?
 			if !last.valid {
-				trace.debug("last is not valid")
 				return zeroNode, errUnexpectedEOF
 			}
 
@@ -2051,16 +2062,13 @@ func (s *syntax) parse(r *tokenReader) (*node, error) {
 		}
 
 		if err == io.EOF {
-			trace.debug("last accepting", last.accepting)
 			last = parserInstance.parse(eofToken)
 
 			if !last.valid {
-				trace.debug("last is invalid")
 				return zeroNode, errUnexpectedEOF
 			}
 
 			if !last.unparsed.has() || last.unparsed.peek() != eofToken {
-				trace.debug("wrong unparsed", last.unparsed.has())
 				return zeroNode, errUnexpectedEOF
 			}
 

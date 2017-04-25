@@ -5,18 +5,25 @@ func newMMLSyntax() (*syntax, error) {
 		{"nl", nl},
 		{"dot", dot},
 		{"comma", comma},
+		{"colon", colon},
 		{"semicolon", semicolon},
 		{"tilde", tilde},
+
 		{"open-paren", openParen},
 		{"close-paren", closeParen},
 		{"open-square", openSquare},
 		{"close-square", closeSquare},
-		{"int", intToken},
-		{"string", stringToken},
-		{"symbol", symbolToken},
+		{"open-brace", openBrace},
+		{"close-brace", closeBrace},
+
 		{"symbol-word", symbolWord},
 		{"true", trueWord},
 		{"false", falseWord},
+		{"fn-word", fnWord},
+
+		{"int", intToken},
+		{"string", stringToken},
+		{"symbol", symbolToken},
 	}
 
 	complex := [][]string{
@@ -36,6 +43,9 @@ func newMMLSyntax() (*syntax, error) {
 			"close-paren",
 		},
 
+		{"union", "static-symbol", "symbol", "string"},
+		{"union", "symbol-expression", "static-symbol", "dynamic-symbol"},
+
 		{"union", "list-sep", "nl", "comma"},
 		{"group", "spread", "dot", "dot", "dot"},
 		{"group", "spread-expression", "spread", "expression"},
@@ -43,6 +53,38 @@ func newMMLSyntax() (*syntax, error) {
 		{"sequence", "list-sequence", "list-item"},
 		{"group", "list", "open-square", "list-sequence", "close-square"},
 		{"group", "mutable-list", "tilde", "open-square", "list-sequence", "close-square"},
+
+		{"group", "structure-definition", "symbol-expression", "nls", "colon", "nls", "expression"},
+		{"union", "structure-item", "structure-definition", "spread-expression", "list-sep"},
+		{"sequence", "structure-sequence", "structure-item"},
+		{"group", "structure", "open-brace", "structure-sequence", "close-brace"},
+		{"group", "mutable-structure", "tilde", "open-brace", "structure-sequence", "close-brace"},
+
+		{"union", "static-symbol-item", "static-symbol", "list-sep"},
+		{"sequence", "static-symbol-sequence", "static-symbol-item"},
+		{"group", "collect-symbol", "spread", "static-symbol"},
+		{"optional", "collect-argument", "collect-symbol"},
+		{"group", "function-body", "open-brace", "statement-sequence", "close-brace"},
+		{"union", "function-value", "expression", "function-body"},
+		{
+			"group",
+			"function-fact",
+			"open-paren",
+			"static-symbol-sequence",
+			"collect-argument",
+			"nls",
+			"close-paren",
+			"nls",
+			"function-value",
+			// TODO: function-value could be simply an expression if there was a sequence as an
+			// expression
+		},
+
+		{"group", "function", "fn-word", "function-fact"},
+
+		{"group", "symbol-query", "expression", "dot", "symbol-expression"},
+		{"union", "query", "symbol-query"},
+
 		{"group", "function-call", "expression", "open-paren", "list-sequence", "close-paren"},
 
 		{
@@ -53,8 +95,12 @@ func newMMLSyntax() (*syntax, error) {
 			"symbol",
 			"bool",
 			"dynamic-symbol",
+			"function",
 			"list",
 			"mutable-list",
+			"structure",
+			"mutable-structure",
+			"query",
 			"function-call",
 		},
 

@@ -530,6 +530,41 @@ func TestParse(t *testing.T) {
 				token:    &token{value: ")"},
 			}},
 		},
+	}, {
+		msg: "chained symbol query",
+		primitive: [][]interface{}{
+			{"symbol", symbolToken},
+			{"dot", dot},
+		},
+		complex: [][]string{
+			{"group", "symbol-query", "expression", "dot", "symbol"},
+			{"union", "expression", "symbol", "symbol-query"},
+		},
+		text: "a.b.c",
+		node: &node{
+			typeName: "symbol-query",
+			token:    &token{value: "a"},
+			nodes: []*node{{
+				typeName: "symbol-query",
+				token:    &token{value: "a"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "a"},
+				}, {
+					typeName: "dot",
+					token:    &token{value: "."},
+				}, {
+					typeName: "symbol",
+					token:    &token{value: "b"},
+				}},
+			}, {
+				typeName: "dot",
+				token:    &token{value: "."},
+			}, {
+				typeName: "symbol",
+				token:    &token{value: "c"},
+			}},
+		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax(ti.primitive, ti.complex)
