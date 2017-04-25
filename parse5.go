@@ -37,6 +37,7 @@ type parserResult struct {
 }
 
 type parser interface {
+	reset()
 	check(trace) error
 	instance(trace, *node) parser // optimization: keep some predefined ones
 	parse(*token) *parserResult   // optimization: should not make memory allocations
@@ -66,7 +67,7 @@ type registry interface {
 	setParser(nodeType, nodeType, typeList, parser) // TODO: need to use this as a prototype
 	init() error
 	finalize(trace) error
-	clearParsers()                     // TODO: probably best to drop it, but the caches should be cleared somehow
+	reset()
 	rootGenerator() (generator, error) // TODO: temporary
 	root() (parser, error)
 	primitive(string, tokenType) error
@@ -420,7 +421,9 @@ func (s *tokenStack) clear() {
 }
 
 func (s *tokenStack) findCachedNode(n *node) int {
+	s.trace.debug("finding cached node", n.tokens())
 	for s.tokenIndex, s.token = range n.tokens() {
+		s.trace.debug("iterating", s.tokenIndex, s.token)
 		if s.token != s.peek() {
 			continue
 		}
@@ -429,9 +432,11 @@ func (s *tokenStack) findCachedNode(n *node) int {
 			s.skip = n.len() - s.tokenIndex - len(s.stack)
 			s.clear()
 		} else {
+			s.skip = 0
 			s.drop(n.len() - s.tokenIndex)
 		}
 
+		s.trace.debug("returning", s.skip)
 		return s.skip
 	}
 
@@ -472,6 +477,15 @@ func (t *parserTrace) out(a ...interface{}) {
 
 func (t *parserTrace) debug(a ...interface{}) {
 	t.outLevel(traceDebug, a...)
+}
+
+// TODO: this cache doesn't help. If the init node matters, then it is worth looking into the cache during the
+// instantiation, before all the allocations. The matches can be stored on the token in a list, while the
+// non-matches can be stored as id sets also on the token.
+
+func (c *cache) reset() {
+	c.offset = 0
+	c.result = nil
 }
 
 func (c *cache) set(offset int, r *parserResult) {
@@ -548,12 +562,19 @@ func (r *parserRegistry) init() error {
 	return nil
 }
 
+func (r *parserRegistry) reset() {
+	for _, p := range r.parsers {
+		p.reset()
+	}
+}
+
 func (r *parserRegistry) finalize(t trace) error {
 	var done bool
 	for !done {
 		done = true
 		for k, p := range r.parsers {
 			if !p.valid() {
+				t.debug("dropping", p.nodeType())
 				delete(r.parsers, k)
 				done = false
 				continue
@@ -564,6 +585,7 @@ func (r *parserRegistry) finalize(t trace) error {
 			}
 
 			if !p.valid() {
+				t.debug("dropping", p.nodeType())
 				delete(r.parsers, k)
 				done = false
 				continue
@@ -572,10 +594,6 @@ func (r *parserRegistry) finalize(t trace) error {
 	}
 
 	return nil
-}
-
-func (r *parserRegistry) clearParsers() {
-	r.parsers = make(map[string]parser)
 }
 
 func (r *parserRegistry) rootGenerator() (generator, error) {
@@ -665,7 +683,7 @@ func (g *primitiveGenerator) create(t trace, init nodeType, excluded typeList) (
 		return p, nil
 	}
 
-	return &primitiveParser{
+	p := &primitiveParser{
 		typ:       g.typ,
 		typeName:  g.registry.typeName(g.typ),
 		registry:  g.registry,
@@ -673,7 +691,9 @@ func (g *primitiveGenerator) create(t trace, init nodeType, excluded typeList) (
 		tokenType: g.tokenType,
 		cache:     &cache{},
 		length:    1,
-	}, nil
+	}
+	g.registry.setParser(g.typ, init, excluded, p)
+	return p, nil
 }
 
 func (g *primitiveGenerator) member(t nodeType) (bool, error) {
@@ -686,6 +706,10 @@ func (g *primitiveGenerator) nodeType() nodeType {
 
 func (p *primitiveParser) check(trace) error {
 	return nil
+}
+
+func (p *primitiveParser) reset() {
+	p.cache.reset()
 }
 
 // TODO: try lazy node creation, or even better clone on init only when it was valid. Watch for references to
@@ -826,6 +850,10 @@ func (p *optionalParser) check(trace) error {
 	}
 
 	return nil
+}
+
+func (p *optionalParser) reset() {
+	p.cache.reset()
 }
 
 // TODO: review allocations in init, checking with benchmarks if they make any difference
@@ -1002,6 +1030,10 @@ func (p *sequenceParser) check(trace) error {
 
 	p.itemLength = length
 	return nil
+}
+
+func (p *sequenceParser) reset() {
+	p.cache.reset()
 }
 
 func (p *sequenceParser) instance(t trace, n *node) parser {
@@ -1348,6 +1380,10 @@ func (p *groupParser) check(trace) error {
 	return nil
 }
 
+func (p *groupParser) reset() {
+	p.cache.reset()
+}
+
 func (p *groupParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
 	up := newTokenStack(p.length)
@@ -1379,12 +1415,14 @@ parseLoop:
 		p.trace.out("parsing", t)
 
 		if p.skip > 0 {
+			p.trace.debug("skipping after done", p.skip)
 			p.skip--
 			p.result.accepting = true
 			return p.result
 		}
 
 		if p.skippingAfterDone {
+			p.trace.debug("skipping after donem, done")
 			p.result.accepting = false
 			return p.result
 		}
@@ -1403,6 +1441,7 @@ parseLoop:
 				p.result.node = cr.node
 				p.result.unparsed.append(t)
 				p.result.fromCache = true
+				p.result.accepting = false
 				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
 				return p.result
 			}
@@ -1420,9 +1459,11 @@ parseLoop:
 
 		// can be nil with init, only to check membership:
 		if p.currentParser == nil {
+			p.trace.debug("no parser")
 			p.tokenStack.append(t)
 			p.itemResult = nil
 		} else {
+			p.trace.debug("parsing item")
 			p.itemResult = p.currentParser.parse(t)
 			if p.itemResult.accepting {
 				p.result.accepting = true
@@ -1441,11 +1482,14 @@ parseLoop:
 
 		p.parserIndex++
 
+		p.trace.debug("checking valid item result with non-zero node")
 		if p.itemResult != nil && p.itemResult.valid && p.itemResult.node != zeroNode {
 			p.initEvaluated = true
 			p.result.node.append(p.itemResult.node)
 			if p.itemResult.fromCache {
+				p.trace.debug("setting skip", p.tokenStack.stack, p.itemResult.node)
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
+				p.trace.debug("skip set", p.tokenStack.stack, p.skip)
 			}
 
 			if p.parserIndex == len(p.parsers) {
@@ -1478,6 +1522,7 @@ parseLoop:
 			return p.result
 		}
 
+		p.trace.debug("checking valid item result")
 		if p.itemResult != nil && p.itemResult.valid {
 			if p.parserIndex == len(p.parsers) {
 				p.trace.out("group done, valid", p.result.node)
@@ -1509,7 +1554,9 @@ parseLoop:
 			return p.result
 		}
 
+		p.trace.debug("checking to evaluate init node")
 		if p.initNode != nil && !p.initEvaluated && len(p.initIsMember) >= p.parserIndex && p.initIsMember[p.parserIndex-1] {
+			p.trace.debug("evaluating init node")
 			p.initEvaluated = true
 
 			p.result.node.append(p.initNode)
@@ -1728,6 +1775,10 @@ func (p *unionParser) check(t trace) error {
 	return nil
 }
 
+func (p *unionParser) reset() {
+	p.cache.reset()
+}
+
 func (p *unionParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
 	up := newTokenStack(p.length)
@@ -1765,37 +1816,37 @@ parseLoop:
 		if p.skip > 0 {
 			p.skip--
 			p.result.accepting = true
+			p.trace.debug("skipping")
 			return p.result
 		}
 
 		if p.skippingAfterDone {
 			p.result.accepting = false
+			p.trace.debug("done after skipping")
 			return p.result
 		}
 
 		// parse4 not using cache in union
 		// maybe the new caching style helps
-		/*
-			if !p.cacheChecked {
-				p.cacheChecked = true
+		if !p.cacheChecked {
+			p.cacheChecked = true
 
-				p.cacheToken = t
-				if p.initNode != zeroNode {
-					p.cacheToken = p.initNode.token
-				}
-
-				if p.cache.has(p.cacheToken.offset) {
-					cr := p.cache.get()
-					p.result.valid = cr.valid
-					p.result.node = cr.node
-					p.result.unparsed.append(t)
-					p.result.fromCache = true
-					p.result.accepting = false
-					p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
-					return p.result
-				}
+			p.cacheToken = t
+			if p.initNode != zeroNode {
+				p.cacheToken = p.initNode.token
 			}
-		*/
+
+			if p.cache.has(p.cacheToken.offset) {
+				cr := p.cache.get()
+				p.result.valid = cr.valid
+				p.result.node = cr.node
+				p.result.unparsed.append(t)
+				p.result.fromCache = true
+				p.result.accepting = false
+				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+				return p.result
+			}
+		}
 
 		if p.currentParser != nil {
 			p.itemResult = p.currentParser.parse(t)
@@ -1806,6 +1857,7 @@ parseLoop:
 				}
 
 				p.result.accepting = true
+				p.trace.debug("accepting")
 				return p.result
 			}
 
@@ -1832,25 +1884,24 @@ parseLoop:
 				p.result.accepting = false
 				p.result.valid = p.result.node != zeroNode
 
-				/*
-					p.cacheToken = p.result.node.token
+				p.cacheToken = p.result.node.token
 
-					if p.cacheToken == nil {
-						p.cacheToken = p.initNode.token
+				if p.cacheToken == nil {
+					p.cacheToken = p.initNode.token
+				}
+
+				if p.cacheToken == nil {
+					if !p.tokenStack.has() {
+						panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
 					}
 
-					if p.cacheToken == nil {
-						if !p.tokenStack.has() {
-							panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
-						}
+					p.cacheToken = p.tokenStack.peek()
+				}
 
-						p.cacheToken = p.tokenStack.peek()
-					}
-
-					p.cache.set(p.cacheToken.offset, p.result)
-				*/
+				p.cache.set(p.cacheToken.offset, p.result)
 
 				p.result.unparsed.merge(p.tokenStack)
+				p.trace.debug("no more parsers", p.result.valid)
 				return p.result
 			}
 
@@ -1862,6 +1913,7 @@ parseLoop:
 			}
 
 			p.result.accepting = true
+			p.trace.debug("accepting after invalid", p.result.valid)
 			return p.result
 		}
 
@@ -1910,39 +1962,39 @@ parseLoop:
 			}
 
 			p.result.accepting = true
+			p.trace.debug("has more parsers to try", p.result.valid)
 			return p.result
 		}
 
 		p.result.accepting = false
 		p.result.valid = p.result.node != zeroNode
 
-		// TODO: check if cache can be enabled
-		/*
-			p.cacheToken = p.result.node.token
+		p.cacheToken = p.result.node.token
 
-			if p.cacheToken == nil {
-				p.cacheToken = p.initNode.token
+		if p.cacheToken == nil {
+			p.cacheToken = p.initNode.token
+		}
+
+		if p.cacheToken == nil {
+			if !p.tokenStack.has() {
+				panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
 			}
 
-			if p.cacheToken == nil {
-				if !p.tokenStack.has() {
-					panic(unexpectedResult(p.registry.typeName(p.result.node.nodeType)))
-				}
+			p.cacheToken = p.tokenStack.peek()
+		}
 
-				p.cacheToken = p.tokenStack.peek()
-			}
-
-			p.cache.set(p.cacheToken.offset, p.result)
-		*/
+		p.cache.set(p.cacheToken.offset, p.result)
 
 		p.result.unparsed.merge(p.tokenStack)
 
 		if p.skip > 0 {
 			p.skippingAfterDone = true
 			p.result.accepting = true
+			p.trace.debug("skipping", p.result.valid)
 			return p.result
 		}
 
+		p.trace.debug("done", p.result.valid)
 		return p.result
 	}
 }
@@ -1986,8 +2038,7 @@ func (s *syntax) union(typeName string, elements ...string) error {
 }
 
 func (s *syntax) parse(r *tokenReader) (*node, error) {
-	// TODO: not good here
-	s.registry.clearParsers()
+	s.registry.reset()
 
 	root, err := s.registry.rootGenerator()
 	if err != nil {
@@ -2023,21 +2074,26 @@ func (s *syntax) parse(r *tokenReader) (*node, error) {
 				return zeroNode, unexpectedToken("root", &t)
 			}
 
+			// TODO: should we check here if it is valid?
+			if !last.valid {
+				trace.debug("last is not valid")
+				return zeroNode, errUnexpectedEOF
+			}
+
 			return last.node, nil
 		}
 
 		if err == io.EOF {
-			if !last.accepting {
-			}
-
+			trace.debug("last accepting", last.accepting)
 			last = parserInstance.parse(eofToken)
 
 			if !last.valid {
-				println("one")
+				trace.debug("last is invalid")
 				return zeroNode, errUnexpectedEOF
 			}
 
 			if !last.unparsed.has() || last.unparsed.peek() != eofToken {
+				trace.debug("wrong unparsed", last.unparsed.has())
 				return zeroNode, errUnexpectedEOF
 			}
 

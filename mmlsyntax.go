@@ -6,6 +6,7 @@ func newMMLSyntax() (*syntax, error) {
 		{"dot", dot},
 		{"comma", comma},
 		{"semicolon", semicolon},
+		{"tilde", tilde},
 		{"open-paren", openParen},
 		{"close-paren", closeParen},
 		{"open-square", openSquare},
@@ -41,6 +42,7 @@ func newMMLSyntax() (*syntax, error) {
 		{"union", "list-item", "expression", "spread-expression", "list-sep"},
 		{"sequence", "list-sequence", "list-item"},
 		{"group", "list", "open-square", "list-sequence", "close-square"},
+		{"group", "mutable-list", "tilde", "open-square", "list-sequence", "close-square"},
 		{"group", "function-call", "expression", "open-paren", "list-sequence", "close-paren"},
 
 		{
@@ -52,6 +54,7 @@ func newMMLSyntax() (*syntax, error) {
 			"bool",
 			"dynamic-symbol",
 			"list",
+			"mutable-list",
 			"function-call",
 		},
 
