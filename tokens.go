@@ -182,6 +182,7 @@ type token struct {
 	value                string
 	fileName             string
 	offset, line, column int
+	cache                *cache
 }
 
 type tokenReader struct {

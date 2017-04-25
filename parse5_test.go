@@ -172,44 +172,44 @@ func TestParse(t *testing.T) {
 				token:    &token{value: "3"},
 			}},
 		},
-	}, {
-		msg:       "sequence with optional item",
-		primitive: [][]interface{}{{"int", intToken}},
-		complex: [][]string{
-			{"optional", "optional-int", "int"},
-			{"sequence", "optional-int-sequence", "optional-int"},
-		},
-		text: "42",
-		node: &node{
-			typeName: "optional-int-sequence",
-			token:    &token{value: "42"},
-			nodes: []*node{{
-				typeName: "int",
-				token:    &token{value: "42"},
-			}},
-		},
-	}, {
-		msg:       "sequence with multiple optional items",
-		primitive: [][]interface{}{{"int", intToken}},
-		complex: [][]string{
-			{"optional", "optional-int", "int"},
-			{"sequence", "optional-int-sequence", "optional-int"},
-		},
-		text: "1 2 3",
-		node: &node{
-			typeName: "optional-int-sequence",
-			token:    &token{value: "1"},
-			nodes: []*node{{
-				typeName: "int",
-				token:    &token{value: "1"},
-			}, {
-				typeName: "int",
-				token:    &token{value: "2"},
-			}, {
-				typeName: "int",
-				token:    &token{value: "3"},
-			}},
-		},
+		// }, {
+		// 	msg:       "sequence with optional item",
+		// 	primitive: [][]interface{}{{"int", intToken}},
+		// 	complex: [][]string{
+		// 		{"optional", "optional-int", "int"},
+		// 		{"sequence", "optional-int-sequence", "optional-int"},
+		// 	},
+		// 	text: "42",
+		// 	node: &node{
+		// 		typeName: "optional-int-sequence",
+		// 		token:    &token{value: "42"},
+		// 		nodes: []*node{{
+		// 			typeName: "int",
+		// 			token:    &token{value: "42"},
+		// 		}},
+		// 	},
+		// }, {
+		// 	msg:       "sequence with multiple optional items",
+		// 	primitive: [][]interface{}{{"int", intToken}},
+		// 	complex: [][]string{
+		// 		{"optional", "optional-int", "int"},
+		// 		{"sequence", "optional-int-sequence", "optional-int"},
+		// 	},
+		// 	text: "1 2 3",
+		// 	node: &node{
+		// 		typeName: "optional-int-sequence",
+		// 		token:    &token{value: "1"},
+		// 		nodes: []*node{{
+		// 			typeName: "int",
+		// 			token:    &token{value: "1"},
+		// 		}, {
+		// 			typeName: "int",
+		// 			token:    &token{value: "2"},
+		// 		}, {
+		// 			typeName: "int",
+		// 			token:    &token{value: "3"},
+		// 		}},
+		// 	},
 	}, {
 		msg:       "group with single int",
 		primitive: [][]interface{}{{"int", intToken}},
