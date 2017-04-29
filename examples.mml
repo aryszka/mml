@@ -81,6 +81,12 @@ for len(ml) > 0 {
 	ml = ml[1:]
 }
 
+for let i = 0; i < n; i++ {
+}
+
+for i in 0:n {
+}
+
 for {
 	if len(ml) == 0 {
 		break
@@ -90,7 +96,18 @@ for {
 	ml = ml[1:]
 }
 
-let s = {a: 1, b: 2, c: 3}
+let s = {a: {foo: 4}, b: 2, c: 3}
+s.a.foo
+
+fn add(x, y) x + y
+let inc add(1)
+
+let n 3
+n.inc()
+
+f(n.inc)
+
+g(3.f())
 
 for v in s {
 	print(v)
@@ -490,6 +507,15 @@ switch a {
 	default: false
 }
 
+type list [int|string]
+let list [1, 2, "foo", 4] // min-length = 4, 
+list[3]
+
+let s {foo: 3}
+let t {bar: 4, foo: 5, s...}
+
+f(b, c...)
+
 match {
 	case type a int: true
 	case a0 a[0], ar a[1:]: true
@@ -527,6 +553,9 @@ type stderr fn(string) error
 // --
 
 // objects:
+
+let ~ a 1
+set a 2
 
 fn newPair(a, b) {
 	let p ~{a: a, b: b}

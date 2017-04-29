@@ -172,44 +172,44 @@ func TestParse(t *testing.T) {
 				token:    &token{value: "3"},
 			}},
 		},
-		// }, {
-		// 	msg:       "sequence with optional item",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"sequence", "optional-int-sequence", "optional-int"},
-		// 	},
-		// 	text: "42",
-		// 	node: &node{
-		// 		typeName: "optional-int-sequence",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			typeName: "int",
-		// 			token:    &token{value: "42"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with multiple optional items",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"sequence", "optional-int-sequence", "optional-int"},
-		// 	},
-		// 	text: "1 2 3",
-		// 	node: &node{
-		// 		typeName: "optional-int-sequence",
-		// 		token:    &token{value: "1"},
-		// 		nodes: []*node{{
-		// 			typeName: "int",
-		// 			token:    &token{value: "1"},
-		// 		}, {
-		// 			typeName: "int",
-		// 			token:    &token{value: "2"},
-		// 		}, {
-		// 			typeName: "int",
-		// 			token:    &token{value: "3"},
-		// 		}},
-		// 	},
+	}, {
+		msg:       "sequence with optional item",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "optional-int-sequence", "optional-int"},
+		},
+		text: "42",
+		node: &node{
+			typeName: "optional-int-sequence",
+			token:    &token{value: "42"},
+			nodes: []*node{{
+				typeName: "int",
+				token:    &token{value: "42"},
+			}},
+		},
+	}, {
+		msg:       "sequence with multiple optional items",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "optional-int-sequence", "optional-int"},
+		},
+		text: "1 2 3",
+		node: &node{
+			typeName: "optional-int-sequence",
+			token:    &token{value: "1"},
+			nodes: []*node{{
+				typeName: "int",
+				token:    &token{value: "1"},
+			}, {
+				typeName: "int",
+				token:    &token{value: "2"},
+			}, {
+				typeName: "int",
+				token:    &token{value: "3"},
+			}},
+		},
 	}, {
 		msg:       "group with single int",
 		primitive: [][]interface{}{{"int", intToken}},
@@ -565,6 +565,250 @@ func TestParse(t *testing.T) {
 				token:    &token{value: "c"},
 			}},
 		},
+	}, {
+		msg: "sequence in sequence",
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		complex: [][]string{
+			{"sequence", "int-sequence", "int"},
+			{"sequence", "sequence-in-sequence", "int-sequence"},
+		},
+		text: "42",
+		node: &node{
+			typeName: "sequence-in-sequence",
+			token:    &token{value: "42"},
+			nodes: []*node{{
+				typeName: "int-sequence",
+				token:    &token{value: "42"},
+				nodes: []*node{{
+					typeName: "int",
+					token:    &token{value: "42"},
+				}},
+			}},
+		},
+	}, {
+		msg: "reproduce sequence endless loop",
+		primitive: [][]interface{}{
+			{"nl", nl},
+			{"colon", colon},
+			{"switch-word", switchWord},
+			{"case-word", caseWord},
+			{"default-word", defaultWord},
+			{"open-brace", openBrace},
+			{"close-brace", closeBrace},
+			{"symbol", symbolToken},
+		},
+		complex: [][]string{
+			{"sequence", "nls", "nl"},
+			{"union", "match-expression", "expression"},
+			{"group", "switch-clause", "case-word", "match-expression", "colon", "statement-sequence"},
+			{"sequence", "switch-clause-sequence", "switch-clause"},
+			{"group", "default-clause", "default-word", "colon", "nls", "statement-sequence"},
+			{"union", "seq-sep", "nl"},
+			{"union", "statement-sequence-item", "expression", "seq-sep"},
+			{"sequence", "statement-sequence", "statement-sequence-item"},
+			{
+				"group",
+				"switch-conditional",
+				"switch-word",
+				"nls",
+				"open-brace",
+				"nls",
+				"switch-clause-sequence",
+				"nls",
+				"default-clause",
+				"nls",
+				"switch-clause-sequence",
+				"nls",
+				"close-brace",
+			},
+			{"union", "expression", "symbol", "switch-conditional"},
+			{"sequence", "document", "statement-sequence"},
+		},
+		text: `switch {
+			default: a
+		}`,
+		node: &node{
+			typeName: "document",
+			token:    &token{value: "switch"},
+			nodes: []*node{{
+				typeName: "statement-sequence",
+				token:    &token{value: "switch"},
+				nodes: []*node{{
+					typeName: "switch-conditional",
+					token:    &token{value: "switch"},
+					nodes: []*node{{
+						typeName: "switch-word",
+						token:    &token{value: "switch"},
+					}, {
+						typeName: "nls",
+						token:    &token{value: "{"},
+					}, {
+						typeName: "open-brace",
+						token:    &token{value: "{"},
+					}, {
+						typeName: "nls",
+						token:    &token{value: "\n"},
+						nodes: []*node{{
+							typeName: "nl",
+							token:    &token{value: "\n"},
+						}},
+					}, {
+						typeName: "switch-clause-sequence",
+						token:    &token{value: "default"},
+					}, {
+						typeName: "nls",
+						token:    &token{value: "default"},
+					}, {
+						typeName: "default-clause",
+						token:    &token{value: "default"},
+						nodes: []*node{{
+							typeName: "default-word",
+							token:    &token{value: "default"},
+						}, {
+							typeName: "colon",
+							token:    &token{value: ":"},
+						}, {
+							typeName: "nls",
+							token:    &token{value: "a"},
+						}, {
+							typeName: "statement-sequence",
+							token:    &token{value: "a"},
+							nodes: []*node{{
+								typeName: "symbol",
+								token:    &token{value: "a"},
+							}, {
+								typeName: "nl",
+								token:    &token{value: "\n"},
+							}},
+						}},
+					}, {
+						typeName: "nls",
+						token:    &token{value: "}"},
+					}, {
+						typeName: "switch-clause-sequence",
+						token:    &token{value: "}"},
+					}, {
+						typeName: "nls",
+						token:    &token{value: "}"},
+					}, {
+						typeName: "close-brace",
+						token:    &token{value: "}"},
+					}},
+				}},
+			}},
+		},
+	}, {
+		msg: "newline in group",
+		primitive: [][]interface{}{
+			{"nl", nl},
+			{"colon", colon},
+			{"switch-word", switchWord},
+			{"case-word", caseWord},
+			{"default-word", defaultWord},
+			{"open-brace", openBrace},
+			{"close-brace", closeBrace},
+			{"symbol", symbolToken},
+		},
+		complex: [][]string{
+			{"sequence", "nls", "nl"},
+			{"union", "match-expression", "expression"},
+			{"group", "switch-clause", "case-word", "match-expression", "colon", "statement-sequence"},
+			{"sequence", "switch-clause-sequence", "switch-clause"},
+			{"group", "default-clause", "default-word", "colon", "nls", "statement-sequence"},
+			{"union", "seq-sep", "nl"},
+			{"union", "statement-sequence-item", "statement", "seq-sep"},
+			{"sequence", "statement-sequence", "statement-sequence-item"},
+			{
+				"group",
+				"switch-conditional",
+				"switch-word",
+				"nls",
+				"open-brace",
+				"nls",
+				"switch-clause-sequence",
+				"nls",
+				"default-clause",
+				"nls",
+				"switch-clause-sequence",
+				"nls",
+				"close-brace",
+			},
+			{"union", "conditional", "switch-conditional"},
+			{"union", "expression", "symbol", "conditional"},
+			{"union", "statement", "expression"},
+			{"union", "document", "statement-sequence"},
+		},
+		text: `switch {
+			default: a
+		}`,
+		node: &node{
+			typeName: "statement-sequence",
+			token:    &token{value: "switch"},
+			nodes: []*node{{
+				typeName: "switch-conditional",
+				token:    &token{value: "switch"},
+				nodes: []*node{{
+					typeName: "switch-word",
+					token:    &token{value: "switch"},
+				}, {
+					typeName: "nls",
+					token:    &token{value: "{"},
+				}, {
+					typeName: "open-brace",
+					token:    &token{value: "{"},
+				}, {
+					typeName: "nls",
+					token:    &token{value: "\n"},
+					nodes: []*node{{
+						typeName: "nl",
+						token:    &token{value: "\n"},
+					}},
+				}, {
+					typeName: "switch-clause-sequence",
+					token:    &token{value: "default"},
+				}, {
+					typeName: "nls",
+					token:    &token{value: "default"},
+				}, {
+					typeName: "default-clause",
+					token:    &token{value: "default"},
+					nodes: []*node{{
+						typeName: "default-word",
+						token:    &token{value: "default"},
+					}, {
+						typeName: "colon",
+						token:    &token{value: ":"},
+					}, {
+						typeName: "nls",
+						token:    &token{value: "a"},
+					}, {
+						typeName: "statement-sequence",
+						token:    &token{value: "a"},
+						nodes: []*node{{
+							typeName: "symbol",
+							token:    &token{value: "a"},
+						}, {
+							typeName: "nl",
+							token:    &token{value: "\n"},
+						}},
+					}},
+				}, {
+					typeName: "nls",
+					token:    &token{value: "}"},
+				}, {
+					typeName: "switch-clause-sequence",
+					token:    &token{value: "}"},
+				}, {
+					typeName: "nls",
+					token:    &token{value: "}"},
+				}, {
+					typeName: "close-brace",
+					token:    &token{value: "}"},
+				}},
+			}},
+		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax(ti.primitive, ti.complex)
@@ -573,7 +817,7 @@ func TestParse(t *testing.T) {
 				return
 			}
 
-			s.traceLevel = traceDebug
+			// s.traceLevel = traceDebug
 
 			b := bytes.NewBufferString(ti.text)
 			r := newTokenReader(b, "<test>")
@@ -592,7 +836,9 @@ func TestParse(t *testing.T) {
 			}
 
 			if !checkNodes(n, ti.node) {
-				t.Error("failed to match nodes", n, ti.node)
+				t.Error("failed to match nodes")
+				t.Log(n)
+				t.Log(ti.node)
 			}
 		})
 	}

@@ -20,6 +20,9 @@ func newMMLSyntax() (*syntax, error) {
 		{"true", trueWord},
 		{"false", falseWord},
 		{"fn-word", fnWord},
+		{"switch-word", switchWord},
+		{"case-word", caseWord},
+		{"default-word", defaultWord},
 
 		{"int", intToken},
 		{"string", stringToken},
@@ -87,6 +90,27 @@ func newMMLSyntax() (*syntax, error) {
 
 		{"group", "function-call", "expression", "open-paren", "list-sequence", "close-paren"},
 
+		{"union", "match-expression", "expression"},
+		{"group", "switch-clause", "case-word", "match-expression", "colon", "statement-sequence"},
+		{"sequence", "switch-clause-sequence", "switch-clause"},
+		{"group", "default-clause", "default-word", "colon", "statement-sequence"},
+		{
+			"group",
+			"switch-conditional",
+			"switch-word",
+			"nls",
+			"open-brace",
+			"nls",
+			"switch-clause-sequence",
+			"nls",
+			"default-clause",
+			"nls",
+			"switch-clause-sequence",
+			"nls",
+			"close-brace",
+		},
+		{"union", "conditional", "switch-conditional"},
+
 		{
 			"union",
 			"expression",
@@ -102,6 +126,7 @@ func newMMLSyntax() (*syntax, error) {
 			"mutable-structure",
 			"query",
 			"function-call",
+			"conditional",
 		},
 
 		{"union", "statement", "expression"},

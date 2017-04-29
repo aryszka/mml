@@ -972,6 +972,460 @@ func TestParseMML(t *testing.T) {
 				}},
 			}},
 		}},
+	}, {
+		msg:  "function call",
+		code: "f(a)",
+		nodes: []*node{{
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "symbol",
+				token:    &token{value: "f"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "a"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "a"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "chained function call",
+		code: "f(a)(b)",
+		nodes: []*node{{
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "function-call",
+				token:    &token{value: "f"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "f"},
+				}, {
+					typeName: "open-paren",
+					token:    &token{value: "("},
+				}, {
+					typeName: "list-sequence",
+					token:    &token{value: "a"},
+					nodes: []*node{{
+						typeName: "symbol",
+						token:    &token{value: "a"},
+					}},
+				}, {
+					typeName: "close-paren",
+					token:    &token{value: ")"},
+				}},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "b"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "b"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "chained function call, whitespace",
+		code: "f(a) (b)",
+		nodes: []*node{{
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "function-call",
+				token:    &token{value: "f"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "f"},
+				}, {
+					typeName: "open-paren",
+					token:    &token{value: "("},
+				}, {
+					typeName: "list-sequence",
+					token:    &token{value: "a"},
+					nodes: []*node{{
+						typeName: "symbol",
+						token:    &token{value: "a"},
+					}},
+				}, {
+					typeName: "close-paren",
+					token:    &token{value: ")"},
+				}},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "b"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "b"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "function call argument",
+		code: "f(g(a))",
+		nodes: []*node{{
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "symbol",
+				token:    &token{value: "f"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "g"},
+				nodes: []*node{{
+					typeName: "function-call",
+					token:    &token{value: "g"},
+					nodes: []*node{{
+						typeName: "symbol",
+						token:    &token{value: "g"},
+					}, {
+						typeName: "open-paren",
+						token:    &token{value: "("},
+					}, {
+						typeName: "list-sequence",
+						token:    &token{value: "a"},
+						nodes: []*node{{
+							typeName: "symbol",
+							token:    &token{value: "a"},
+						}},
+					}, {
+						typeName: "close-paren",
+						token:    &token{value: ")"},
+					}},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "function call sequence",
+		code: "f(a) f(b)g(a)",
+		nodes: []*node{{
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "symbol",
+				token:    &token{value: "f"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "a"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "a"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}, {
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "symbol",
+				token:    &token{value: "f"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "b"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "b"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}, {
+			typeName: "function-call",
+			token:    &token{value: "g"},
+			nodes: []*node{{
+				typeName: "symbol",
+				token:    &token{value: "g"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "a"},
+				nodes: []*node{{
+					typeName: "symbol",
+					token:    &token{value: "a"},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "function call with multiple arguments",
+		code: "f(...a, b, ...c)",
+		nodes: []*node{{
+			typeName: "function-call",
+			token:    &token{value: "f"},
+			nodes: []*node{{
+				typeName: "symbol",
+				token:    &token{value: "f"},
+			}, {
+				typeName: "open-paren",
+				token:    &token{value: "("},
+			}, {
+				typeName: "list-sequence",
+				token:    &token{value: "."},
+				nodes: []*node{{
+					typeName: "spread-expression",
+					token:    &token{value: "."},
+					nodes: []*node{{
+						typeName: "spread",
+						token:    &token{value: "."},
+						nodes: []*node{{
+							typeName: "dot",
+							token:    &token{value: "."},
+						}, {
+							typeName: "dot",
+							token:    &token{value: "."},
+						}, {
+							typeName: "dot",
+							token:    &token{value: "."},
+						}},
+					}, {
+						typeName: "symbol",
+						token:    &token{value: "a"},
+					}},
+				}, {
+					typeName: "comma",
+					token:    &token{value: ","},
+				}, {
+					typeName: "symbol",
+					token:    &token{value: "b"},
+				}, {
+					typeName: "comma",
+					token:    &token{value: ","},
+				}, {
+					typeName: "spread-expression",
+					token:    &token{value: "."},
+					nodes: []*node{{
+						typeName: "spread",
+						token:    &token{value: "."},
+						nodes: []*node{{
+							typeName: "dot",
+							token:    &token{value: "."},
+						}, {
+							typeName: "dot",
+							token:    &token{value: "."},
+						}, {
+							typeName: "dot",
+							token:    &token{value: "."},
+						}},
+					}, {
+						typeName: "symbol",
+						token:    &token{value: "c"},
+					}},
+				}},
+			}, {
+				typeName: "close-paren",
+				token:    &token{value: ")"},
+			}},
+		}},
+	}, {
+		msg:  "switch conditional with default only",
+		code: "switch{default: 42}",
+		nodes: []*node{{
+			typeName: "switch-conditional",
+			token:    &token{value: "switch"},
+			nodes: []*node{{
+				typeName: "switch-word",
+				token:    &token{value: "switch"},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "{"},
+			}, {
+				typeName: "open-brace",
+				token:    &token{value: "{"},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "default"},
+			}, {
+				typeName: "switch-clause-sequence",
+				token:    &token{value: "default"},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "default"},
+			}, {
+				typeName: "default-clause",
+				token:    &token{value: "default"},
+				nodes: []*node{{
+					typeName: "default-word",
+					token:    &token{value: "default"},
+				}, {
+					typeName: "colon",
+					token:    &token{value: ":"},
+				}, {
+					typeName: "statement-sequence",
+					token:    &token{value: "42"},
+					nodes: []*node{{
+						typeName: "int",
+						token:    &token{value: "42"},
+					}},
+				}},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "}"},
+			}, {
+				typeName: "switch-clause-sequence",
+				token:    &token{value: "}"},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "}"},
+			}, {
+				typeName: "close-brace",
+				token:    &token{value: "}"},
+			}},
+		}},
+	}, {
+		msg: "switch conditional with cases",
+		code: `
+					switch {
+						case a: b
+						default: x
+						case c: d
+					}`,
+		nodes: []*node{{
+			typeName: "nl",
+			token:    &token{value: "\n"},
+		}, {
+			typeName: "switch-conditional",
+			token:    &token{value: "switch"},
+			nodes: []*node{{
+				typeName: "switch-word",
+				token:    &token{value: "switch"},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "{"},
+			}, {
+				typeName: "open-brace",
+				token:    &token{value: "{"},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "\n"},
+				nodes: []*node{{
+					typeName: "nl",
+					token:    &token{value: "\n"},
+				}},
+			}, {
+				typeName: "switch-clause-sequence",
+				token:    &token{value: "case"},
+				nodes: []*node{{
+					typeName: "switch-clause",
+					token:    &token{value: "case"},
+					nodes: []*node{{
+						typeName: "case-word",
+						token:    &token{value: "case"},
+					}, {
+						typeName: "symbol",
+						token:    &token{value: "a"},
+					}, {
+						typeName: "colon",
+						token:    &token{value: ":"},
+					}, {
+						typeName: "statement-sequence",
+						token:    &token{value: "b"},
+						nodes: []*node{{
+							typeName: "symbol",
+							token:    &token{value: "b"},
+						}, {
+							typeName: "nl",
+							token:    &token{value: "\n"},
+						}},
+					}},
+				}},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "default"},
+			}, {
+				typeName: "default-clause",
+				token:    &token{value: "default"},
+				nodes: []*node{{
+					typeName: "default-word",
+					token:    &token{value: "default"},
+				}, {
+					typeName: "colon",
+					token:    &token{value: ":"},
+				}, {
+					typeName: "statement-sequence",
+					token:    &token{value: "x"},
+					nodes: []*node{{
+						typeName: "symbol",
+						token:    &token{value: "x"},
+					}, {
+						typeName: "nl",
+						token:    &token{value: "\n"},
+					}},
+				}},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "case"},
+			}, {
+				typeName: "switch-clause-sequence",
+				token:    &token{value: "case"},
+				nodes: []*node{{
+					typeName: "switch-clause",
+					token:    &token{value: "case"},
+					nodes: []*node{{
+						typeName: "case-word",
+						token:    &token{value: "case"},
+					}, {
+						typeName: "symbol",
+						token:    &token{value: "c"},
+					}, {
+						typeName: "colon",
+						token:    &token{value: ":"},
+					}, {
+						typeName: "statement-sequence",
+						token:    &token{value: "d"},
+						nodes: []*node{{
+							typeName: "symbol",
+							token:    &token{value: "d"},
+						}, {
+							typeName: "nl",
+							token:    &token{value: "\n"},
+						}},
+					}},
+				}},
+			}, {
+				typeName: "nls",
+				token:    &token{value: "}"},
+			}, {
+				typeName: "close-brace",
+				token:    &token{value: "}"},
+			}},
+		}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			b := bytes.NewBufferString(ti.code)
