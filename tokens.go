@@ -35,6 +35,7 @@ const (
 	intWord
 	inWord
 	letWord
+	setWord
 	orWord
 	panicWord
 	receiveWord
@@ -116,6 +117,7 @@ const (
 	intWordString      = "int"
 	inWordString       = "in"
 	letWordString      = "let"
+	setWordString      = "set"
 	orWordString       = "or"
 	panicWordString    = "panic"
 	receiveWordString  = "receive"
@@ -282,6 +284,8 @@ func (tr *tokenReader) next() (token, error) {
 		t.typ = inWord
 	case t.value == letWordString:
 		t.typ = letWord
+	case t.value == setWordString:
+		t.typ = setWord
 	// case t.value == orWordString:
 	// 	t.typ = orWord
 	case t.value == panicWordString:

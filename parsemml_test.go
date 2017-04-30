@@ -12,7 +12,7 @@ func TestParseMML(t *testing.T) {
 		return
 	}
 
-	s.traceLevel = traceDebug
+	// s.traceLevel = traceDebug
 
 	for _, ti := range []struct {
 		msg   string

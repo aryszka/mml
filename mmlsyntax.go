@@ -8,6 +8,7 @@ func newMMLSyntax() (*syntax, error) {
 		{"colon", colon},
 		{"semicolon", semicolon},
 		{"tilde", tilde},
+		{"single-eq", singleEq},
 
 		{"open-paren", openParen},
 		{"close-paren", closeParen},
@@ -23,6 +24,10 @@ func newMMLSyntax() (*syntax, error) {
 		{"switch-word", switchWord},
 		{"case-word", caseWord},
 		{"default-word", defaultWord},
+		{"let-word", letWord},
+		{"if-word", ifWord},
+		{"else-word", elseWord},
+		{"set-word", setWord},
 
 		{"int", intToken},
 		{"string", stringToken},
@@ -84,9 +89,31 @@ func newMMLSyntax() (*syntax, error) {
 		},
 
 		{"group", "function", "fn-word", "function-fact"},
+		{"group", "effect", "fn-word", "tilde", "function-fact"},
 
 		{"group", "symbol-query", "expression", "dot", "symbol-expression"},
-		{"union", "query", "symbol-query"},
+		{"optional", "optional-expression", "expression"},
+		{
+			"group",
+			"range-expression",
+			"optional-expression",
+			"nls",
+			"colon",
+			"nls",
+			"optional-expression",
+		},
+		{"union", "query-expression", "expression", "range-expression"},
+		{
+			"group",
+			"expression-query",
+			"expression",
+			"open-square",
+			"nls",
+			"query-expression",
+			"nls",
+			"close-square",
+		},
+		{"union", "query", "symbol-query", "expression-query"},
 
 		{"group", "function-call", "expression", "open-paren", "list-sequence", "close-paren"},
 
@@ -109,7 +136,28 @@ func newMMLSyntax() (*syntax, error) {
 			"nls",
 			"close-brace",
 		},
-		{"union", "conditional", "switch-conditional"},
+		{
+			"group",
+			"if-conditional", // TODO: test
+			"if-word",
+			"nls",
+			"match-expression",
+			"nls",
+			"open-brace",
+			"nls",
+			"statement-sequence",
+			"nls",
+			"close-brace",
+			"nls",
+			"else-word",
+			"nls",
+			"open-brace",
+			"nls",
+			"statement-sequence",
+			"nls",
+			"close-brace",
+		},
+		{"union", "conditional", "switch-conditional", "if-conditional"},
 
 		{
 			"union",
@@ -120,6 +168,7 @@ func newMMLSyntax() (*syntax, error) {
 			"bool",
 			"dynamic-symbol",
 			"function",
+			"effect",
 			"list",
 			"mutable-list",
 			"structure",
@@ -129,7 +178,84 @@ func newMMLSyntax() (*syntax, error) {
 			"conditional",
 		},
 
-		{"union", "statement", "expression"},
+		{"optional", "optional-single-eq", "single-eq"},
+
+		{
+			"group",
+			"definition-item",
+			"symbol-expression",
+			"nls",
+			"optional-single-eq",
+			"nls",
+			"expression",
+		},
+
+		{
+			"group",
+			"value-definition",
+			"let-word",
+			"nls",
+			"definition-item",
+		},
+
+		{
+			"group",
+			"mutable-value-definition",
+			"let-word",
+			"nls",
+			"tilde",
+			"nls",
+			"definition-item",
+		},
+
+		{
+			"group",
+			"value-assignment", // TODO: test
+			"set-word",
+			"nls",
+			"definition-item",
+		},
+
+		{"union", "value-definition-sequence-item", "definition-item", "list-sep"},
+		{"sequence", "value-definition-sequence", "value-definition-sequence-item"},
+
+		{
+			"group",
+			"value-definition-group",
+			"let-word",
+			"nls",
+			"open-paren",
+			"value-definition-sequence",
+			"close-paren",
+		},
+
+		{
+			"group",
+			"mutable-value-definition-group",
+			"let-word",
+			"nls",
+			"tilde",
+			"nls",
+			"open-paren",
+			"value-definition-sequence",
+			"close-paren",
+		},
+
+		{"group", "function-definition", "fn-word", "nls", "symbol-expression", "nls", "function-fact"},
+		{"group", "effect-definition", "fn-word", "nls", "tilde", "nls", "symbol-expression", "nls", "function-fact"},
+
+		{
+			"union",
+			"definition",
+			"value-definition",               // TODO: test
+			"mutable-value-definition",       // TODO: test
+			"value-definition-group",         // TODO: test
+			"mutable-value-definition-group", // TODO: test
+			"function-definition",            // TODO: test
+			"effect-definition",              // TODO: test
+		},
+
+		{"union", "statement", "expression", "definition", "value-assignment"},
 		{"union", "statement-sequence-item", "statement", "seq-sep"},
 		{"sequence", "statement-sequence", "statement-sequence-item"},
 		{"union", "document", "statement-sequence"},

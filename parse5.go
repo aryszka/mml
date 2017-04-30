@@ -180,7 +180,7 @@ type groupGenerator struct {
 	registry registry
 }
 
-// TODO: verify that type name is used on all nodes
+// TODO: verify that the type name is used on all nodes
 
 type groupParser struct {
 	trace             trace
@@ -248,7 +248,7 @@ var (
 
 	zeroNode = &node{}
 
-	// TODO: can optimize with special handling of eof
+	// TODO: can optimize with special handling of eof, e.g. not creating new instances
 	eofToken = &token{offset: -1, value: "<eof>", cache: newCache()}
 )
 
@@ -351,6 +351,7 @@ func (n *node) String() string {
 }
 
 // TODO: fix the expected length
+// TODO: cannot really figure the length, because of including sequences
 
 func newTokenStack(expectedSize int) *tokenStack {
 	if expectedSize == 0 {
@@ -362,11 +363,7 @@ func newTokenStack(expectedSize int) *tokenStack {
 	}
 }
 
-// TODO: cannot really figure the length, because of including sequences
-
 // TODO: item instances not needed when a result was found in the cache
-
-// TODO: default clause parsing after reported valid
 
 func (s *tokenStack) append(t *token) {
 	if len(s.stack) == cap(s.stack) {
@@ -459,7 +456,11 @@ func newTrace(l traceLevel, r registry) *parserTrace {
 }
 
 func (t *parserTrace) extend(n nodeType) trace {
-	// TODO: save this operation of trace level is off
+	if t.level == traceOff {
+		return t
+	}
+
+	// TODO: save this operation when trace level is off
 	return &parserTrace{
 		registry: t.registry,
 		level:    t.level,
@@ -499,15 +500,7 @@ func (t *parserTrace) debug(a ...interface{}) {
 	t.outLevel(traceDebug, a...)
 }
 
-// TODO: this cache doesn't help. If the init node matters, then it is worth looking into the cache during the
-// instantiation, before all the allocations. The matches can be stored on the token in a list, while the
-// non-matches can be stored as id sets also on the token. Maybe it is enough to cache the union elements. Or we
-// can check in an id set whether something exists in the cache, and only look it up when it does. The lookup
-// also can be in a balanced tree.
-
 // TODO: check the cache before instantiation
-
-// TODO: when there is no init, it it is possible to identify the no match in the cache by simple the token type
 
 func newRegistry() *parserRegistry {
 	return &parserRegistry{
@@ -743,8 +736,6 @@ func (p *primitiveParser) instance(t trace, n *node) parser {
 	return &i
 }
 
-// TODO: primitive is sometimes not cached. It is ok for the primitive, but not for the others.
-
 func (p *primitiveParser) parse(t *token) *parserResult {
 	p.trace.out("parsing", t)
 
@@ -773,8 +764,6 @@ func (p *primitiveParser) expectedLength() int {
 func (p *primitiveParser) nodeType() nodeType {
 	return p.typ
 }
-
-// TODO: does the optional membership matter really?
 
 func (g *optionalGenerator) create(t trace, init nodeType, excluded typeList) (parser, error) {
 	t = t.extend(g.typ)
@@ -823,6 +812,9 @@ func (g *optionalGenerator) create(t trace, init nodeType, excluded typeList) (p
 	return p, nil
 }
 
+// TODO: does the optional membership matter really?
+// TODO: need to check if it equals itself?
+
 func (g *optionalGenerator) member(t nodeType) (bool, error) {
 	optional, ok := g.registry.get(g.optional)
 	if !ok {
@@ -853,8 +845,6 @@ func (p *optionalParser) check(trace) error {
 func (p *optionalParser) reset() {
 }
 
-// TODO: review allocations in init, checking with benchmarks if they make any difference
-
 func (p *optionalParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
 	up := newTokenStack(p.length)
@@ -875,10 +865,6 @@ func (p *optionalParser) instance(t trace, n *node) parser {
 	i.optionalInstance = oi
 	return &i
 }
-
-// TODO: the switch got not cached when parsed on a deeper level
-
-// TODO: token stack somehow gets screwed when parsing switch
 
 func (p *optionalParser) parse(t *token) *parserResult {
 	p.trace.out("parsing", t)
@@ -966,9 +952,6 @@ func (p *optionalParser) nodeType() nodeType {
 	return p.typ
 }
 
-// TODO: endless loop with sequence
-// caused by sequence in sequence returning empty
-
 func (g *sequenceGenerator) create(t trace, init nodeType, excluded typeList) (parser, error) {
 	t = t.extend(g.typ)
 
@@ -1052,7 +1035,6 @@ func (p *sequenceParser) reset() {
 
 func (p *sequenceParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
-	t.debug("created with init node", n, n == nil, n == zeroNode)
 	up := newTokenStack(p.itemLength)
 	up.setTrace(t)
 	ts := newTokenStack(p.itemLength)
@@ -1077,8 +1059,6 @@ func (p *sequenceParser) instance(t trace, n *node) parser {
 	i.tokenStack = ts
 	return &i
 }
-
-// TODO: cache somehow not storing it all
 
 func (p *sequenceParser) parse(t *token) *parserResult {
 parseLoop:
@@ -1173,7 +1153,6 @@ parseLoop:
 
 		if p.itemResult.valid && p.itemResult.node.len() > 0 {
 			p.initEvaluated = true
-			p.trace.debug("append item", p.itemResult.node)
 			p.result.node.append(p.itemResult.node)
 			if p.itemResult.fromCache {
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
@@ -1192,7 +1171,6 @@ parseLoop:
 
 		if p.initIsMember && !p.initEvaluated {
 			p.initEvaluated = true
-			p.trace.debug("append item", p.initNode)
 			p.result.node.append(p.initNode)
 
 			p.currentParser = p.rest.instance(p.trace, zeroNode)
@@ -1338,7 +1316,6 @@ func (g *groupGenerator) create(t trace, init nodeType, excluded typeList) (pars
 }
 
 func (g *groupGenerator) member(t nodeType) (bool, error) {
-	// TODO: check if all items are members, if it is a group generator
 	return t == g.typ, nil
 }
 
@@ -1419,7 +1396,6 @@ func (p *groupParser) reset() {
 
 func (p *groupParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
-	t.debug("created with init node", n)
 	up := newTokenStack(p.length)
 	up.setTrace(t)
 	ts := newTokenStack(p.length)
@@ -1449,14 +1425,12 @@ parseLoop:
 		p.trace.out("parsing", t)
 
 		if p.skip > 0 {
-			p.trace.debug("skipping", t)
 			p.skip--
 			p.result.accepting = true
 			return p.result
 		}
 
 		if p.skippingAfterDone {
-			p.trace.debug("skipping done", p.result.unparsed.stack)
 			p.result.accepting = false
 			p.result.unparsed.append(t)
 			return p.result
@@ -1522,7 +1496,6 @@ parseLoop:
 			}
 
 			p.tokenStack.merge(p.itemResult.unparsed)
-			p.trace.debug("setting item parser to nil")
 			p.currentParser = nil
 		}
 
@@ -1530,7 +1503,6 @@ parseLoop:
 
 		if p.itemResult != nil && p.itemResult.valid && p.itemResult.node != zeroNode {
 			p.initEvaluated = true
-			p.trace.debug("appending item")
 			p.result.node.append(p.itemResult.node)
 			if p.itemResult.fromCache {
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
@@ -1649,9 +1621,7 @@ parseLoop:
 
 		p.result.unparsed.merge(p.tokenStack)
 		if p.result.node.len() > p.initNode.len() {
-			p.trace.debug("appending tokens", p.result.unparsed.stack, p.result.node.toks, p.initNode)
 			p.result.unparsed.mergeTokens(p.result.node.tokens()[p.initNode.len():])
-			p.trace.debug("appended tokens", p.result.unparsed.stack)
 		}
 
 		p.result.accepting = false
@@ -1828,7 +1798,6 @@ func (p *unionParser) reset() {
 
 func (p *unionParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
-	t.debug("created with init node", n)
 	up := newTokenStack(p.length)
 	up.setTrace(t)
 	ts := newTokenStack(p.length)
@@ -1963,7 +1932,6 @@ parseLoop:
 
 			p.currentParser = p.parsers[p.initTypeIndex][p.parserIndex].instance(p.trace, p.result.node)
 
-			p.trace.debug("continuing union with invalid", p.tokenStack.stack)
 			if p.tokenStack.has() {
 				t = p.tokenStack.pop()
 				continue parseLoop
@@ -2010,7 +1978,6 @@ parseLoop:
 		}
 
 		if p.initTypeIndex < len(p.parsers) && p.parserIndex < len(p.parsers[p.initTypeIndex]) {
-			p.trace.debug("continuing union (?)")
 			p.currentParser = p.parsers[p.initTypeIndex][p.parserIndex].instance(p.trace, p.result.node)
 
 			if p.tokenStack.has() {
@@ -2043,7 +2010,6 @@ parseLoop:
 
 		p.result.unparsed.merge(p.tokenStack)
 
-		p.trace.debug("union done")
 		p.result.accepting = false
 		if p.skip > 0 {
 			p.skippingAfterDone = true
@@ -2148,6 +2114,9 @@ func (s *syntax) parse(r *tokenReader) (*node, error) {
 		}
 	}
 }
+
+// TODO: if the token is the same as the previous and no advancement happened, it can be shifted
+// TODO: better error reporting of token positions in the root
 
 func defineSyntax(primitive [][]interface{}, complex [][]string) (*syntax, error) {
 	s := newSyntax()

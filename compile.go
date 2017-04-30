@@ -1,10 +1,14 @@
 package mml
 
-// import (
-// 	"bytes"
-// 	"fmt"
-// 	"io"
-// )
+import (
+	// 	"bytes"
+	// 	"fmt"
+	"io"
+	"log"
+	"os"
+	"runtime/pprof"
+)
+
 //
 // var symbols = make(map[string]string)
 //
@@ -753,27 +757,42 @@ package mml
 //
 // 	return nil
 // }
-//
-// func Compile(in io.Reader, out io.Writer) error {
-// 	r := newTokenReader(in, "test")
-//
-// 	n, err := parse(traceOff, generatorsByName["document"], r)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// 	if err := compileHead(out); err != nil {
-// 		return err
-// 	}
-//
-// 	if err := compile(out, n); err != nil {
-// 		return err
-// 	}
-//
-// 	if _, err := fmt.Fprintln(out, "}"); err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
+
+func Compile(in io.Reader, out io.Writer) error {
+	r := newTokenReader(in, "test")
+
+	s, err := newMMLSyntax()
+	if err != nil {
+		return err
+	}
+
+	// s.traceLevel = traceInfo
+
+	f, err := os.Create("cpu.out")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
+	_, err = s.parse(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
+	// if err := compileHead(out); err != nil {
+	// 	return err
+	// }
+
+	// if err := compile(out, n); err != nil {
+	// 	return err
+	// }
+
+	// if _, err := fmt.Fprintln(out, "}"); err != nil {
+	// 	return err
+	// }
+
+	// return nil
+}
