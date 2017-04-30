@@ -238,6 +238,7 @@ type unionParser struct {
 type syntax struct {
 	registry   registry
 	traceLevel traceLevel
+	rootParser parser
 }
 
 var (
@@ -773,6 +774,8 @@ func (p *primitiveParser) nodeType() nodeType {
 	return p.typ
 }
 
+// TODO: does the optional membership matter really?
+
 func (g *optionalGenerator) create(t trace, init nodeType, excluded typeList) (parser, error) {
 	t = t.extend(g.typ)
 
@@ -880,32 +883,33 @@ func (p *optionalParser) instance(t trace, n *node) parser {
 func (p *optionalParser) parse(t *token) *parserResult {
 	p.trace.out("parsing", t)
 
+	// there should be a decision in the underlying type, e.g. group, whether the cache can be used or not
 	// p.cacheChecked = true
 
-	p.cacheToken = t
-	if p.initNode != zeroNode {
-		p.cacheToken = p.initNode.token
-	}
+	// p.cacheToken = t
+	// if p.initNode != zeroNode {
+	// 	p.cacheToken = p.initNode.token
+	// }
 
-	if n, m, ok := p.cacheToken.cache.get(p.typ); ok {
-		if m {
-			if !p.initIsMember {
-				p.result.valid = true
-				p.result.node = n
-				p.result.unparsed.append(t)
-				p.result.fromCache = true
-				p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
-			}
-		} else {
-			p.result.valid = false
-			p.result.unparsed.append(t)
-			p.result.fromCache = true
-			p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
-		}
+	// if n, m, ok := p.cacheToken.cache.get(p.typ); ok {
+	// 	if m {
+	// 		if !p.initIsMember {
+	// 			p.result.valid = true
+	// 			p.result.node = n
+	// 			p.result.unparsed.append(t)
+	// 			p.result.fromCache = true
+	// 			p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+	// 		}
+	// 	} else {
+	// 		p.result.valid = false
+	// 		p.result.unparsed.append(t)
+	// 		p.result.fromCache = true
+	// 		p.trace.out("found in cache, valid:", p.result.valid, p.result.node)
+	// 	}
 
-		p.result.accepting = false
-		return p.result
-	}
+	// 	p.result.accepting = false
+	// 	return p.result
+	// }
 
 	if p.optionalInstance != nil {
 		p.optionalResult = p.optionalInstance.parse(t)
@@ -936,16 +940,16 @@ func (p *optionalParser) parse(t *token) *parserResult {
 		p.trace.out("missing optional, valid", p.initIsMember)
 	}
 
-	p.cacheToken = p.result.node.token
-	if p.result.node == zeroNode {
-		if !p.result.unparsed.has() {
-			panic(unexpectedResult(p.registry.typeName(p.typ)))
-		}
+	// p.cacheToken = p.result.node.token
+	// if p.result.node == zeroNode {
+	// 	if !p.result.unparsed.has() {
+	// 		panic(unexpectedResult(p.registry.typeName(p.typ)))
+	// 	}
 
-		p.cacheToken = p.result.unparsed.peek()
-	}
+	// 	p.cacheToken = p.result.unparsed.peek()
+	// }
 
-	p.cacheToken.cache.set(p.result.node, p.result.valid)
+	// p.cacheToken.cache.set(p.result.node, p.result.valid)
 	p.result.accepting = false
 	return p.result
 }
@@ -1048,6 +1052,7 @@ func (p *sequenceParser) reset() {
 
 func (p *sequenceParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
+	t.debug("created with init node", n, n == nil, n == zeroNode)
 	up := newTokenStack(p.itemLength)
 	up.setTrace(t)
 	ts := newTokenStack(p.itemLength)
@@ -1088,6 +1093,7 @@ parseLoop:
 
 		if p.skippingAfterDone {
 			p.result.accepting = false
+			p.result.unparsed.append(t)
 			return p.result
 		}
 
@@ -1125,7 +1131,7 @@ parseLoop:
 			// the case when the item cannot accept the init node
 
 			p.tokenStack.append(t)
-			p.trace.out("parse done, valid, no parser", p.result.node)
+			p.trace.out("sequence done, valid, no parser", p.result.node)
 			p.skippingAfterDone = p.skip > 0
 			p.result.accepting = p.skippingAfterDone
 			p.result.valid = true
@@ -1167,6 +1173,7 @@ parseLoop:
 
 		if p.itemResult.valid && p.itemResult.node.len() > 0 {
 			p.initEvaluated = true
+			p.trace.debug("append item", p.itemResult.node)
 			p.result.node.append(p.itemResult.node)
 			if p.itemResult.fromCache {
 				p.skip = p.tokenStack.findCachedNode(p.itemResult.node)
@@ -1185,6 +1192,7 @@ parseLoop:
 
 		if p.initIsMember && !p.initEvaluated {
 			p.initEvaluated = true
+			p.trace.debug("append item", p.initNode)
 			p.result.node.append(p.initNode)
 
 			p.currentParser = p.rest.instance(p.trace, zeroNode)
@@ -1198,7 +1206,7 @@ parseLoop:
 			return p.result
 		}
 
-		p.trace.out("parse done, valid, item not valid", p.result.node)
+		p.trace.out("sequence done, valid, item not valid", p.result.node)
 		p.skippingAfterDone = p.skip > 0
 		p.result.accepting = p.skippingAfterDone
 		p.result.valid = true
@@ -1330,6 +1338,7 @@ func (g *groupGenerator) create(t trace, init nodeType, excluded typeList) (pars
 }
 
 func (g *groupGenerator) member(t nodeType) (bool, error) {
+	// TODO: check if all items are members, if it is a group generator
 	return t == g.typ, nil
 }
 
@@ -1410,6 +1419,7 @@ func (p *groupParser) reset() {
 
 func (p *groupParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
+	t.debug("created with init node", n)
 	up := newTokenStack(p.length)
 	up.setTrace(t)
 	ts := newTokenStack(p.length)
@@ -1446,7 +1456,9 @@ parseLoop:
 		}
 
 		if p.skippingAfterDone {
+			p.trace.debug("skipping done", p.result.unparsed.stack)
 			p.result.accepting = false
+			p.result.unparsed.append(t)
 			return p.result
 		}
 
@@ -1637,7 +1649,9 @@ parseLoop:
 
 		p.result.unparsed.merge(p.tokenStack)
 		if p.result.node.len() > p.initNode.len() {
+			p.trace.debug("appending tokens", p.result.unparsed.stack, p.result.node.toks, p.initNode)
 			p.result.unparsed.mergeTokens(p.result.node.tokens()[p.initNode.len():])
+			p.trace.debug("appended tokens", p.result.unparsed.stack)
 		}
 
 		p.result.accepting = false
@@ -1814,6 +1828,7 @@ func (p *unionParser) reset() {
 
 func (p *unionParser) instance(t trace, n *node) parser {
 	t = t.extend(p.typ)
+	t.debug("created with init node", n)
 	up := newTokenStack(p.length)
 	up.setTrace(t)
 	ts := newTokenStack(p.length)
@@ -1854,6 +1869,7 @@ parseLoop:
 
 		if p.skippingAfterDone {
 			p.result.accepting = false
+			p.result.unparsed.append(t)
 			return p.result
 		}
 
@@ -1947,6 +1963,7 @@ parseLoop:
 
 			p.currentParser = p.parsers[p.initTypeIndex][p.parserIndex].instance(p.trace, p.result.node)
 
+			p.trace.debug("continuing union with invalid", p.tokenStack.stack)
 			if p.tokenStack.has() {
 				t = p.tokenStack.pop()
 				continue parseLoop
@@ -1993,6 +2010,7 @@ parseLoop:
 		}
 
 		if p.initTypeIndex < len(p.parsers) && p.parserIndex < len(p.parsers[p.initTypeIndex]) {
+			p.trace.debug("continuing union (?)")
 			p.currentParser = p.parsers[p.initTypeIndex][p.parserIndex].instance(p.trace, p.result.node)
 
 			if p.tokenStack.has() {
@@ -2025,6 +2043,7 @@ parseLoop:
 
 		p.result.unparsed.merge(p.tokenStack)
 
+		p.trace.debug("union done")
 		p.result.accepting = false
 		if p.skip > 0 {
 			p.skippingAfterDone = true
@@ -2078,27 +2097,9 @@ func (s *syntax) parse(r *tokenReader) (*node, error) {
 	eofToken.cache = newCache()
 	s.registry.reset()
 
-	root, err := s.registry.rootGenerator()
-	if err != nil {
-		return zeroNode, err
-	}
-
 	trace := newTrace(s.traceLevel, s.registry)
 
-	parser, err := root.create(trace, 0, nil)
-	if err != nil {
-		return zeroNode, err
-	}
-
-	if err := s.registry.finalize(trace); err != nil {
-		return zeroNode, err
-	}
-
-	if !parser.valid() {
-		return nil, errFailedToCreateParser
-	}
-
-	parserInstance := parser.instance(trace, zeroNode)
+	parserInstance := s.rootParser.instance(trace, zeroNode)
 
 	last := &parserResult{accepting: true, node: zeroNode}
 	for {
@@ -2176,6 +2177,28 @@ func defineSyntax(primitive [][]interface{}, complex [][]string) (*syntax, error
 			return nil, err
 		}
 	}
+
+	root, err := s.registry.rootGenerator()
+	if err != nil {
+		return nil, err
+	}
+
+	trace := newTrace(s.traceLevel, s.registry)
+
+	parser, err := root.create(trace, 0, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.registry.finalize(trace); err != nil {
+		return nil, err
+	}
+
+	if !parser.valid() {
+		return nil, errFailedToCreateParser
+	}
+
+	s.rootParser = parser
 
 	return s, nil
 }

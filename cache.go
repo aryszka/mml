@@ -36,7 +36,6 @@ func (c *cache) get(t nodeType) (*node, bool, bool) {
 }
 
 func (c *cache) set(n *node, match bool) {
-	return
 	if !match {
 		// common use case leaked in. The reason is that this check is required in all current use
 		// cases. E.g. there can be a group cached already, which can be the first item of a longer
