@@ -43,8 +43,8 @@ func sequenceWithoutItems(nodeType string) error {
 	return fmt.Errorf("sequence without items: %s", nodeType)
 }
 
-func sequenceItemParserNotFound(nodeType string) error {
-	return fmt.Errorf("sequence item parser not found: %s", nodeType)
+func sequenceItemParserInvalid(nodeType string) error {
+	return fmt.Errorf("sequence item parser invalid: %s", nodeType)
 }
 
 func newSequence(
@@ -123,7 +123,7 @@ func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList
 			}
 
 			if !withoutInit.valid() {
-				return nil, sequenceItemParserNotFound(d.name)
+				return nil, sequenceItemParserInvalid(d.name)
 			}
 
 			generators = append(generators, withoutInit)
@@ -170,7 +170,7 @@ func (g *sequenceGenerator) valid() bool        { return g.isValid }
 func (g *sequenceGenerator) finalize(trace) error {
 	for _, gi := range g.generators {
 		if gi != nil && !gi.valid() {
-			return sequenceItemParserNotFound(g.name)
+			return sequenceItemParserInvalid(g.name)
 		}
 	}
 

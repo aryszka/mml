@@ -810,6 +810,35 @@ func TestParse(t *testing.T) {
 				}},
 			}},
 		},
+	}, {
+		msg: "recursive repetition",
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		// ints = int | int ints
+		complex: [][]string{
+			{"sequence", "int-sequence", "ints", "int"},
+			{"choice", "ints", "int", "int-sequence"},
+		},
+		text: "1 2 3",
+		node: &node{
+			name:  "int-sequence",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int-sequence",
+				token: &token{value: "1"},
+				nodes: []*node{{
+					name:  "int",
+					token: &token{value: "1"},
+				}, {
+					name:  "int",
+					token: &token{value: "2"},
+				}},
+			}, {
+				name:  "int",
+				token: &token{value: "3"},
+			}},
+		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			var l traceLevel

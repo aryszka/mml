@@ -1,5 +1,7 @@
 package mml
 
+// TODO: find a good name for this
+
 type repeatDefinition struct {
 	name     string
 	typ      nodeType

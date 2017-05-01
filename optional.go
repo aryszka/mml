@@ -194,9 +194,9 @@ func (p *optionalParser) parse(t *token) *parserResult {
 		p.result.node = p.initNode
 		p.result.fromCache = false
 	} else {
+		p.trace.info("missing optional, valid")
 		p.result.node = nil
 		p.result.fromCache = false
-		p.trace.info("missing optional, valid")
 	}
 
 	return p.result
