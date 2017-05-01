@@ -43,7 +43,6 @@ func (r *registry) nodeType(name string) nodeType {
 	r.typeSeed++
 	r.types[name] = t
 	r.names[t] = name
-	println(t, name)
 	return t
 }
 

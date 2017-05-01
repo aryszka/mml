@@ -5,7 +5,16 @@ type tokenStack struct {
 }
 
 func newTokenStack() *tokenStack {
-	return &tokenStack{}
+	return withLength(0)
+}
+
+func withLength(l int) *tokenStack {
+	ts := &tokenStack{}
+	if l > 0 {
+		ts.stack = make([]*token, l)
+	}
+
+	return ts
 }
 
 func (s *tokenStack) push(t *token) {

@@ -20,6 +20,9 @@ func (c *cache) get(offset int, t nodeType) (*node, bool, bool) {
 	}
 
 	tc := c.tokens[offset]
+	if tc == nil {
+		return nil, false, false
+	}
 
 	if tc.noMatch.has(t) {
 		return nil, false, true

@@ -14,6 +14,7 @@ type primitiveGenerator struct {
 	typ       nodeType
 	isValid   bool
 	tokenType tokenType
+	instance  *primitiveParser
 }
 
 type primitiveParser struct {
@@ -21,11 +22,16 @@ type primitiveParser struct {
 	typ       nodeType
 	trace     trace
 	tokenType tokenType
+	success   *parserResult
+	fail      *parserResult
 }
 
 func unexpectedInitNode(typeName, initTypeName string) error {
 	return fmt.Errorf("unexpected init node: %s, %s", typeName, initTypeName)
 }
+
+// TODO: cache primitive due to node allocation. Worth checking the cache everywhere before the parser instance
+// is created.
 
 func newPrimitive(r *registry, name string, nt nodeType, tt tokenType) *primitiveDefinition {
 	return &primitiveDefinition{
@@ -50,6 +56,17 @@ func (d *primitiveDefinition) generator(_ trace, init nodeType, excluded typeLis
 		typ:       d.typ,
 		isValid:   !excluded.contains(d.typ) && init == 0,
 		tokenType: d.tokenType,
+		instance: &primitiveParser{
+			name:      d.name,
+			typ:       d.typ,
+			tokenType: d.tokenType,
+			success: &parserResult{
+				valid: true,
+			},
+			fail: &parserResult{
+				unparsed: withLength(1),
+			},
+		},
 	}
 
 	d.registry.setGenerator(d.typ, init, excluded, g)
@@ -66,12 +83,9 @@ func (g *primitiveGenerator) parser(t trace, _ *cache, init *node) parser {
 		panic(unexpectedInitNode(g.name, init.name))
 	}
 
-	return &primitiveParser{
-		name:      g.name,
-		typ:       g.typ,
-		trace:     t.extend(g.name),
-		tokenType: g.tokenType,
-	}
+	g.instance.trace = t.extend(g.name)
+	g.instance.fail.unparsed.clear()
+	return g.instance
 }
 
 func (p *primitiveParser) typeName() string   { return p.name }
@@ -82,21 +96,18 @@ func (p *primitiveParser) parse(t *token) *parserResult {
 
 	if t.typ == p.tokenType {
 		p.trace.info("valid")
-		return &parserResult{
-			valid: true,
-			node: &node{
-				name:   p.name,
-				typ:    p.typ,
-				token:  t,
-				tokens: []*token{t},
-			},
+
+		p.success.node = &node{
+			name:   p.name,
+			typ:    p.typ,
+			token:  t,
+			tokens: []*token{t},
 		}
+
+		return p.success
 	}
 
 	p.trace.info("invalid")
-	up := newTokenStack()
-	up.push(t)
-	return &parserResult{
-		unparsed: up,
-	}
+	p.fail.unparsed.push(t)
+	return p.fail
 }

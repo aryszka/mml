@@ -16,8 +16,8 @@ type optionalGenerator struct {
 	optionalName string
 	optionalType nodeType
 	optional     generator
-	initIsMember bool
 	isValid      bool
+	instance     *optionalParser
 }
 
 type optionalParser struct {
@@ -28,6 +28,7 @@ type optionalParser struct {
 	optional     parser
 	initNode     *node
 	initIsMember bool
+	result       *parserResult
 }
 
 func optionalContainingSelf(nodeType string) error {
@@ -69,14 +70,6 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 		return g, nil
 	}
 
-	g := &optionalGenerator{
-		typ:     d.typ,
-		name:    d.name,
-		isValid: true,
-	}
-
-	d.registry.setGenerator(d.typ, init, excluded, g)
-
 	optional, ok := d.registry.definition(d.optionalType)
 	if !ok {
 		return nil, unspecifiedParser(d.optionalName)
@@ -87,6 +80,31 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 	} else if m {
 		return nil, optionalContainingSelf(d.name)
 	}
+
+	var initIsMember bool
+	if init != 0 {
+		if m, err := optional.member(init); err != nil {
+			return nil, err
+		} else {
+			initIsMember = m
+		}
+	}
+
+	g := &optionalGenerator{
+		typ:     d.typ,
+		name:    d.name,
+		isValid: true,
+		instance: &optionalParser{
+			typ:          d.typ,
+			name:         d.name,
+			initIsMember: initIsMember,
+			result: &parserResult{
+				valid: true,
+			},
+		},
+	}
+
+	d.registry.setGenerator(d.typ, init, excluded, g)
 
 	if excluded.contains(d.typ) {
 		g.isValid = false
@@ -99,17 +117,7 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 		return nil, err
 	}
 
-	var initIsMember bool
-	if init != 0 {
-		if m, err := optional.member(init); err != nil {
-			return nil, err
-		} else {
-			initIsMember = m
-		}
-	}
-
 	g.optional = optGenerator
-	g.initIsMember = initIsMember
 	return g, nil
 }
 
@@ -133,15 +141,16 @@ func (g *optionalGenerator) parser(t trace, c *cache, init *node) parser {
 		op = g.optional.parser(t, c, init)
 	}
 
-	return &optionalParser{
-		name:         g.name,
-		typ:          g.typ,
-		trace:        t,
-		cache:        c,
-		initNode:     init,
-		optional:     op,
-		initIsMember: g.initIsMember,
+	g.instance.trace = t
+	g.instance.cache = c
+	g.instance.initNode = init
+	g.instance.optional = op
+
+	if g.instance.result.unparsed != nil {
+		g.instance.result.unparsed.clear()
 	}
+
+	return g.instance
 }
 
 func (p *optionalParser) typeName() string   { return p.name }
@@ -150,46 +159,45 @@ func (p *optionalParser) nodeType() nodeType { return p.typ }
 func (p *optionalParser) parse(t *token) *parserResult {
 	p.trace.info("parsing", t)
 
-	r := &parserResult{}
-
 	var or *parserResult
 	if p.optional != nil {
 		or = p.optional.parse(t)
 		if or.accepting {
-			r.accepting = true
-			return r
+			p.result.accepting = true
+			return p.result
 		}
 	}
 
-	r.accepting = false
-	r.valid = true
+	p.result.accepting = false
+	p.result.valid = true
+
 	if or == nil {
-		if r.unparsed == nil {
-			r.unparsed = newTokenStack()
+		if p.result.unparsed == nil {
+			p.result.unparsed = newTokenStack()
 		}
 
-		r.unparsed.push(t)
+		p.result.unparsed.push(t)
 	} else if or.unparsed != nil && or.unparsed.has() {
-		if r.unparsed == nil {
-			r.unparsed = newTokenStack()
+		if p.result.unparsed == nil {
+			p.result.unparsed = newTokenStack()
 		}
 
-		r.unparsed.merge(or.unparsed)
+		p.result.unparsed.merge(or.unparsed)
 	}
 
 	if or != nil && or.valid {
-		p.trace.info("parse done, valid:", r.valid)
-		r.node = or.node
-		r.fromCache = or.fromCache
+		p.trace.info("parse done, valid")
+		p.result.node = or.node
+		p.result.fromCache = or.fromCache
 	} else if p.initIsMember {
-		r.node = p.initNode
 		p.trace.info("init node is a member, valid")
-		r.fromCache = false
+		p.result.node = p.initNode
+		p.result.fromCache = false
 	} else {
-		r.node = nil
+		p.result.node = nil
+		p.result.fromCache = false
 		p.trace.info("missing optional, valid")
 	}
 
-	r.accepting = false
-	return r
+	return p.result
 }
