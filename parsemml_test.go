@@ -6,7 +6,11 @@ import (
 )
 
 func TestParseMML(t *testing.T) {
-	s, err := newMMLSyntax()
+	var l traceLevel
+	trace := newTrace(l)
+	s := withTrace(trace)
+
+	err := s.newMMLSyntax()
 	if err != nil {
 		t.Error(err)
 		return
@@ -25,104 +29,104 @@ func TestParseMML(t *testing.T) {
 		msg:  "single int",
 		code: "42",
 		nodes: []*node{{
-			typeName: "int",
+			name: "int",
 			token:    &token{value: "42"},
 		}},
 	}, {
 		msg:  "multiple ints",
 		code: "1 2\n3;4 ;\n 5",
 		nodes: []*node{{
-			typeName: "int",
+			name: "int",
 			token:    &token{value: "1"},
 		}, {
-			typeName: "int",
+			name: "int",
 			token:    &token{value: "2"},
 		}, {
-			typeName: "nl",
+			name: "nl",
 			token:    &token{value: "\n"},
 		}, {
-			typeName: "int",
+			name: "int",
 			token:    &token{value: "3"},
 		}, {
-			typeName: "semicolon",
+			name: "semicolon",
 			token:    &token{value: ";"},
 		}, {
-			typeName: "int",
+			name: "int",
 			token:    &token{value: "4"},
 		}, {
-			typeName: "semicolon",
+			name: "semicolon",
 			token:    &token{value: ";"},
 		}, {
-			typeName: "nl",
+			name: "nl",
 			token:    &token{value: "\n"},
 		}, {
-			typeName: "int",
+			name: "int",
 			token:    &token{value: "5"},
 		}},
 	}, {
 		msg:  "string",
 		code: "\"foo\"",
 		nodes: []*node{{
-			typeName: "string",
+			name: "string",
 			token:    &token{value: "\"foo\""},
 		}},
 	}, {
 		msg:  "bool",
 		code: "true false",
 		nodes: []*node{{
-			typeName: "true",
+			name: "true",
 			token:    &token{value: "true"},
 		}, {
-			typeName: "false",
+			name: "false",
 			token:    &token{value: "false"},
 		}},
 	}, {
 		msg:  "symbol",
 		code: "foo",
 		nodes: []*node{{
-			typeName: "symbol",
+			name: "symbol",
 			token:    &token{value: "foo"},
 		}},
 	}, {
 		msg:  "dynamic symbol",
 		code: "symbol(f(a))",
 		nodes: []*node{{
-			typeName: "dynamic-symbol",
+			name: "dynamic-symbol",
 			token:    &token{value: "symbol"},
 			nodes: []*node{{
-				typeName: "symbol-word",
+				name: "symbol-word",
 				token:    &token{value: "symbol"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "f"},
 			}, {
-				typeName: "function-call",
+				name: "function-call",
 				token:    &token{value: "f"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "f"},
 				}, {
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "list-sequence",
+					name: "list-sequence",
 					token:    &token{value: "a"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: ")"},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -130,16 +134,16 @@ func TestParseMML(t *testing.T) {
 		msg:  "empty list",
 		code: "[]",
 		nodes: []*node{{
-			typeName: "list",
+			name: "list",
 			token:    &token{value: "["},
 			nodes: []*node{{
-				typeName: "open-square",
+				name: "open-square",
 				token:    &token{value: "["},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "]"},
 			}, {
-				typeName: "close-square",
+				name: "close-square",
 				token:    &token{value: "]"},
 			}},
 		}},
@@ -147,91 +151,91 @@ func TestParseMML(t *testing.T) {
 		msg:  "list",
 		code: "[1, 2, f(a), [3, 4, []]]",
 		nodes: []*node{{
-			typeName: "list",
+			name: "list",
 			token:    &token{value: "["},
 			nodes: []*node{{
-				typeName: "open-square",
+				name: "open-square",
 				token:    &token{value: "["},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "1"},
 				nodes: []*node{{
-					typeName: "int",
+					name: "int",
 					token:    &token{value: "1"},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "int",
+					name: "int",
 					token:    &token{value: "2"},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "function-call",
+					name: "function-call",
 					token:    &token{value: "f"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "f"},
 					}, {
-						typeName: "open-paren",
+						name: "open-paren",
 						token:    &token{value: "("},
 					}, {
-						typeName: "list-sequence",
+						name: "list-sequence",
 						token:    &token{value: "a"},
 						nodes: []*node{{
-							typeName: "symbol",
+							name: "symbol",
 							token:    &token{value: "a"},
 						}},
 					}, {
-						typeName: "close-paren",
+						name: "close-paren",
 						token:    &token{value: ")"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "list",
+					name: "list",
 					token:    &token{value: "["},
 					nodes: []*node{{
-						typeName: "open-square",
+						name: "open-square",
 						token:    &token{value: "["},
 					}, {
-						typeName: "list-sequence",
+						name: "list-sequence",
 						token:    &token{value: "3"},
 						nodes: []*node{{
-							typeName: "int",
+							name: "int",
 							token:    &token{value: "3"},
 						}, {
-							typeName: "comma",
+							name: "comma",
 							token:    &token{value: ","},
 						}, {
-							typeName: "int",
+							name: "int",
 							token:    &token{value: "4"},
 						}, {
-							typeName: "comma",
+							name: "comma",
 							token:    &token{value: ","},
 						}, {
-							typeName: "list",
+							name: "list",
 							token:    &token{value: "["},
 							nodes: []*node{{
-								typeName: "open-square",
+								name: "open-square",
 								token:    &token{value: "["},
 							}, {
-								typeName: "list-sequence",
+								name: "list-sequence",
 								token:    &token{value: "]"},
 							}, {
-								typeName: "close-square",
+								name: "close-square",
 								token:    &token{value: "]"},
 							}},
 						}},
 					}, {
-						typeName: "close-square",
+						name: "close-square",
 						token:    &token{value: "]"},
 					}},
 				}},
 			}, {
-				typeName: "close-square",
+				name: "close-square",
 				token:    &token{value: "]"},
 			}},
 		}},
@@ -239,97 +243,97 @@ func TestParseMML(t *testing.T) {
 		msg:  "mutable list",
 		code: "~[1, 2, f(a), [3, 4, ~[]]]",
 		nodes: []*node{{
-			typeName: "mutable-list",
+			name: "mutable-list",
 			token:    &token{value: "~"},
 			nodes: []*node{{
-				typeName: "tilde",
+				name: "tilde",
 				token:    &token{value: "~"},
 			}, {
-				typeName: "open-square",
+				name: "open-square",
 				token:    &token{value: "["},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "1"},
 				nodes: []*node{{
-					typeName: "int",
+					name: "int",
 					token:    &token{value: "1"},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "int",
+					name: "int",
 					token:    &token{value: "2"},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "function-call",
+					name: "function-call",
 					token:    &token{value: "f"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "f"},
 					}, {
-						typeName: "open-paren",
+						name: "open-paren",
 						token:    &token{value: "("},
 					}, {
-						typeName: "list-sequence",
+						name: "list-sequence",
 						token:    &token{value: "a"},
 						nodes: []*node{{
-							typeName: "symbol",
+							name: "symbol",
 							token:    &token{value: "a"},
 						}},
 					}, {
-						typeName: "close-paren",
+						name: "close-paren",
 						token:    &token{value: ")"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "list",
+					name: "list",
 					token:    &token{value: "["},
 					nodes: []*node{{
-						typeName: "open-square",
+						name: "open-square",
 						token:    &token{value: "["},
 					}, {
-						typeName: "list-sequence",
+						name: "list-sequence",
 						token:    &token{value: "3"},
 						nodes: []*node{{
-							typeName: "int",
+							name: "int",
 							token:    &token{value: "3"},
 						}, {
-							typeName: "comma",
+							name: "comma",
 							token:    &token{value: ","},
 						}, {
-							typeName: "int",
+							name: "int",
 							token:    &token{value: "4"},
 						}, {
-							typeName: "comma",
+							name: "comma",
 							token:    &token{value: ","},
 						}, {
-							typeName: "mutable-list",
+							name: "mutable-list",
 							token:    &token{value: "~"},
 							nodes: []*node{{
-								typeName: "tilde",
+								name: "tilde",
 								token:    &token{value: "~"},
 							}, {
-								typeName: "open-square",
+								name: "open-square",
 								token:    &token{value: "["},
 							}, {
-								typeName: "list-sequence",
+								name: "list-sequence",
 								token:    &token{value: "]"},
 							}, {
-								typeName: "close-square",
+								name: "close-square",
 								token:    &token{value: "]"},
 							}},
 						}},
 					}, {
-						typeName: "close-square",
+						name: "close-square",
 						token:    &token{value: "]"},
 					}},
 				}},
 			}, {
-				typeName: "close-square",
+				name: "close-square",
 				token:    &token{value: "]"},
 			}},
 		}},
@@ -337,16 +341,16 @@ func TestParseMML(t *testing.T) {
 		msg:  "empty structure",
 		code: "{}",
 		nodes: []*node{{
-			typeName: "structure",
+			name: "structure",
 			token:    &token{value: "{"},
 			nodes: []*node{{
-				typeName: "open-brace",
+				name: "open-brace",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "structure-sequence",
+				name: "structure-sequence",
 				token:    &token{value: "}"},
 			}, {
-				typeName: "close-brace",
+				name: "close-brace",
 				token:    &token{value: "}"},
 			}},
 		}},
@@ -354,165 +358,165 @@ func TestParseMML(t *testing.T) {
 		msg:  "structure",
 		code: "{a: 1, b: 2, ...c, d: {e: 3, f: {}}}",
 		nodes: []*node{{
-			typeName: "structure",
+			name: "structure",
 			token:    &token{value: "{"},
 			nodes: []*node{{
-				typeName: "open-brace",
+				name: "open-brace",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "structure-sequence",
+				name: "structure-sequence",
 				token:    &token{value: "a"},
 				nodes: []*node{{
-					typeName: "structure-definition",
+					name: "structure-definition",
 					token:    &token{value: "a"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: "1"},
 					}, {
-						typeName: "int",
+						name: "int",
 						token:    &token{value: "1"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "structure-definition",
+					name: "structure-definition",
 					token:    &token{value: "b"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "b"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: "2"},
 					}, {
-						typeName: "int",
+						name: "int",
 						token:    &token{value: "2"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "spread-expression",
+					name: "spread-expression",
 					token:    &token{value: "."},
 					nodes: []*node{{
-						typeName: "spread",
+						name: "spread",
 						token:    &token{value: "."},
 						nodes: []*node{{
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "c"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "structure-definition",
+					name: "structure-definition",
 					token:    &token{value: "d"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "d"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: "{"},
 					}, {
-						typeName: "structure",
+						name: "structure",
 						token:    &token{value: "{"},
 						nodes: []*node{{
-							typeName: "open-brace",
+							name: "open-brace",
 							token:    &token{value: "{"},
 						}, {
-							typeName: "structure-sequence",
+							name: "structure-sequence",
 							token:    &token{value: "e"},
 							nodes: []*node{{
-								typeName: "structure-definition",
+								name: "structure-definition",
 								token:    &token{value: "e"},
 								nodes: []*node{{
-									typeName: "symbol",
+									name: "symbol",
 									token:    &token{value: "e"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "colon",
+									name: "colon",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: "3"},
 								}, {
-									typeName: "int",
+									name: "int",
 									token:    &token{value: "3"},
 								}},
 							}, {
-								typeName: "comma",
+								name: "comma",
 								token:    &token{value: ","},
 							}, {
-								typeName: "structure-definition",
+								name: "structure-definition",
 								token:    &token{value: "f"},
 								nodes: []*node{{
-									typeName: "symbol",
+									name: "symbol",
 									token:    &token{value: "f"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "colon",
+									name: "colon",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: "{"},
 								}, {
-									typeName: "structure",
+									name: "structure",
 									token:    &token{value: "{"},
 									nodes: []*node{{
-										typeName: "open-brace",
+										name: "open-brace",
 										token:    &token{value: "{"},
 									}, {
-										typeName: "structure-sequence",
+										name: "structure-sequence",
 										token:    &token{value: "}"},
 									}, {
-										typeName: "close-brace",
+										name: "close-brace",
 										token:    &token{value: "}"},
 									}},
 								}},
 							}},
 						}, {
-							typeName: "close-brace",
+							name: "close-brace",
 							token:    &token{value: "}"},
 						}},
 					}},
 				}},
 			}, {
-				typeName: "close-brace",
+				name: "close-brace",
 				token:    &token{value: "}"},
 			}},
 		}},
@@ -520,171 +524,171 @@ func TestParseMML(t *testing.T) {
 		msg:  "mutable structure",
 		code: "~{a: 1, b: 2, ...c, d: {e: 3, f: ~{}}}",
 		nodes: []*node{{
-			typeName: "mutable-structure",
+			name: "mutable-structure",
 			token:    &token{value: "~"},
 			nodes: []*node{{
-				typeName: "tilde",
+				name: "tilde",
 				token:    &token{value: "~"},
 			}, {
-				typeName: "open-brace",
+				name: "open-brace",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "structure-sequence",
+				name: "structure-sequence",
 				token:    &token{value: "a"},
 				nodes: []*node{{
-					typeName: "structure-definition",
+					name: "structure-definition",
 					token:    &token{value: "a"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: "1"},
 					}, {
-						typeName: "int",
+						name: "int",
 						token:    &token{value: "1"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "structure-definition",
+					name: "structure-definition",
 					token:    &token{value: "b"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "b"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: "2"},
 					}, {
-						typeName: "int",
+						name: "int",
 						token:    &token{value: "2"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "spread-expression",
+					name: "spread-expression",
 					token:    &token{value: "."},
 					nodes: []*node{{
-						typeName: "spread",
+						name: "spread",
 						token:    &token{value: "."},
 						nodes: []*node{{
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "c"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "structure-definition",
+					name: "structure-definition",
 					token:    &token{value: "d"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "d"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "nls",
+						name: "nls",
 						token:    &token{value: "{"},
 					}, {
-						typeName: "structure",
+						name: "structure",
 						token:    &token{value: "{"},
 						nodes: []*node{{
-							typeName: "open-brace",
+							name: "open-brace",
 							token:    &token{value: "{"},
 						}, {
-							typeName: "structure-sequence",
+							name: "structure-sequence",
 							token:    &token{value: "e"},
 							nodes: []*node{{
-								typeName: "structure-definition",
+								name: "structure-definition",
 								token:    &token{value: "e"},
 								nodes: []*node{{
-									typeName: "symbol",
+									name: "symbol",
 									token:    &token{value: "e"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "colon",
+									name: "colon",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: "3"},
 								}, {
-									typeName: "int",
+									name: "int",
 									token:    &token{value: "3"},
 								}},
 							}, {
-								typeName: "comma",
+								name: "comma",
 								token:    &token{value: ","},
 							}, {
-								typeName: "structure-definition",
+								name: "structure-definition",
 								token:    &token{value: "f"},
 								nodes: []*node{{
-									typeName: "symbol",
+									name: "symbol",
 									token:    &token{value: "f"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "colon",
+									name: "colon",
 									token:    &token{value: ":"},
 								}, {
-									typeName: "nls",
+									name: "nls",
 									token:    &token{value: "~"},
 								}, {
-									typeName: "mutable-structure",
+									name: "mutable-structure",
 									token:    &token{value: "~"},
 									nodes: []*node{{
-										typeName: "tilde",
+										name: "tilde",
 										token:    &token{value: "~"},
 									}, {
-										typeName: "open-brace",
+										name: "open-brace",
 										token:    &token{value: "{"},
 									}, {
-										typeName: "structure-sequence",
+										name: "structure-sequence",
 										token:    &token{value: "}"},
 									}, {
-										typeName: "close-brace",
+										name: "close-brace",
 										token:    &token{value: "}"},
 									}},
 								}},
 							}},
 						}, {
-							typeName: "close-brace",
+							name: "close-brace",
 							token:    &token{value: "}"},
 						}},
 					}},
 				}},
 			}, {
-				typeName: "close-brace",
+				name: "close-brace",
 				token:    &token{value: "}"},
 			}},
 		}},
@@ -692,16 +696,16 @@ func TestParseMML(t *testing.T) {
 		msg:  "symbol query",
 		code: "a.b",
 		nodes: []*node{{
-			typeName: "symbol-query",
+			name: "symbol-query",
 			token:    &token{value: "a"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "a"},
 			}, {
-				typeName: "dot",
+				name: "dot",
 				token:    &token{value: "."},
 			}, {
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "b"},
 			}},
 		}},
@@ -709,26 +713,26 @@ func TestParseMML(t *testing.T) {
 		msg:  "chained symbol query",
 		code: "a.b.c",
 		nodes: []*node{{
-			typeName: "symbol-query",
+			name: "symbol-query",
 			token:    &token{value: "a"},
 			nodes: []*node{{
-				typeName: "symbol-query",
+				name: "symbol-query",
 				token:    &token{value: "a"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "a"},
 				}, {
-					typeName: "dot",
+					name: "dot",
 					token:    &token{value: "."},
 				}, {
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "b"},
 				}},
 			}, {
-				typeName: "dot",
+				name: "dot",
 				token:    &token{value: "."},
 			}, {
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "c"},
 			}},
 		}},
@@ -736,44 +740,44 @@ func TestParseMML(t *testing.T) {
 		msg:  "void function",
 		code: "fn () {;}",
 		nodes: []*node{{
-			typeName: "function",
+			name: "function",
 			token:    &token{value: "fn"},
 			nodes: []*node{{
-				typeName: "fn-word",
+				name: "fn-word",
 				token:    &token{value: "fn"},
 			}, {
-				typeName: "function-fact",
+				name: "function-fact",
 				token:    &token{value: "("},
 				nodes: []*node{{
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "static-symbol-sequence",
+					name: "static-symbol-sequence",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: "{"},
 				}, {
-					typeName: "function-body",
+					name: "function-body",
 					token:    &token{value: "{"},
 					nodes: []*node{{
-						typeName: "open-brace",
+						name: "open-brace",
 						token:    &token{value: "{"},
 					}, {
-						typeName: "statement-sequence",
+						name: "statement-sequence",
 						token:    &token{value: ";"},
 						nodes: []*node{{
-							typeName: "semicolon",
+							name: "semicolon",
 							token:    &token{value: ";"},
 						}},
 					}, {
-						typeName: "close-brace",
+						name: "close-brace",
 						token:    &token{value: "}"},
 					}},
 				}},
@@ -783,35 +787,35 @@ func TestParseMML(t *testing.T) {
 		msg:  "identity",
 		code: "fn (x) x",
 		nodes: []*node{{
-			typeName: "function",
+			name: "function",
 			token:    &token{value: "fn"},
 			nodes: []*node{{
-				typeName: "fn-word",
+				name: "fn-word",
 				token:    &token{value: "fn"},
 			}, {
-				typeName: "function-fact",
+				name: "function-fact",
 				token:    &token{value: "("},
 				nodes: []*node{{
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "static-symbol-sequence",
+					name: "static-symbol-sequence",
 					token:    &token{value: "x"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "x"},
 					}},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: "x"},
 				}, {
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "x"},
 				}},
 			}},
@@ -820,51 +824,51 @@ func TestParseMML(t *testing.T) {
 		msg:  "list as a function",
 		code: "fn (...x) x",
 		nodes: []*node{{
-			typeName: "function",
+			name: "function",
 			token:    &token{value: "fn"},
 			nodes: []*node{{
-				typeName: "fn-word",
+				name: "fn-word",
 				token:    &token{value: "fn"},
 			}, {
-				typeName: "function-fact",
+				name: "function-fact",
 				token:    &token{value: "("},
 				nodes: []*node{{
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "static-symbol-sequence",
+					name: "static-symbol-sequence",
 					token:    &token{value: "."},
 				}, {
-					typeName: "collect-symbol",
+					name: "collect-symbol",
 					token:    &token{value: "."},
 					nodes: []*node{{
-						typeName: "spread",
+						name: "spread",
 						token:    &token{value: "."},
 						nodes: []*node{{
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "x"},
 					}},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: "x"},
 				}, {
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "x"},
 				}},
 			}},
@@ -873,100 +877,100 @@ func TestParseMML(t *testing.T) {
 		msg:  "function with sequence",
 		code: "fn (a, b, ...c) { a(b); c }",
 		nodes: []*node{{
-			typeName: "function",
+			name: "function",
 			token:    &token{value: "fn"},
 			nodes: []*node{{
-				typeName: "fn-word",
+				name: "fn-word",
 				token:    &token{value: "fn"},
 			}, {
-				typeName: "function-fact",
+				name: "function-fact",
 				token:    &token{value: "("},
 				nodes: []*node{{
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "static-symbol-sequence",
+					name: "static-symbol-sequence",
 					token:    &token{value: "a"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}, {
-						typeName: "comma",
+						name: "comma",
 						token:    &token{value: ","},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "b"},
 					}, {
-						typeName: "comma",
+						name: "comma",
 						token:    &token{value: ","},
 					}},
 				}, {
-					typeName: "collect-symbol",
+					name: "collect-symbol",
 					token:    &token{value: "."},
 					nodes: []*node{{
-						typeName: "spread",
+						name: "spread",
 						token:    &token{value: "."},
 						nodes: []*node{{
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "c"},
 					}},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}, {
-					typeName: "nls",
+					name: "nls",
 					token:    &token{value: "{"},
 				}, {
-					typeName: "function-body",
+					name: "function-body",
 					token:    &token{value: "{"},
 					nodes: []*node{{
-						typeName: "open-brace",
+						name: "open-brace",
 						token:    &token{value: "{"},
 					}, {
-						typeName: "statement-sequence",
+						name: "statement-sequence",
 						token:    &token{value: "a"},
 						nodes: []*node{{
-							typeName: "function-call",
+							name: "function-call",
 							token:    &token{value: "a"},
 							nodes: []*node{{
-								typeName: "symbol",
+								name: "symbol",
 								token:    &token{value: "a"},
 							}, {
-								typeName: "open-paren",
+								name: "open-paren",
 								token:    &token{value: "("},
 							}, {
-								typeName: "list-sequence",
+								name: "list-sequence",
 								token:    &token{value: "b"},
 								nodes: []*node{{
-									typeName: "symbol",
+									name: "symbol",
 									token:    &token{value: "b"},
 								}},
 							}, {
-								typeName: "close-paren",
+								name: "close-paren",
 								token:    &token{value: ")"},
 							}},
 						}, {
-							typeName: "semicolon",
+							name: "semicolon",
 							token:    &token{value: ";"},
 						}, {
-							typeName: "symbol",
+							name: "symbol",
 							token:    &token{value: "c"},
 						}},
 					}, {
-						typeName: "close-brace",
+						name: "close-brace",
 						token:    &token{value: "}"},
 					}},
 				}},
@@ -976,23 +980,23 @@ func TestParseMML(t *testing.T) {
 		msg:  "function call",
 		code: "f(a)",
 		nodes: []*node{{
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "f"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "a"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "a"},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -1000,40 +1004,40 @@ func TestParseMML(t *testing.T) {
 		msg:  "chained function call",
 		code: "f(a)(b)",
 		nodes: []*node{{
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "function-call",
+				name: "function-call",
 				token:    &token{value: "f"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "f"},
 				}, {
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "list-sequence",
+					name: "list-sequence",
 					token:    &token{value: "a"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "b"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "b"},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -1041,40 +1045,40 @@ func TestParseMML(t *testing.T) {
 		msg:  "chained function call, whitespace",
 		code: "f(a) (b)",
 		nodes: []*node{{
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "function-call",
+				name: "function-call",
 				token:    &token{value: "f"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "f"},
 				}, {
-					typeName: "open-paren",
+					name: "open-paren",
 					token:    &token{value: "("},
 				}, {
-					typeName: "list-sequence",
+					name: "list-sequence",
 					token:    &token{value: "a"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}},
 				}, {
-					typeName: "close-paren",
+					name: "close-paren",
 					token:    &token{value: ")"},
 				}},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "b"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "b"},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -1082,40 +1086,40 @@ func TestParseMML(t *testing.T) {
 		msg:  "function call argument",
 		code: "f(g(a))",
 		nodes: []*node{{
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "f"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "g"},
 				nodes: []*node{{
-					typeName: "function-call",
+					name: "function-call",
 					token:    &token{value: "g"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "g"},
 					}, {
-						typeName: "open-paren",
+						name: "open-paren",
 						token:    &token{value: "("},
 					}, {
-						typeName: "list-sequence",
+						name: "list-sequence",
 						token:    &token{value: "a"},
 						nodes: []*node{{
-							typeName: "symbol",
+							name: "symbol",
 							token:    &token{value: "a"},
 						}},
 					}, {
-						typeName: "close-paren",
+						name: "close-paren",
 						token:    &token{value: ")"},
 					}},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -1123,63 +1127,63 @@ func TestParseMML(t *testing.T) {
 		msg:  "function call sequence",
 		code: "f(a) f(b)g(a)",
 		nodes: []*node{{
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "f"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "a"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "a"},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}, {
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "f"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "b"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "b"},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}, {
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "g"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "g"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "a"},
 				nodes: []*node{{
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "a"},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -1187,69 +1191,69 @@ func TestParseMML(t *testing.T) {
 		msg:  "function call with multiple arguments",
 		code: "f(...a, b, ...c)",
 		nodes: []*node{{
-			typeName: "function-call",
+			name: "function-call",
 			token:    &token{value: "f"},
 			nodes: []*node{{
-				typeName: "symbol",
+				name: "symbol",
 				token:    &token{value: "f"},
 			}, {
-				typeName: "open-paren",
+				name: "open-paren",
 				token:    &token{value: "("},
 			}, {
-				typeName: "list-sequence",
+				name: "list-sequence",
 				token:    &token{value: "."},
 				nodes: []*node{{
-					typeName: "spread-expression",
+					name: "spread-expression",
 					token:    &token{value: "."},
 					nodes: []*node{{
-						typeName: "spread",
+						name: "spread",
 						token:    &token{value: "."},
 						nodes: []*node{{
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "symbol",
+					name: "symbol",
 					token:    &token{value: "b"},
 				}, {
-					typeName: "comma",
+					name: "comma",
 					token:    &token{value: ","},
 				}, {
-					typeName: "spread-expression",
+					name: "spread-expression",
 					token:    &token{value: "."},
 					nodes: []*node{{
-						typeName: "spread",
+						name: "spread",
 						token:    &token{value: "."},
 						nodes: []*node{{
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}, {
-							typeName: "dot",
+							name: "dot",
 							token:    &token{value: "."},
 						}},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "c"},
 					}},
 				}},
 			}, {
-				typeName: "close-paren",
+				name: "close-paren",
 				token:    &token{value: ")"},
 			}},
 		}},
@@ -1257,54 +1261,54 @@ func TestParseMML(t *testing.T) {
 		msg:  "switch conditional with default only",
 		code: "switch{default: 42}",
 		nodes: []*node{{
-			typeName: "switch-conditional",
+			name: "switch-conditional",
 			token:    &token{value: "switch"},
 			nodes: []*node{{
-				typeName: "switch-word",
+				name: "switch-word",
 				token:    &token{value: "switch"},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "open-brace",
+				name: "open-brace",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "default"},
 			}, {
-				typeName: "switch-clause-sequence",
+				name: "switch-clause-sequence",
 				token:    &token{value: "default"},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "default"},
 			}, {
-				typeName: "default-clause",
+				name: "default-clause",
 				token:    &token{value: "default"},
 				nodes: []*node{{
-					typeName: "default-word",
+					name: "default-word",
 					token:    &token{value: "default"},
 				}, {
-					typeName: "colon",
+					name: "colon",
 					token:    &token{value: ":"},
 				}, {
-					typeName: "statement-sequence",
+					name: "statement-sequence",
 					token:    &token{value: "42"},
 					nodes: []*node{{
-						typeName: "int",
+						name: "int",
 						token:    &token{value: "42"},
 					}},
 				}},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "}"},
 			}, {
-				typeName: "switch-clause-sequence",
+				name: "switch-clause-sequence",
 				token:    &token{value: "}"},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "}"},
 			}, {
-				typeName: "close-brace",
+				name: "close-brace",
 				token:    &token{value: "}"},
 			}},
 		}},
@@ -1317,121 +1321,120 @@ func TestParseMML(t *testing.T) {
 						case c: d
 					}`,
 		nodes: []*node{{
-			typeName: "nl",
+			name: "nl",
 			token:    &token{value: "\n"},
 		}, {
-			typeName: "switch-conditional",
+			name: "switch-conditional",
 			token:    &token{value: "switch"},
 			nodes: []*node{{
-				typeName: "switch-word",
+				name: "switch-word",
 				token:    &token{value: "switch"},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "open-brace",
+				name: "open-brace",
 				token:    &token{value: "{"},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "\n"},
 				nodes: []*node{{
-					typeName: "nl",
+					name: "nl",
 					token:    &token{value: "\n"},
 				}},
 			}, {
-				typeName: "switch-clause-sequence",
+				name: "switch-clause-sequence",
 				token:    &token{value: "case"},
 				nodes: []*node{{
-					typeName: "switch-clause",
+					name: "switch-clause",
 					token:    &token{value: "case"},
 					nodes: []*node{{
-						typeName: "case-word",
+						name: "case-word",
 						token:    &token{value: "case"},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "a"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "statement-sequence",
+						name: "statement-sequence",
 						token:    &token{value: "b"},
 						nodes: []*node{{
-							typeName: "symbol",
+							name: "symbol",
 							token:    &token{value: "b"},
 						}, {
-							typeName: "nl",
+							name: "nl",
 							token:    &token{value: "\n"},
 						}},
 					}},
 				}},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "default"},
 			}, {
-				typeName: "default-clause",
+				name: "default-clause",
 				token:    &token{value: "default"},
 				nodes: []*node{{
-					typeName: "default-word",
+					name: "default-word",
 					token:    &token{value: "default"},
 				}, {
-					typeName: "colon",
+					name: "colon",
 					token:    &token{value: ":"},
 				}, {
-					typeName: "statement-sequence",
+					name: "statement-sequence",
 					token:    &token{value: "x"},
 					nodes: []*node{{
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "x"},
 					}, {
-						typeName: "nl",
+						name: "nl",
 						token:    &token{value: "\n"},
 					}},
 				}},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "case"},
 			}, {
-				typeName: "switch-clause-sequence",
+				name: "switch-clause-sequence",
 				token:    &token{value: "case"},
 				nodes: []*node{{
-					typeName: "switch-clause",
+					name: "switch-clause",
 					token:    &token{value: "case"},
 					nodes: []*node{{
-						typeName: "case-word",
+						name: "case-word",
 						token:    &token{value: "case"},
 					}, {
-						typeName: "symbol",
+						name: "symbol",
 						token:    &token{value: "c"},
 					}, {
-						typeName: "colon",
+						name: "colon",
 						token:    &token{value: ":"},
 					}, {
-						typeName: "statement-sequence",
+						name: "statement-sequence",
 						token:    &token{value: "d"},
 						nodes: []*node{{
-							typeName: "symbol",
+							name: "symbol",
 							token:    &token{value: "d"},
 						}, {
-							typeName: "nl",
+							name: "nl",
 							token:    &token{value: "\n"},
 						}},
 					}},
 				}},
 			}, {
-				typeName: "nls",
+				name: "nls",
 				token:    &token{value: "}"},
 			}, {
-				typeName: "close-brace",
+				name: "close-brace",
 				token:    &token{value: "}"},
 			}},
 		}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			b := bytes.NewBufferString(ti.code)
-			r := newTokenReader(b, "<test>")
 
-			n, err := s.parse(r)
+			n, err := s.parse(b, "test")
 			if !ti.fail && err != nil {
 				t.Error(err)
 				return
@@ -1444,8 +1447,8 @@ func TestParseMML(t *testing.T) {
 				return
 			}
 
-			if n.typeName != "statement-sequence" {
-				t.Error("invalid root node type", n.typeName, "statement-sequence")
+			if n.name != "statement-sequence" {
+				t.Error("invalid root node type", n.name, "statement-sequence")
 				return
 			}
 
@@ -1454,7 +1457,7 @@ func TestParseMML(t *testing.T) {
 				return
 			}
 
-			if len(n.nodes) == 0 && n.token != eofToken || len(n.nodes) > 0 && n.token != n.nodes[0].token {
+			if len(n.nodes) == 0 && n.token.typ != eofTokenType || len(n.nodes) > 0 && n.token != n.nodes[0].token {
 				t.Error("invalid document token", n.token)
 				return
 			}

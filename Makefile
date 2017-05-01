@@ -2,6 +2,9 @@ SOURCES = $(shell find . -name '*.go')
 
 default: build
 
+imports:
+	@goimports -w $(SOURCES)
+
 build: $(SOURCES)
 	go build ./...
 

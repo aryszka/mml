@@ -13,11 +13,11 @@ type tokenType int
 const (
 	noToken tokenType = iota
 
-	comment
+	comment // comment = "//" /[^\n]*/
 
-	nl
+	nl // nl = "\n"
 
-	aliasWord
+	aliasWord // alias-word = "alias"
 	andWord
 	breakWord
 	caseWord
@@ -47,14 +47,16 @@ const (
 	trueWord
 	typeWord
 
-	openParen
+	openParen // open-paren = "("
 	closeParen
 	openSquare
 	closeSquare
 	openBrace
 	closeBrace
 
-	channel
+	// as complex: channel = "<" expression ">"
+	channel // channel = "<>" // TODO: this should be separated and bufferable
+
 	colon
 	comma
 	communicate
@@ -65,7 +67,7 @@ const (
 	tilde
 	semicolon
 
-	andNot
+	andNot // and-not = "&" "^"
 	diff
 	div
 	doubleAnd
@@ -88,10 +90,10 @@ const (
 	incOne
 	decOne
 
-	intToken
-	stringToken
-	boolToken
-	symbolToken
+	intToken    // int-token = /-?[1-9][0-9]*/
+	stringToken // stringToken = "\"" /([^\\\"]|\\\\|\\\")*/ "\""
+	boolToken   // bool-token = "bool"
+	symbolToken // symbol-token = /[a-z_][a-z0-9_]*/
 
 	eofTokenType
 )
@@ -194,6 +196,10 @@ type tokenReader struct {
 }
 
 func (t token) String() string {
+	if t.typ == eofTokenType {
+		return "<eof>"
+	}
+
 	switch t.value {
 	case "":
 		return "<empty>"

@@ -1,398 +1,258 @@
 package mml
 
-func init() {
-	// primitive("nl", nl)
+import (
+	"errors"
+	"io"
+	"fmt"
+)
 
-	// primitive("semicolon", semicolon)
-	// primitive("comma", comma)
-	// primitive("dot", dot)
-	// primitive("tilde", tilde)
-	// primitive("colon", colon)
+type definition interface {
+	typeName() string
+	nodeType() nodeType
+	member(nodeType) (bool, error)
+	generator(trace, nodeType, typeList) (generator, error)
+}
 
-	// primitive("open-paren", openParen)
-	// primitive("close-paren", closeParen)
-	// primitive("open-square", openSquare)
-	// primitive("close-square", closeSquare)
-	// primitive("open-brace", openBrace)
-	// primitive("close-brace", closeBrace)
+type generator interface {
+	typeName() string
+	nodeType() nodeType
+	finalize(trace) error
+	valid() bool
+	parser(trace, *node) parser
+}
 
-	// primitive("fn-word", fnWord)
-	// primitive("symbol-word", symbolWord)
-	// primitive("true", trueWord)
-	// primitive("false", falseWord)
-	// primitive("switch-word", switchWord)
-	// primitive("case-word", caseWord)
-	// primitive("default-word", defaultWord)
-	// primitive("let-word", letWord)
-	// primitive("if-word", ifWord)
-	// primitive("else-word", elseWord)
+type parser interface {
+	typeName() string
+	nodeType() nodeType
+	parse(*token) *parserResult
+}
 
-	// primitive("single-eq", singleEq)
+type parserResult struct {
+	accepting bool
+	valid     bool
+	node      *node
+	fromCache bool
+	unparsed  *tokenStack
+}
 
-	// primitive("int", intToken)
-	// primitive("symbol", symbolToken)
-	// primitive("string", stringToken)
+type syntax struct {
+	trace    trace
+	registry *registry
+	initDone bool
+	rootGenerator generator
+}
 
-	// union("bool", "true", "false")
+var (
+	errNotImplemented    = errors.New("not implemented")
+	errDefinitionsClosed = errors.New("definitions closed")
+	errFailedToCreateParser = errors.New("failed to create parser")
+	errUnexpectedEOF        = errors.New("unexpected EOF")
+)
 
-	// sequence("nls", "nl")
-	// union("seq-sep", "nl", "semicolon")
-	// union("list-sep", "nl", "comma")
-	// group("spread", "dot", "dot", "dot")
+func unexpectedToken(nodeType string, t *token) error {
+	return fmt.Errorf("unexpected token: %v, %v", nodeType, t)
+}
 
-	// union("static-symbol", "symbol", "string")
-	// group("dynamic-symbol", "symbol-word", "open-paren", "nls", "expression", "nls", "close-paren")
-	// union("symbol-expression", "static-symbol", "dynamic-symbol")
+func newSyntax() *syntax {
+	return withTrace(noopTrace{})
+}
 
-	// union("static-symbol-item", "static-symbol", "list-sep")
-	// sequence("static-symbol-sequence", "static-symbol-item")
-	// group("collect-symbol", "spread", "static-symbol")
-	// group("spread-expression", "spread", "expression") // we can turn this around once having a single token for ...
-	// union("list-item", "expression", "spread-expression", "list-sep")
-	// sequence("list-sequence", "list-item")
-	// union("sequence-item", "statement", "seq-sep")
-	// sequence("statement-sequence", "sequence-item")
-	// group("structure-definition", "symbol-expression", "nls", "colon", "nls", "expression")
-	// union("structure-item", "structure-definition", "spread-expression", "list-sep")
-	// sequence("structure-sequence", "structure-item")
+func withTrace(t trace) *syntax {
+	return &syntax{
+		trace:    t,
+		registry: newRegistry(),
+	}
+}
 
-	// group("list", "open-square", "list-sequence", "close-square")
-	// group("mutable-list", "tilde", "list")
+func readSyntax(io.Reader) (*syntax, error) {
+	panic(errNotImplemented)
+}
 
-	// group("structure", "open-brace", "structure-sequence", "close-brace")
-	// group("mutable-structure", "tilde", "structure")
+func (s *syntax) primitive(name string, t tokenType) error {
+	if s.initDone {
+		return errDefinitionsClosed
+	}
 
-	// optional("collect-argument", "collect-symbol")
-	// group("function-body", "open-brace", "statement-sequence", "close-brace")
-	// union("function-value", "expression", "function-body")
-	// group(
-	// 	"function-fact",
-	// 	"open-paren",
-	// 	"static-symbol-sequence",
-	// 	"collect-argument",
-	// 	"nls",
-	// 	"close-paren",
-	// 	"nls",
-	// 	"function-value",
-	// )
-	// group("function", "fn-word", "nls", "function-fact")
+	nt := s.registry.nodeType(name)
+	d := newPrimitive(s.registry, name, nt, t)
+	return d.registry.register(d)
+}
 
-	// group("effect-function", "fn-word", "nls", "tilde", "nls", "function-fact")
+func (s *syntax) optional(name string, optional string) error {
+	if s.initDone {
+		return errDefinitionsClosed
+	}
 
-	// group("symbol-query", "expression", "nls", "dot", "nls", "symbol-expression")
-	// optional("optional-expression", "expression")
-	// group("range-expression", "optional-expression", "nls", "colon", "nls", "optional-expression")
-	// union("query-expression", "expression", "range-expression")
-	// group("expression-query", "expression", "open-square", "nls", "query-expression", "nls", "close-square")
-	// union("query", "symbol-query", "expression-query")
+	nt := s.registry.nodeType(name)
+	ot := s.registry.nodeType(optional)
+	d := newOptional(s.registry, name, nt, optional, ot)
+	return d.registry.register(d)
+}
 
-	// group("function-call", "expression", "open-paren", "list-sequence", "close-paren")
+func (s *syntax) repeat(string, string) error {
+	if s.initDone {
+		return errDefinitionsClosed
+	}
 
-	// union("match-expression", "expression")
-	// group("switch-clause", "case-word", "match-expression", "colon", "statement-sequence")
-	// group("default-clause", "default-word", "colon", "statement-sequence")
-	// sequence("switch-clause-sequence", "switch-clause")
-	// group(
-	// 	"switch-conditional",
-	// 	"switch-word",
-	// 	"nls",
-	// 	"open-brace",
-	// 	"nls",
-	// 	"switch-clause-sequence",
-	// 	"nls",
-	// 	"default-clause",
-	// 	"nls",
-	// 	"switch-clause-sequence",
-	// 	"nls",
-	// 	"close-brace",
-	// )
-	// group(
-	// 	"if-conditional",
-	// 	"if-word",
-	// 	"nls",
-	// 	"expression",
-	// 	"nls",
-	// 	"open-brace",
-	// 	"nls",
-	// 	"statement-sequence",
-	// 	"nls",
-	// 	"close-brace",
-	// 	"nls",
-	// 	"else-word",
-	// 	"nls",
-	// 	"open-brace",
-	// 	"nls",
-	// 	"statement-sequence",
-	// 	"nls",
-	// 	"close-brace",
-	// )
-	// union(
-	// 	"conditional",
-	// 	"switch-conditional",
-	// 	"if-conditional",
-	// )
+	return nil
+}
 
-	// union(
-	// 	"expression",
-	// 	"int",
-	// 	"string",
-	// 	"symbol",
-	// 	"dynamic-symbol",
-	// 	"bool",
-	// 	"list",
-	// 	"mutable-list",
-	// 	"structure",
-	// 	"mutable-structure",
-	// 	"function",
-	// 	"effect-function",
-	// 	"query",
-	// 	"function-call",
-	// 	"conditional",
-	// )
+func (s *syntax) sequence(string, ...string) error {
+	if s.initDone {
+		return errDefinitionsClosed
+	}
 
-	// optional("optional-single-eq", "single-eq")
-	// group("definition-item", "static-symbol", "nls", "optional-single-eq", "nls", "expression")
-	// group("value-definition", "let-word", "nls", "definition-item")
-	// group("mutable-value-definition", "let-word", "nls", "tilde", "nls", "definition-item")
-	// union("definition-item-separator", "comma", "nl")
-	// union("value-definition-sequence-item", "definition-item", "definition-item-separator")
-	// sequence("value-definition-sequence", "value-definition-sequence-item")
+	return nil
+}
 
-	// group(
-	// 	"value-definition-group",
-	// 	"let-word",
-	// 	"nls",
-	// 	"open-paren",
-	// 	"nls",
-	// 	"value-definition-sequence",
-	// 	"close-paren",
-	// )
+func (s *syntax) choice(string, ...string) error {
+	if s.initDone {
+		return errDefinitionsClosed
+	}
 
-	// group(
-	// 	"mutable-value-definition-group",
-	// 	"let-word",
-	// 	"nls",
-	// 	"tilde",
-	// 	"nls",
-	// 	"open-paren",
-	// 	"nls",
-	// 	"value-definition-sequence",
-	// 	"close-paren",
-	// )
+	return nil
+}
 
-	// group("function-definition", "fn-word", "nls", "symbol-expression", "nls", "function-fact")
-	// group(
-	// 	"effect-function-definition",
-	// 	"fn-word",
-	// 	"nls",
-	// 	"tilde",
-	// 	"nls",
-	// 	"symbol-expression",
-	// 	"nls",
-	// 	"function-fact",
-	// )
+func (s *syntax) root() (string, error) {
+	return s.registry.root()
+}
 
-	// union("definition",
-	// 	"value-definition",
-	// 	"mutable-value-definition",
-	// 	"function-definition",
-	// 	"effect-function-definition",
-	// 	"value-definition-group",
-	// 	"mutable-value-definition-group",
-	// )
+func (s *syntax) setRoot(name string) error {
+	if s.initDone {
+		return errDefinitionsClosed
+	}
 
-	// union(
-	// 	"statement",
-	// 	"expression",
-	// 	"definition",
-	// )
+	return s.registry.setRoot(name)
+}
 
-	// union("document", "statement-sequence")
+func (s *syntax) finalizeInit() error {
+	var done bool
+	for !done {
+		done = true
+		for k, g := range s.registry.generators {
+			if !g.valid() {
+				s.trace.info("dropping 1")
+				delete(s.registry.generators, k)
+				done = false
+				continue
+			}
 
-	// cacheMembers()
+			if err := g.finalize(s.trace); err != nil {
+				return err
+			}
 
-	// isSep = func(n *node) bool {
-	// 	switch n.typ {
-	// 	case "nl", "semicolon", "comma", "nls":
-	// 		return true
-	// 	default:
-	// 		return false
-	// 	}
-	// }
+			if !g.valid() {
+				s.trace.info("dropping 2")
+				delete(s.registry.generators, k)
+				done = false
+			}
+		}
+	}
 
-	// setPostParse(map[string]func(*node) *node{
-	// 	"dynamic-symbol": func(n *node) *node {
-	// 		n.nodes = n.nodes[2:3]
-	// 		return n
-	// 	},
+	return nil
+}
 
-	// 	"collect-symbol": func(n *node) *node {
-	// 		n.nodes = n.nodes[1:]
-	// 		return n
-	// 	},
+func (s *syntax) init() error {
+	if s.initDone {
+		return nil
+	}
 
-	// 	"spread-expression": func(n *node) *node {
-	// 		n.nodes = n.nodes[1:]
-	// 		return n
-	// 	},
+	rn, err := s.root()
+	if err != nil {
+		return err
+	}
 
-	// 	"list": func(n *node) *node {
-	// 		n.nodes = n.nodes[1].nodes
-	// 		return n
-	// 	},
+	rt := s.registry.nodeType(rn)
 
-	// 	"mutable-list": func(n *node) *node {
-	// 		n.nodes = n.nodes[1].nodes
-	// 		return n
-	// 	},
+	d, ok := s.registry.definition(rt)
+	if !ok {
+		return unspecifiedParser(rn)
+	}
 
-	// 	"structure-definition": func(n *node) *node {
-	// 		n.nodes = append(n.nodes[:1], n.nodes[2])
-	// 		return n
-	// 	},
+	g, err := d.generator(s.trace, 0, nil)
+	if err != nil {
+		return err
+	}
 
-	// 	"structure": func(n *node) *node {
-	// 		n.nodes = n.nodes[1].nodes
-	// 		return n
-	// 	},
+	if err := s.finalizeInit(); err != nil {
+		return err
+	}
 
-	// 	"mutable-structure": func(n *node) *node {
-	// 		n.nodes = n.nodes[1].nodes
-	// 		return n
-	// 	},
+	if !g.valid() {
+		return errFailedToCreateParser
+	}
 
-	// 	"function": func(n *node) *node {
-	// 		fact := n.nodes[1].nodes
-	// 		args := fact[1].nodes
+	s.rootGenerator = g
+	s.initDone = true
 
-	// 		var value *node
-	// 		if len(fact) == 5 {
-	// 			// when has varargs:
-	// 			args = append(args, fact[2])
-	// 			value = fact[4]
-	// 		} else {
-	// 			value = fact[3]
-	// 		}
+	return nil
+}
 
-	// 		if value.typ == "function-body" {
-	// 			value = value.nodes[1]
-	// 		}
+func (s *syntax) generate(io.Writer) error {
+	panic(errNotImplemented)
 
-	// 		n.nodes = append(args, value)
-	// 		return n
-	// 	},
+	if !s.initDone {
+		if err := s.init(); err != nil {
+			return err
+		}
+	}
 
-	// 	"effect-function": func(n *node) *node {
-	// 		fact := n.nodes[2].nodes
-	// 		args := fact[2].nodes
+	return nil
+}
 
-	// 		var value *node
-	// 		if len(fact) == 5 {
-	// 			// when has varargs:
-	// 			args = append(args, fact[2])
-	// 			value = fact[4]
-	// 		} else {
-	// 			value = fact[3]
-	// 		}
+func (s *syntax) parse(r io.Reader, name string) (*node, error) {
+	if !s.initDone {
+		if err := s.init(); err != nil {
+			return nil, err
+		}
+	}
 
-	// 		if value.typ == "function-body" {
-	// 			value = value.nodes[1]
-	// 		}
+	p := s.rootGenerator.parser(s.trace, nil)
+	tr := newTokenReader(r, name)
+	last := &parserResult{accepting: true}
+	eof := &token{typ: eofTokenType}
+	for {
+		t, err := tr.next()
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
 
-	// 		n.nodes = append(args, value)
-	// 		return n
-	// 	},
+		if !last.accepting {
+			if err != io.EOF {
+				return nil, unexpectedToken("root", &t)
+			}
 
-	// 	"symbol-query": func(n *node) *node {
-	// 		n.nodes = append(n.nodes[:1], n.nodes[2])
-	// 		return n
-	// 	},
+			// TODO: should we check here if it is valid?
+			if !last.valid {
+				return nil, errUnexpectedEOF
+			}
 
-	// 	"range-expression": func(n *node) *node {
-	// 		if len(n.nodes) == 1 {
-	// 			n.nodes = make([]*node, 2)
-	// 			return n
-	// 		}
+			return last.node, nil
+		}
 
-	// 		if n.nodes[0].typ == "colon" {
-	// 			n.nodes = []*node{{}, n.nodes[1]}
-	// 			return n
-	// 		}
+		if err == io.EOF {
+			last = p.parse(eof)
 
-	// 		n.nodes = append(n.nodes[:1], n.nodes[2:]...)
-	// 		return n
-	// 	},
+			if !last.valid {
+				return nil, errUnexpectedEOF
+			}
 
-	// 	"expression-query": func(n *node) *node {
-	// 		n.nodes = append(n.nodes[:1], n.nodes[2])
-	// 		return n
-	// 	},
+			if !last.unparsed.has() || last.unparsed.peek() != eof {
+				return nil, errUnexpectedEOF
+			}
 
-	// 	"function-call": func(n *node) *node {
-	// 		n.nodes = append(n.nodes[:1], n.nodes[2].nodes...)
-	// 		return n
-	// 	},
+			return last.node, nil
+		}
 
-	// 	"switch-clause": func(n *node) *node {
-	// 		n.nodes = append(n.nodes[1:2], n.nodes[3].nodes...)
-	// 		return n
-	// 	},
+		last = p.parse(&t)
+		if !last.accepting {
+			if !last.valid {
+				return nil, unexpectedToken("root", &t)
+			}
 
-	// 	"default-clause": func(n *node) *node {
-	// 		n.nodes = n.nodes[2].nodes
-	// 		return n
-	// 	},
-
-	// 	"switch-conditional": func(n *node) *node {
-	// 		n.nodes = n.nodes[2 : len(n.nodes)-1]
-
-	// 		var nodes []*node
-	// 		for _, ni := range n.nodes {
-	// 			switch ni.typ {
-	// 			case "switch-clause-sequence":
-	// 				if len(ni.nodes) > 0 {
-	// 					nodes = append(nodes, ni.nodes...)
-	// 				}
-	// 			case "default-clause":
-	// 				nodes = append(nodes, ni)
-	// 			}
-	// 		}
-
-	// 		n.nodes = nodes
-	// 		return n
-	// 	},
-
-	// 	"if-conditional": func(n *node) *node {
-	// 		return n
-	// 	},
-
-	// 	"definition-item": func(n *node) *node {
-	// 		if len(n.nodes) == 2 {
-	// 			return n
-	// 		}
-
-	// 		n.nodes = append(n.nodes[:1], n.nodes[2])
-	// 		return n
-	// 	},
-
-	// 	"value-definition": func(n *node) *node {
-	// 		n.nodes = n.nodes[1].nodes
-	// 		return n
-	// 	},
-
-	// 	"mutable-value-definition": func(n *node) *node {
-	// 		n.nodes = n.nodes[2].nodes
-	// 		return n
-	// 	},
-
-	// 	"function-definition": func(n *node) *node {
-	// 		n.nodes = n.nodes[1:]
-	// 		return n
-	// 	},
-
-	// 	"effect-function-definition": func(n *node) *node {
-	// 		n.nodes = n.nodes[2:]
-	// 		return n
-	// 	},
-	// })
+			if last.unparsed != nil && last.unparsed.has() {
+				return nil, unexpectedToken("root", last.unparsed.peek())
+			}
+		}
+	}
 }

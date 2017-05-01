@@ -759,9 +759,10 @@ import (
 // }
 
 func Compile(in io.Reader, out io.Writer) error {
-	r := newTokenReader(in, "test")
+	// r := newTokenReader(in, "test")
 
-	s, err := newMMLSyntax()
+	s := newSyntax()
+	err := s.newMMLSyntax()
 	if err != nil {
 		return err
 	}
@@ -776,7 +777,7 @@ func Compile(in io.Reader, out io.Writer) error {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	_, err = s.parse(r)
+	_, err = s.parse(in, "test")
 	if err != nil {
 		return err
 	}

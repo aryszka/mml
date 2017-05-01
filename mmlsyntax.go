@@ -1,6 +1,6 @@
 package mml
 
-func newMMLSyntax() (*syntax, error) {
+func (s *syntax) newMMLSyntax() error {
 	primitive := [][]interface{}{
 		{"nl", nl},
 		{"dot", dot},
@@ -261,5 +261,5 @@ func newMMLSyntax() (*syntax, error) {
 		{"union", "document", "statement-sequence"},
 	}
 
-	return defineSyntax(primitive, complex)
+	return s.defineSyntax(primitive, complex)
 }
