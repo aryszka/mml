@@ -12,8 +12,8 @@ func (s *syntax) defineSyntax(primitive [][]interface{}, complex [][]string) err
 		switch c[0] {
 		case "optional":
 			err = s.optional(c[1], c[2])
-		case "repeat":
-			err = s.repeat(c[1], c[2])
+		case "repetition":
+			err = s.repetition(c[1], c[2])
 		case "sequence":
 			err = s.sequence(c[1], c[2:]...)
 		case "choice":

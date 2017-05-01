@@ -99,15 +99,15 @@ func TestParse(t *testing.T) {
 		text:      "\"foo\"",
 		fail:      true,
 	}, {
-		msg:       "int repeat, optional",
+		msg:       "int repetition, optional",
 		primitive: [][]interface{}{{"int", intToken}},
 		complex: [][]string{
-			{"repeat", "int-repeat", "int"},
-			{"optional", "optional-int-repeat", "int-repeat"},
+			{"repetition", "int-repetition", "int"},
+			{"optional", "optional-int-repetition", "int-repetition"},
 		},
 		text: "1 2 3",
 		node: &node{
-			name:  "int-repeat",
+			name:  "int-repetition",
 			token: &token{value: "1"},
 			nodes: []*node{{
 				name:  "int",
@@ -121,31 +121,31 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg:       "int repeat, optional, empty",
+		msg:       "int repetition, optional, empty",
 		primitive: [][]interface{}{{"int", intToken}},
 		complex: [][]string{
-			{"repeat", "int-repeat", "int"},
-			{"optional", "optional-int-repeat", "int-repeat"},
+			{"repetition", "int-repetition", "int"},
+			{"optional", "optional-int-repetition", "int-repetition"},
 		},
 		node: &node{
-			name:  "int-repeat",
+			name:  "int-repetition",
 			token: &token{},
 		},
 	}, {
-		msg:       "empty repeat",
+		msg:       "empty repetition",
 		primitive: [][]interface{}{{"int", intToken}},
-		complex:   [][]string{{"repeat", "int-repeat", "int"}},
+		complex:   [][]string{{"repetition", "int-repetition", "int"}},
 		node: &node{
-			name:  "int-repeat",
+			name:  "int-repetition",
 			token: &token{},
 		},
 	}, {
-		msg:       "repeat with a single item",
+		msg:       "repetition with a single item",
 		primitive: [][]interface{}{{"int", intToken}},
-		complex:   [][]string{{"repeat", "int-repeat", "int"}},
+		complex:   [][]string{{"repetition", "int-repetition", "int"}},
 		text:      "42",
 		node: &node{
-			name:  "int-repeat",
+			name:  "int-repetition",
 			token: &token{value: "42"},
 			nodes: []*node{{
 				name:  "int",
@@ -153,12 +153,12 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg:       "repeat with multiple items",
+		msg:       "repetition with multiple items",
 		primitive: [][]interface{}{{"int", intToken}},
-		complex:   [][]string{{"repeat", "int-repeat", "int"}},
+		complex:   [][]string{{"repetition", "int-repetition", "int"}},
 		text:      "1 2 3",
 		node: &node{
-			name:  "int-repeat",
+			name:  "int-repetition",
 			token: &token{value: "1"},
 			nodes: []*node{{
 				name:  "int",
@@ -172,15 +172,15 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg:       "repeat with optional item",
+		msg:       "repetition with optional item",
 		primitive: [][]interface{}{{"int", intToken}},
 		complex: [][]string{
 			{"optional", "optional-int", "int"},
-			{"repeat", "optional-int-repeat", "optional-int"},
+			{"repetition", "optional-int-repetition", "optional-int"},
 		},
 		text: "42",
 		node: &node{
-			name:  "optional-int-repeat",
+			name:  "optional-int-repetition",
 			token: &token{value: "42"},
 			nodes: []*node{{
 				name:  "int",
@@ -188,15 +188,15 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg:       "repeat with multiple optional items",
+		msg:       "repetition with multiple optional items",
 		primitive: [][]interface{}{{"int", intToken}},
 		complex: [][]string{
 			{"optional", "optional-int", "int"},
-			{"repeat", "optional-int-repeat", "optional-int"},
+			{"repetition", "optional-int-repetition", "optional-int"},
 		},
 		text: "1 2 3",
 		node: &node{
-			name:  "optional-int-repeat",
+			name:  "optional-int-repetition",
 			token: &token{value: "1"},
 			nodes: []*node{{
 				name:  "int",
@@ -565,20 +565,20 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "repeat in repeat",
+		msg: "repetition in repetition",
 		primitive: [][]interface{}{
 			{"int", intToken},
 		},
 		complex: [][]string{
-			{"repeat", "int-repeat", "int"},
-			{"repeat", "repeat-in-repeat", "int-repeat"},
+			{"repetition", "int-repetition", "int"},
+			{"repetition", "repetition-in-repetition", "int-repetition"},
 		},
 		text: "42",
 		node: &node{
-			name:  "repeat-in-repeat",
+			name:  "repetition-in-repetition",
 			token: &token{value: "42"},
 			nodes: []*node{{
-				name:  "int-repeat",
+				name:  "int-repetition",
 				token: &token{value: "42"},
 				nodes: []*node{{
 					name:  "int",
@@ -587,7 +587,7 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "reproduce repeat endless loop",
+		msg: "reproduce repetition endless loop",
 		primitive: [][]interface{}{
 			{"nl", nl},
 			{"colon", colon},
@@ -599,15 +599,15 @@ func TestParse(t *testing.T) {
 			{"symbol", symbolToken},
 		},
 		complex: [][]string{
-			{"repeat", "nls", "nl"},
+			{"repetition", "nls", "nl"},
 			{"choice", "match-expression", "expression"},
 			{"sequence", "switch-clause", "case-word", "match-expression", "colon",
-				"statement-repeat"},
-			{"repeat", "switch-clause-repeat", "switch-clause"},
-			{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repeat"},
+				"statement-repetition"},
+			{"repetition", "switch-clause-repetition", "switch-clause"},
+			{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repetition"},
 			{"choice", "seq-sep", "nl"},
-			{"choice", "statement-repeat-item", "expression", "seq-sep"},
-			{"repeat", "statement-repeat", "statement-repeat-item"},
+			{"choice", "statement-repetition-item", "expression", "seq-sep"},
+			{"repetition", "statement-repetition", "statement-repetition-item"},
 			{
 				"sequence",
 				"switch-conditional",
@@ -615,16 +615,16 @@ func TestParse(t *testing.T) {
 				"nls",
 				"open-brace",
 				"nls",
-				"switch-clause-repeat",
+				"switch-clause-repetition",
 				"nls",
 				"default-clause",
 				"nls",
-				"switch-clause-repeat",
+				"switch-clause-repetition",
 				"nls",
 				"close-brace",
 			},
 			{"choice", "expression", "symbol", "switch-conditional"},
-			{"repeat", "document", "statement-repeat"},
+			{"repetition", "document", "statement-repetition"},
 		},
 		text: `switch {
 				default: a
@@ -633,7 +633,7 @@ func TestParse(t *testing.T) {
 			name:  "document",
 			token: &token{value: "switch"},
 			nodes: []*node{{
-				name:  "statement-repeat",
+				name:  "statement-repetition",
 				token: &token{value: "switch"},
 				nodes: []*node{{
 					name:  "switch-conditional",
@@ -655,7 +655,7 @@ func TestParse(t *testing.T) {
 							token: &token{value: "\n"},
 						}},
 					}, {
-						name:  "switch-clause-repeat",
+						name:  "switch-clause-repetition",
 						token: &token{value: "default"},
 					}, {
 						name:  "nls",
@@ -673,7 +673,7 @@ func TestParse(t *testing.T) {
 							name:  "nls",
 							token: &token{value: "a"},
 						}, {
-							name:  "statement-repeat",
+							name:  "statement-repetition",
 							token: &token{value: "a"},
 							nodes: []*node{{
 								name:  "symbol",
@@ -687,7 +687,7 @@ func TestParse(t *testing.T) {
 						name:  "nls",
 						token: &token{value: "}"},
 					}, {
-						name:  "switch-clause-repeat",
+						name:  "switch-clause-repetition",
 						token: &token{value: "}"},
 					}, {
 						name:  "nls",
@@ -712,15 +712,15 @@ func TestParse(t *testing.T) {
 			{"symbol", symbolToken},
 		},
 		complex: [][]string{
-			{"repeat", "nls", "nl"},
+			{"repetition", "nls", "nl"},
 			{"choice", "match-expression", "expression"},
 			{"sequence", "switch-clause", "case-word", "match-expression", "colon",
-				"statement-repeat"},
-			{"repeat", "switch-clause-repeat", "switch-clause"},
-			{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repeat"},
+				"statement-repetition"},
+			{"repetition", "switch-clause-repetition", "switch-clause"},
+			{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repetition"},
 			{"choice", "seq-sep", "nl"},
-			{"choice", "statement-repeat-item", "statement", "seq-sep"},
-			{"repeat", "statement-repeat", "statement-repeat-item"},
+			{"choice", "statement-repetition-item", "statement", "seq-sep"},
+			{"repetition", "statement-repetition", "statement-repetition-item"},
 			{
 				"sequence",
 				"switch-conditional",
@@ -728,24 +728,24 @@ func TestParse(t *testing.T) {
 				"nls",
 				"open-brace",
 				"nls",
-				"switch-clause-repeat",
+				"switch-clause-repetition",
 				"nls",
 				"default-clause",
 				"nls",
-				"switch-clause-repeat",
+				"switch-clause-repetition",
 				"nls",
 				"close-brace",
 			},
 			{"choice", "conditional", "switch-conditional"},
 			{"choice", "expression", "symbol", "conditional"},
 			{"choice", "statement", "expression"},
-			{"choice", "document", "statement-repeat"},
+			{"choice", "document", "statement-repetition"},
 		},
 		text: `switch {
 				default: a
 			}`,
 		node: &node{
-			name:  "statement-repeat",
+			name:  "statement-repetition",
 			token: &token{value: "switch"},
 			nodes: []*node{{
 				name:  "switch-conditional",
@@ -767,7 +767,7 @@ func TestParse(t *testing.T) {
 						token: &token{value: "\n"},
 					}},
 				}, {
-					name:  "switch-clause-repeat",
+					name:  "switch-clause-repetition",
 					token: &token{value: "default"},
 				}, {
 					name:  "nls",
@@ -785,7 +785,7 @@ func TestParse(t *testing.T) {
 						name:  "nls",
 						token: &token{value: "a"},
 					}, {
-						name:  "statement-repeat",
+						name:  "statement-repetition",
 						token: &token{value: "a"},
 						nodes: []*node{{
 							name:  "symbol",
@@ -799,7 +799,7 @@ func TestParse(t *testing.T) {
 					name:  "nls",
 					token: &token{value: "}"},
 				}, {
-					name:  "switch-clause-repeat",
+					name:  "switch-clause-repetition",
 					token: &token{value: "}"},
 				}, {
 					name:  "nls",

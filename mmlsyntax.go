@@ -36,7 +36,7 @@ func (s *syntax) newMMLSyntax() error {
 
 	complex := [][]string{
 		{"choice", "seq-sep", "nl", "semicolon"},
-		{"repeat", "nls", "nl"},
+		{"repetition", "nls", "nl"},
 
 		{"choice", "bool", "true", "false"},
 
@@ -58,33 +58,33 @@ func (s *syntax) newMMLSyntax() error {
 		{"sequence", "spread", "dot", "dot", "dot"},
 		{"sequence", "spread-expression", "spread", "expression"},
 		{"choice", "list-item", "expression", "spread-expression", "list-sep"},
-		{"repeat", "list-repeat", "list-item"},
-		{"sequence", "list", "open-square", "list-repeat", "close-square"},
-		{"sequence", "mutable-list", "tilde", "open-square", "list-repeat", "close-square"},
+		{"repetition", "list-repetition", "list-item"},
+		{"sequence", "list", "open-square", "list-repetition", "close-square"},
+		{"sequence", "mutable-list", "tilde", "open-square", "list-repetition", "close-square"},
 
 		{"sequence", "structure-definition", "symbol-expression", "nls", "colon", "nls", "expression"},
 		{"choice", "structure-item", "structure-definition", "spread-expression", "list-sep"},
-		{"repeat", "structure-repeat", "structure-item"},
-		{"sequence", "structure", "open-brace", "structure-repeat", "close-brace"},
-		{"sequence", "mutable-structure", "tilde", "open-brace", "structure-repeat", "close-brace"},
+		{"repetition", "structure-repetition", "structure-item"},
+		{"sequence", "structure", "open-brace", "structure-repetition", "close-brace"},
+		{"sequence", "mutable-structure", "tilde", "open-brace", "structure-repetition", "close-brace"},
 
 		{"choice", "static-symbol-item", "static-symbol", "list-sep"},
-		{"repeat", "static-symbol-repeat", "static-symbol-item"},
+		{"repetition", "static-symbol-repetition", "static-symbol-item"},
 		{"sequence", "collect-symbol", "spread", "static-symbol"},
 		{"optional", "collect-argument", "collect-symbol"},
-		{"sequence", "function-body", "open-brace", "statement-repeat", "close-brace"},
+		{"sequence", "function-body", "open-brace", "statement-repetition", "close-brace"},
 		{"choice", "function-value", "expression", "function-body"},
 		{
 			"sequence",
 			"function-fact",
 			"open-paren",
-			"static-symbol-repeat",
+			"static-symbol-repetition",
 			"collect-argument",
 			"nls",
 			"close-paren",
 			"nls",
 			"function-value",
-			// TODO: function-value could be simply an expression if there was a repeat as an
+			// TODO: function-value could be simply an expression if there was a repetition as an
 			// expression
 		},
 
@@ -115,12 +115,12 @@ func (s *syntax) newMMLSyntax() error {
 		},
 		{"choice", "query", "symbol-query", "expression-query"},
 
-		{"sequence", "function-call", "expression", "open-paren", "list-repeat", "close-paren"},
+		{"sequence", "function-call", "expression", "open-paren", "list-repetition", "close-paren"},
 
 		{"choice", "match-expression", "expression"},
-		{"sequence", "switch-clause", "case-word", "match-expression", "colon", "statement-repeat"},
-		{"repeat", "switch-clause-repeat", "switch-clause"},
-		{"sequence", "default-clause", "default-word", "colon", "statement-repeat"},
+		{"sequence", "switch-clause", "case-word", "match-expression", "colon", "statement-repetition"},
+		{"repetition", "switch-clause-repetition", "switch-clause"},
+		{"sequence", "default-clause", "default-word", "colon", "statement-repetition"},
 		{
 			"sequence",
 			"switch-conditional",
@@ -128,11 +128,11 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"open-brace",
 			"nls",
-			"switch-clause-repeat",
+			"switch-clause-repetition",
 			"nls",
 			"default-clause",
 			"nls",
-			"switch-clause-repeat",
+			"switch-clause-repetition",
 			"nls",
 			"close-brace",
 		},
@@ -145,7 +145,7 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"open-brace",
 			"nls",
-			"statement-repeat",
+			"statement-repetition",
 			"nls",
 			"close-brace",
 			"nls",
@@ -153,7 +153,7 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"open-brace",
 			"nls",
-			"statement-repeat",
+			"statement-repetition",
 			"nls",
 			"close-brace",
 		},
@@ -216,8 +216,8 @@ func (s *syntax) newMMLSyntax() error {
 			"definition-item",
 		},
 
-		{"choice", "value-definition-repeat-item", "definition-item", "list-sep"},
-		{"repeat", "value-definition-repeat", "value-definition-repeat-item"},
+		{"choice", "value-definition-repetition-item", "definition-item", "list-sep"},
+		{"repetition", "value-definition-repetition", "value-definition-repetition-item"},
 
 		{
 			"sequence",
@@ -225,7 +225,7 @@ func (s *syntax) newMMLSyntax() error {
 			"let-word",
 			"nls",
 			"open-paren",
-			"value-definition-repeat",
+			"value-definition-repetition",
 			"close-paren",
 		},
 
@@ -237,7 +237,7 @@ func (s *syntax) newMMLSyntax() error {
 			"tilde",
 			"nls",
 			"open-paren",
-			"value-definition-repeat",
+			"value-definition-repetition",
 			"close-paren",
 		},
 
@@ -256,9 +256,9 @@ func (s *syntax) newMMLSyntax() error {
 		},
 
 		{"choice", "statement", "expression", "definition", "value-assignment"},
-		{"choice", "statement-repeat-item", "statement", "seq-sep"},
-		{"repeat", "statement-repeat", "statement-repeat-item"},
-		{"choice", "document", "statement-repeat"},
+		{"choice", "statement-repetition-item", "statement", "seq-sep"},
+		{"repetition", "statement-repetition", "statement-repetition-item"},
+		{"choice", "document", "statement-repetition"},
 	}
 
 	return s.defineSyntax(primitive, complex)

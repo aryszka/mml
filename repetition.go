@@ -2,7 +2,7 @@ package mml
 
 // TODO: find a good name for this
 
-type repeatDefinition struct {
+type repetitionDefinition struct {
 	name     string
 	typ      nodeType
 	registry *registry
@@ -10,7 +10,7 @@ type repeatDefinition struct {
 	itemType nodeType
 }
 
-type repeatGenerator struct {
+type repetitionGenerator struct {
 	name         string
 	typ          nodeType
 	isValid      bool
@@ -19,7 +19,7 @@ type repeatGenerator struct {
 	initIsMember bool
 }
 
-type repeatParser struct {
+type repetitionParser struct {
 	name              string
 	typ               nodeType
 	trace             trace
@@ -36,14 +36,14 @@ type repeatParser struct {
 	rest              generator
 }
 
-func newRepeat(
+func newRepetition(
 	r *registry,
 	name string,
 	nt nodeType,
 	itemName string,
 	itemType nodeType,
-) *repeatDefinition {
-	return &repeatDefinition{
+) *repetitionDefinition {
+	return &repetitionDefinition{
 		name:     name,
 		typ:      nt,
 		registry: r,
@@ -52,18 +52,18 @@ func newRepeat(
 	}
 }
 
-func (d *repeatDefinition) typeName() string                { return d.name }
-func (d *repeatDefinition) nodeType() nodeType              { return d.typ }
-func (d *repeatDefinition) member(t nodeType) (bool, error) { return t == d.typ, nil }
+func (d *repetitionDefinition) typeName() string                { return d.name }
+func (d *repetitionDefinition) nodeType() nodeType              { return d.typ }
+func (d *repetitionDefinition) member(t nodeType) (bool, error) { return t == d.typ, nil }
 
-func (d *repeatDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
+func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
 	t = t.extend(d.name)
 
 	if g, ok := d.registry.generator(d.typ, init, excluded); ok {
 		return g, nil
 	}
 
-	g := &repeatGenerator{typ: d.typ, isValid: true, name: d.name}
+	g := &repetitionGenerator{typ: d.typ, isValid: true, name: d.name}
 	d.registry.setGenerator(d.typ, init, excluded, g)
 
 	item, ok := d.registry.definition(d.itemType)
@@ -105,11 +105,11 @@ func (d *repeatDefinition) generator(t trace, init nodeType, excluded typeList) 
 	return g, nil
 }
 
-func (g *repeatGenerator) typeName() string   { return g.name }
-func (g *repeatGenerator) nodeType() nodeType { return g.typ }
-func (g *repeatGenerator) valid() bool        { return g.isValid }
+func (g *repetitionGenerator) typeName() string   { return g.name }
+func (g *repetitionGenerator) nodeType() nodeType { return g.typ }
+func (g *repetitionGenerator) valid() bool        { return g.isValid }
 
-func (g *repeatGenerator) finalize(trace) error {
+func (g *repetitionGenerator) finalize(trace) error {
 	if g.first != nil && !g.first.valid() {
 		g.first = nil
 	}
@@ -121,7 +121,7 @@ func (g *repeatGenerator) finalize(trace) error {
 	return nil
 }
 
-func (g *repeatGenerator) parser(t trace, c *cache, init *node) parser {
+func (g *repetitionGenerator) parser(t trace, c *cache, init *node) parser {
 	t = t.extend(g.name)
 
 	var currentParser parser
@@ -129,7 +129,7 @@ func (g *repeatGenerator) parser(t trace, c *cache, init *node) parser {
 		currentParser = g.first.parser(t, c, init)
 	}
 
-	return &repeatParser{
+	return &repetitionParser{
 		typ:           g.typ,
 		name:          g.name,
 		trace:         t,
@@ -141,10 +141,10 @@ func (g *repeatGenerator) parser(t trace, c *cache, init *node) parser {
 	}
 }
 
-func (p *repeatParser) typeName() string   { return p.name }
-func (p *repeatParser) nodeType() nodeType { return p.typ }
+func (p *repetitionParser) typeName() string   { return p.name }
+func (p *repetitionParser) nodeType() nodeType { return p.typ }
 
-func (p *repeatParser) parse(t *token) *parserResult {
+func (p *repetitionParser) parse(t *token) *parserResult {
 parseLoop:
 	for {
 		p.trace.info("parsing", t)

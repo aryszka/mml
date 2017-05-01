@@ -103,14 +103,14 @@ func (s *syntax) optional(name string, optional string) error {
 	return d.registry.register(d)
 }
 
-func (s *syntax) repeat(name string, item string) error {
+func (s *syntax) repetition(name string, item string) error {
 	if s.initDone {
 		return errDefinitionsClosed
 	}
 
 	nt := s.registry.nodeType(name)
 	it := s.registry.nodeType(item)
-	d := newRepeat(s.registry, name, nt, item, it)
+	d := newRepetition(s.registry, name, nt, item, it)
 	return d.registry.register(d)
 }
 
