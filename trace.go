@@ -58,6 +58,7 @@ func (t *printTrace) extend(name string) trace {
 	}
 
 	return &printTrace{
+		level:   t.level,
 		path:    t.path + "/" + name,
 		printer: t.printer,
 	}
@@ -68,7 +69,7 @@ func (t *printTrace) outLevel(l traceLevel, a ...interface{}) {
 		return
 	}
 
-	t.printer.Println(a...)
+	t.printer.Println(append([]interface{}{t.path}, a...)...)
 }
 
 func (t *printTrace) warn(a ...interface{})  { t.outLevel(traceWarn, a...) }

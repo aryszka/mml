@@ -114,12 +114,19 @@ func (s *syntax) repeat(name string, item string) error {
 	return d.registry.register(d)
 }
 
-func (s *syntax) sequence(string, ...string) error {
+func (s *syntax) sequence(name string, itemNames ...string) error {
 	if s.initDone {
 		return errDefinitionsClosed
 	}
 
-	return nil
+	nt := s.registry.nodeType(name)
+	it := make([]nodeType, len(itemNames))
+	for i, ni := range itemNames {
+		it[i] = s.registry.nodeType(ni)
+	}
+
+	d := newSequence(s.registry, name, nt, itemNames, it)
+	return d.registry.register(d)
 }
 
 func (s *syntax) choice(string, ...string) error {

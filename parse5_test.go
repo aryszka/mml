@@ -120,274 +120,274 @@ func TestParse(t *testing.T) {
 				token: &token{value: "3"},
 			}},
 		},
-		// }, {
-		// 	msg:       "int repeat, optional, empty",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"repeat", "int-repeat", "int"},
-		// 		{"optional", "optional-int-repeat", "int-repeat"},
-		// 	},
-		// 	node: &node{
-		// 		name: "int-repeat",
-		// 		token:    &token{},
-		// 	},
-		// }, {
-		// 	msg:       "empty repeat",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex:   [][]string{{"repeat", "int-repeat", "int"}},
-		// 	node: &node{
-		// 		name: "int-repeat",
-		// 		token:    &token{},
-		// 	},
-		// }, {
-		// 	msg:       "repeat with a single item",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex:   [][]string{{"repeat", "int-repeat", "int"}},
-		// 	text:      "42",
-		// 	node: &node{
-		// 		name: "int-repeat",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "42"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "repeat with multiple items",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex:   [][]string{{"repeat", "int-repeat", "int"}},
-		// 	text:      "1 2 3",
-		// 	node: &node{
-		// 		name: "int-repeat",
-		// 		token:    &token{value: "1"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "1"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "2"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "3"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "repeat with optional item",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"repeat", "optional-int-repeat", "optional-int"},
-		// 	},
-		// 	text: "42",
-		// 	node: &node{
-		// 		name: "optional-int-repeat",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "42"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "repeat with multiple optional items",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"repeat", "optional-int-repeat", "optional-int"},
-		// 	},
-		// 	text: "1 2 3",
-		// 	node: &node{
-		// 		name: "optional-int-repeat",
-		// 		token:    &token{value: "1"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "1"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "2"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "3"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with single int",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex:   [][]string{{"sequence", "int-sequence", "int"}},
-		// 	text:      "42",
-		// 	node: &node{
-		// 		name: "int-sequence",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "42"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with single optional int",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"sequence", "optional-int-sequence", "optional-int"},
-		// 	},
-		// 	text: "42",
-		// 	node: &node{
-		// 		name: "optional-int-sequence",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "42"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with single int, not int",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex:   [][]string{{"sequence", "int-sequence", "int"}},
-		// 	text:      "\"foo\"",
-		// 	fail:      true,
-		// }, {
-		// 	msg:       "sequence with multiple ints",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex:   [][]string{{"sequence", "int-sequence", "int", "int", "int"}},
-		// 	text:      "1 2 3",
-		// 	node: &node{
-		// 		name: "int-sequence",
-		// 		token:    &token{value: "1"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "1"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "2"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "3"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "sequence with optional item",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 		{"string", stringToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"sequence", "sequence-with-optional", "optional-int", "string"},
-		// 	},
-		// 	text: "42 \"foo\"",
-		// 	node: &node{
-		// 		name: "sequence-with-optional",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "42"},
-		// 		}, {
-		// 			name: "string",
-		// 			token:    &token{value: "\"foo\""},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "sequence with optional item, missing",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 		{"string", stringToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"sequence", "sequence-with-optional", "optional-int", "string"},
-		// 	},
-		// 	text: "\"foo\"",
-		// 	node: &node{
-		// 		name: "sequence-with-optional",
-		// 		token:    &token{value: "\"foo\""},
-		// 		nodes: []*node{{
-		// 			name: "string",
-		// 			token:    &token{value: "\"foo\""},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with only optional, empty",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{
-		// 			"sequence",
-		// 			"sequence-with-only-optional",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 		},
-		// 	},
-		// 	node: &node{
-		// 		name: "sequence-with-only-optional",
-		// 	},
-		// }, {
-		// 	msg:       "sequence with only optional, less",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{
-		// 			"sequence",
-		// 			"sequence-with-only-optional",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 		},
-		// 	},
-		// 	text: "1 2",
-		// 	node: &node{
-		// 		name: "sequence-with-only-optional",
-		// 		token:    &token{value: "1"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "1"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "2"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with only optional, exact",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{
-		// 			"sequence",
-		// 			"sequence-with-only-optional",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 		},
-		// 	},
-		// 	text: "1 2 3",
-		// 	node: &node{
-		// 		name: "sequence-with-only-optional",
-		// 		token:    &token{value: "1"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "1"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "2"},
-		// 		}, {
-		// 			name: "int",
-		// 			token:    &token{value: "3"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg:       "sequence with only optional, more",
-		// 	primitive: [][]interface{}{{"int", intToken}},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{
-		// 			"sequence",
-		// 			"sequence-with-only-optional",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 		},
-		// 	},
-		// 	text: "1 2 3 4",
-		// 	fail: true,
+	}, {
+		msg:       "int repeat, optional, empty",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"repeat", "int-repeat", "int"},
+			{"optional", "optional-int-repeat", "int-repeat"},
+		},
+		node: &node{
+			name:  "int-repeat",
+			token: &token{},
+		},
+	}, {
+		msg:       "empty repeat",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"repeat", "int-repeat", "int"}},
+		node: &node{
+			name:  "int-repeat",
+			token: &token{},
+		},
+	}, {
+		msg:       "repeat with a single item",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"repeat", "int-repeat", "int"}},
+		text:      "42",
+		node: &node{
+			name:  "int-repeat",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}},
+		},
+	}, {
+		msg:       "repeat with multiple items",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"repeat", "int-repeat", "int"}},
+		text:      "1 2 3",
+		node: &node{
+			name:  "int-repeat",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "1"},
+			}, {
+				name:  "int",
+				token: &token{value: "2"},
+			}, {
+				name:  "int",
+				token: &token{value: "3"},
+			}},
+		},
+	}, {
+		msg:       "repeat with optional item",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"repeat", "optional-int-repeat", "optional-int"},
+		},
+		text: "42",
+		node: &node{
+			name:  "optional-int-repeat",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}},
+		},
+	}, {
+		msg:       "repeat with multiple optional items",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"repeat", "optional-int-repeat", "optional-int"},
+		},
+		text: "1 2 3",
+		node: &node{
+			name:  "optional-int-repeat",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "1"},
+			}, {
+				name:  "int",
+				token: &token{value: "2"},
+			}, {
+				name:  "int",
+				token: &token{value: "3"},
+			}},
+		},
+	}, {
+		msg:       "sequence with single int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"sequence", "int-sequence", "int"}},
+		text:      "42",
+		node: &node{
+			name:  "int-sequence",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}},
+		},
+	}, {
+		msg:       "sequence with single optional int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "optional-int-sequence", "optional-int"},
+		},
+		text: "42",
+		node: &node{
+			name:  "optional-int-sequence",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}},
+		},
+	}, {
+		msg:       "sequence with single int, not int",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"sequence", "int-sequence", "int"}},
+		text:      "\"foo\"",
+		fail:      true,
+	}, {
+		msg:       "sequence with multiple ints",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex:   [][]string{{"sequence", "int-sequence", "int", "int", "int"}},
+		text:      "1 2 3",
+		node: &node{
+			name:  "int-sequence",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "1"},
+			}, {
+				name:  "int",
+				token: &token{value: "2"},
+			}, {
+				name:  "int",
+				token: &token{value: "3"},
+			}},
+		},
+	}, {
+		msg: "sequence with optional item",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "sequence-with-optional", "optional-int", "string"},
+		},
+		text: "42 \"foo\"",
+		node: &node{
+			name:  "sequence-with-optional",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}, {
+				name:  "string",
+				token: &token{value: "\"foo\""},
+			}},
+		},
+	}, {
+		msg: "sequence with optional item, missing",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "sequence-with-optional", "optional-int", "string"},
+		},
+		text: "\"foo\"",
+		node: &node{
+			name:  "sequence-with-optional",
+			token: &token{value: "\"foo\""},
+			nodes: []*node{{
+				name:  "string",
+				token: &token{value: "\"foo\""},
+			}},
+		},
+	}, {
+		msg:       "sequence with only optional, empty",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"sequence",
+				"sequence-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		node: &node{
+			name: "sequence-with-only-optional",
+		},
+	}, {
+		msg:       "sequence with only optional, less",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"sequence",
+				"sequence-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		text: "1 2",
+		node: &node{
+			name:  "sequence-with-only-optional",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "1"},
+			}, {
+				name:  "int",
+				token: &token{value: "2"},
+			}},
+		},
+	}, {
+		msg:       "sequence with only optional, exact",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"sequence",
+				"sequence-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		text: "1 2 3",
+		node: &node{
+			name:  "sequence-with-only-optional",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "1"},
+			}, {
+				name:  "int",
+				token: &token{value: "2"},
+			}, {
+				name:  "int",
+				token: &token{value: "3"},
+			}},
+		},
+	}, {
+		msg:       "sequence with only optional, more",
+		primitive: [][]interface{}{{"int", intToken}},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"sequence",
+				"sequence-with-only-optional",
+				"optional-int",
+				"optional-int",
+				"optional-int",
+			},
+		},
+		text: "1 2 3 4",
+		fail: true,
 		// }, {
 		// 	msg: "choice of int and string",
 		// 	primitive: [][]interface{}{
@@ -813,6 +813,7 @@ func TestParse(t *testing.T) {
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			var l traceLevel
+			l = traceDebug
 			trace := newTrace(l)
 			s := withTrace(trace)
 
@@ -821,8 +822,6 @@ func TestParse(t *testing.T) {
 				t.Error(err)
 				return
 			}
-
-			// s.traceLevel = traceDebug
 
 			b := bytes.NewBufferString(ti.text)
 

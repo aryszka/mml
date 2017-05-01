@@ -278,7 +278,7 @@ parseLoop:
 			p.tokenStack.merge(ir.unparsed)
 		}
 
-		if ir.valid && len(ir.node.tokens) > 0 {
+		if ir.valid && ir.node != nil {
 			p.initEvaluated = true
 
 			if p.result == nil {
