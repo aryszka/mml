@@ -35,13 +35,13 @@ func (s *syntax) newMMLSyntax() error {
 	}
 
 	complex := [][]string{
-		{"union", "seq-sep", "nl", "semicolon"},
-		{"sequence", "nls", "nl"},
+		{"choice", "seq-sep", "nl", "semicolon"},
+		{"repeat", "nls", "nl"},
 
-		{"union", "bool", "true", "false"},
+		{"choice", "bool", "true", "false"},
 
 		{
-			"group",
+			"sequence",
 			"dynamic-symbol",
 			"symbol-word",
 			"open-paren",
@@ -51,50 +51,50 @@ func (s *syntax) newMMLSyntax() error {
 			"close-paren",
 		},
 
-		{"union", "static-symbol", "symbol", "string"},
-		{"union", "symbol-expression", "static-symbol", "dynamic-symbol"},
+		{"choice", "static-symbol", "symbol", "string"},
+		{"choice", "symbol-expression", "static-symbol", "dynamic-symbol"},
 
-		{"union", "list-sep", "nl", "comma"},
-		{"group", "spread", "dot", "dot", "dot"},
-		{"group", "spread-expression", "spread", "expression"},
-		{"union", "list-item", "expression", "spread-expression", "list-sep"},
-		{"sequence", "list-sequence", "list-item"},
-		{"group", "list", "open-square", "list-sequence", "close-square"},
-		{"group", "mutable-list", "tilde", "open-square", "list-sequence", "close-square"},
+		{"choice", "list-sep", "nl", "comma"},
+		{"sequence", "spread", "dot", "dot", "dot"},
+		{"sequence", "spread-expression", "spread", "expression"},
+		{"choice", "list-item", "expression", "spread-expression", "list-sep"},
+		{"repeat", "list-repeat", "list-item"},
+		{"sequence", "list", "open-square", "list-repeat", "close-square"},
+		{"sequence", "mutable-list", "tilde", "open-square", "list-repeat", "close-square"},
 
-		{"group", "structure-definition", "symbol-expression", "nls", "colon", "nls", "expression"},
-		{"union", "structure-item", "structure-definition", "spread-expression", "list-sep"},
-		{"sequence", "structure-sequence", "structure-item"},
-		{"group", "structure", "open-brace", "structure-sequence", "close-brace"},
-		{"group", "mutable-structure", "tilde", "open-brace", "structure-sequence", "close-brace"},
+		{"sequence", "structure-definition", "symbol-expression", "nls", "colon", "nls", "expression"},
+		{"choice", "structure-item", "structure-definition", "spread-expression", "list-sep"},
+		{"repeat", "structure-repeat", "structure-item"},
+		{"sequence", "structure", "open-brace", "structure-repeat", "close-brace"},
+		{"sequence", "mutable-structure", "tilde", "open-brace", "structure-repeat", "close-brace"},
 
-		{"union", "static-symbol-item", "static-symbol", "list-sep"},
-		{"sequence", "static-symbol-sequence", "static-symbol-item"},
-		{"group", "collect-symbol", "spread", "static-symbol"},
+		{"choice", "static-symbol-item", "static-symbol", "list-sep"},
+		{"repeat", "static-symbol-repeat", "static-symbol-item"},
+		{"sequence", "collect-symbol", "spread", "static-symbol"},
 		{"optional", "collect-argument", "collect-symbol"},
-		{"group", "function-body", "open-brace", "statement-sequence", "close-brace"},
-		{"union", "function-value", "expression", "function-body"},
+		{"sequence", "function-body", "open-brace", "statement-repeat", "close-brace"},
+		{"choice", "function-value", "expression", "function-body"},
 		{
-			"group",
+			"sequence",
 			"function-fact",
 			"open-paren",
-			"static-symbol-sequence",
+			"static-symbol-repeat",
 			"collect-argument",
 			"nls",
 			"close-paren",
 			"nls",
 			"function-value",
-			// TODO: function-value could be simply an expression if there was a sequence as an
+			// TODO: function-value could be simply an expression if there was a repeat as an
 			// expression
 		},
 
-		{"group", "function", "fn-word", "function-fact"},
-		{"group", "effect", "fn-word", "tilde", "function-fact"},
+		{"sequence", "function", "fn-word", "function-fact"},
+		{"sequence", "effect", "fn-word", "tilde", "function-fact"},
 
-		{"group", "symbol-query", "expression", "dot", "symbol-expression"},
+		{"sequence", "symbol-query", "expression", "dot", "symbol-expression"},
 		{"optional", "optional-expression", "expression"},
 		{
-			"group",
+			"sequence",
 			"range-expression",
 			"optional-expression",
 			"nls",
@@ -102,9 +102,9 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"optional-expression",
 		},
-		{"union", "query-expression", "expression", "range-expression"},
+		{"choice", "query-expression", "expression", "range-expression"},
 		{
-			"group",
+			"sequence",
 			"expression-query",
 			"expression",
 			"open-square",
@@ -113,31 +113,31 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"close-square",
 		},
-		{"union", "query", "symbol-query", "expression-query"},
+		{"choice", "query", "symbol-query", "expression-query"},
 
-		{"group", "function-call", "expression", "open-paren", "list-sequence", "close-paren"},
+		{"sequence", "function-call", "expression", "open-paren", "list-repeat", "close-paren"},
 
-		{"union", "match-expression", "expression"},
-		{"group", "switch-clause", "case-word", "match-expression", "colon", "statement-sequence"},
-		{"sequence", "switch-clause-sequence", "switch-clause"},
-		{"group", "default-clause", "default-word", "colon", "statement-sequence"},
+		{"choice", "match-expression", "expression"},
+		{"sequence", "switch-clause", "case-word", "match-expression", "colon", "statement-repeat"},
+		{"repeat", "switch-clause-repeat", "switch-clause"},
+		{"sequence", "default-clause", "default-word", "colon", "statement-repeat"},
 		{
-			"group",
+			"sequence",
 			"switch-conditional",
 			"switch-word",
 			"nls",
 			"open-brace",
 			"nls",
-			"switch-clause-sequence",
+			"switch-clause-repeat",
 			"nls",
 			"default-clause",
 			"nls",
-			"switch-clause-sequence",
+			"switch-clause-repeat",
 			"nls",
 			"close-brace",
 		},
 		{
-			"group",
+			"sequence",
 			"if-conditional", // TODO: test
 			"if-word",
 			"nls",
@@ -145,7 +145,7 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"open-brace",
 			"nls",
-			"statement-sequence",
+			"statement-repeat",
 			"nls",
 			"close-brace",
 			"nls",
@@ -153,14 +153,14 @@ func (s *syntax) newMMLSyntax() error {
 			"nls",
 			"open-brace",
 			"nls",
-			"statement-sequence",
+			"statement-repeat",
 			"nls",
 			"close-brace",
 		},
-		{"union", "conditional", "switch-conditional", "if-conditional"},
+		{"choice", "conditional", "switch-conditional", "if-conditional"},
 
 		{
-			"union",
+			"choice",
 			"expression",
 			"int",
 			"string",
@@ -181,7 +181,7 @@ func (s *syntax) newMMLSyntax() error {
 		{"optional", "optional-single-eq", "single-eq"},
 
 		{
-			"group",
+			"sequence",
 			"definition-item",
 			"symbol-expression",
 			"nls",
@@ -191,7 +191,7 @@ func (s *syntax) newMMLSyntax() error {
 		},
 
 		{
-			"group",
+			"sequence",
 			"value-definition",
 			"let-word",
 			"nls",
@@ -199,7 +199,7 @@ func (s *syntax) newMMLSyntax() error {
 		},
 
 		{
-			"group",
+			"sequence",
 			"mutable-value-definition",
 			"let-word",
 			"nls",
@@ -209,56 +209,56 @@ func (s *syntax) newMMLSyntax() error {
 		},
 
 		{
-			"group",
+			"sequence",
 			"value-assignment", // TODO: test
 			"set-word",
 			"nls",
 			"definition-item",
 		},
 
-		{"union", "value-definition-sequence-item", "definition-item", "list-sep"},
-		{"sequence", "value-definition-sequence", "value-definition-sequence-item"},
+		{"choice", "value-definition-repeat-item", "definition-item", "list-sep"},
+		{"repeat", "value-definition-repeat", "value-definition-repeat-item"},
 
 		{
-			"group",
-			"value-definition-group",
+			"sequence",
+			"value-definition-sequence",
 			"let-word",
 			"nls",
 			"open-paren",
-			"value-definition-sequence",
+			"value-definition-repeat",
 			"close-paren",
 		},
 
 		{
-			"group",
-			"mutable-value-definition-group",
+			"sequence",
+			"mutable-value-definition-sequence",
 			"let-word",
 			"nls",
 			"tilde",
 			"nls",
 			"open-paren",
-			"value-definition-sequence",
+			"value-definition-repeat",
 			"close-paren",
 		},
 
-		{"group", "function-definition", "fn-word", "nls", "symbol-expression", "nls", "function-fact"},
-		{"group", "effect-definition", "fn-word", "nls", "tilde", "nls", "symbol-expression", "nls", "function-fact"},
+		{"sequence", "function-definition", "fn-word", "nls", "symbol-expression", "nls", "function-fact"},
+		{"sequence", "effect-definition", "fn-word", "nls", "tilde", "nls", "symbol-expression", "nls", "function-fact"},
 
 		{
-			"union",
+			"choice",
 			"definition",
-			"value-definition",               // TODO: test
-			"mutable-value-definition",       // TODO: test
-			"value-definition-group",         // TODO: test
-			"mutable-value-definition-group", // TODO: test
-			"function-definition",            // TODO: test
-			"effect-definition",              // TODO: test
+			"value-definition",                  // TODO: test
+			"mutable-value-definition",          // TODO: test
+			"value-definition-sequence",         // TODO: test
+			"mutable-value-definition-sequence", // TODO: test
+			"function-definition",               // TODO: test
+			"effect-definition",                 // TODO: test
 		},
 
-		{"union", "statement", "expression", "definition", "value-assignment"},
-		{"union", "statement-sequence-item", "statement", "seq-sep"},
-		{"sequence", "statement-sequence", "statement-sequence-item"},
-		{"union", "document", "statement-sequence"},
+		{"choice", "statement", "expression", "definition", "value-assignment"},
+		{"choice", "statement-repeat-item", "statement", "seq-sep"},
+		{"repeat", "statement-repeat", "statement-repeat-item"},
+		{"choice", "document", "statement-repeat"},
 	}
 
 	return s.defineSyntax(primitive, complex)

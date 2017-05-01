@@ -7,6 +7,7 @@ import (
 
 func TestParseMML(t *testing.T) {
 	var l traceLevel
+	// l = traceDebug
 	trace := newTrace(l)
 	s := withTrace(trace)
 
@@ -15,8 +16,6 @@ func TestParseMML(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
-	// s.traceLevel = traceDebug
 
 	for _, ti := range []struct {
 		msg   string
@@ -112,7 +111,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "list-sequence",
+					name:  "list-repeat",
 					token: &token{value: "a"},
 					nodes: []*node{{
 						name:  "symbol",
@@ -140,7 +139,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-square",
 				token: &token{value: "["},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "]"},
 			}, {
 				name:  "close-square",
@@ -157,7 +156,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-square",
 				token: &token{value: "["},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "1"},
 				nodes: []*node{{
 					name:  "int",
@@ -181,7 +180,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-paren",
 						token: &token{value: "("},
 					}, {
-						name:  "list-sequence",
+						name:  "list-repeat",
 						token: &token{value: "a"},
 						nodes: []*node{{
 							name:  "symbol",
@@ -201,7 +200,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-square",
 						token: &token{value: "["},
 					}, {
-						name:  "list-sequence",
+						name:  "list-repeat",
 						token: &token{value: "3"},
 						nodes: []*node{{
 							name:  "int",
@@ -222,7 +221,7 @@ func TestParseMML(t *testing.T) {
 								name:  "open-square",
 								token: &token{value: "["},
 							}, {
-								name:  "list-sequence",
+								name:  "list-repeat",
 								token: &token{value: "]"},
 							}, {
 								name:  "close-square",
@@ -252,7 +251,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-square",
 				token: &token{value: "["},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "1"},
 				nodes: []*node{{
 					name:  "int",
@@ -276,7 +275,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-paren",
 						token: &token{value: "("},
 					}, {
-						name:  "list-sequence",
+						name:  "list-repeat",
 						token: &token{value: "a"},
 						nodes: []*node{{
 							name:  "symbol",
@@ -296,7 +295,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-square",
 						token: &token{value: "["},
 					}, {
-						name:  "list-sequence",
+						name:  "list-repeat",
 						token: &token{value: "3"},
 						nodes: []*node{{
 							name:  "int",
@@ -320,7 +319,7 @@ func TestParseMML(t *testing.T) {
 								name:  "open-square",
 								token: &token{value: "["},
 							}, {
-								name:  "list-sequence",
+								name:  "list-repeat",
 								token: &token{value: "]"},
 							}, {
 								name:  "close-square",
@@ -347,7 +346,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-brace",
 				token: &token{value: "{"},
 			}, {
-				name:  "structure-sequence",
+				name:  "structure-repeat",
 				token: &token{value: "}"},
 			}, {
 				name:  "close-brace",
@@ -364,7 +363,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-brace",
 				token: &token{value: "{"},
 			}, {
-				name:  "structure-sequence",
+				name:  "structure-repeat",
 				token: &token{value: "a"},
 				nodes: []*node{{
 					name:  "structure-definition",
@@ -455,7 +454,7 @@ func TestParseMML(t *testing.T) {
 							name:  "open-brace",
 							token: &token{value: "{"},
 						}, {
-							name:  "structure-sequence",
+							name:  "structure-repeat",
 							token: &token{value: "e"},
 							nodes: []*node{{
 								name:  "structure-definition",
@@ -501,7 +500,7 @@ func TestParseMML(t *testing.T) {
 										name:  "open-brace",
 										token: &token{value: "{"},
 									}, {
-										name:  "structure-sequence",
+										name:  "structure-repeat",
 										token: &token{value: "}"},
 									}, {
 										name:  "close-brace",
@@ -533,7 +532,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-brace",
 				token: &token{value: "{"},
 			}, {
-				name:  "structure-sequence",
+				name:  "structure-repeat",
 				token: &token{value: "a"},
 				nodes: []*node{{
 					name:  "structure-definition",
@@ -624,7 +623,7 @@ func TestParseMML(t *testing.T) {
 							name:  "open-brace",
 							token: &token{value: "{"},
 						}, {
-							name:  "structure-sequence",
+							name:  "structure-repeat",
 							token: &token{value: "e"},
 							nodes: []*node{{
 								name:  "structure-definition",
@@ -673,7 +672,7 @@ func TestParseMML(t *testing.T) {
 										name:  "open-brace",
 										token: &token{value: "{"},
 									}, {
-										name:  "structure-sequence",
+										name:  "structure-repeat",
 										token: &token{value: "}"},
 									}, {
 										name:  "close-brace",
@@ -752,7 +751,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "static-symbol-sequence",
+					name:  "static-symbol-repeat",
 					token: &token{value: ")"},
 				}, {
 					name:  "nls",
@@ -770,7 +769,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-brace",
 						token: &token{value: "{"},
 					}, {
-						name:  "statement-sequence",
+						name:  "statement-repeat",
 						token: &token{value: ";"},
 						nodes: []*node{{
 							name:  "semicolon",
@@ -799,7 +798,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "static-symbol-sequence",
+					name:  "static-symbol-repeat",
 					token: &token{value: "x"},
 					nodes: []*node{{
 						name:  "symbol",
@@ -836,7 +835,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "static-symbol-sequence",
+					name:  "static-symbol-repeat",
 					token: &token{value: "."},
 				}, {
 					name:  "collect-symbol",
@@ -874,7 +873,7 @@ func TestParseMML(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg:  "function with sequence",
+		msg:  "function with repeat",
 		code: "fn (a, b, ...c) { a(b); c }",
 		nodes: []*node{{
 			name:  "function",
@@ -889,7 +888,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "static-symbol-sequence",
+					name:  "static-symbol-repeat",
 					token: &token{value: "a"},
 					nodes: []*node{{
 						name:  "symbol",
@@ -940,7 +939,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-brace",
 						token: &token{value: "{"},
 					}, {
-						name:  "statement-sequence",
+						name:  "statement-repeat",
 						token: &token{value: "a"},
 						nodes: []*node{{
 							name:  "function-call",
@@ -952,7 +951,7 @@ func TestParseMML(t *testing.T) {
 								name:  "open-paren",
 								token: &token{value: "("},
 							}, {
-								name:  "list-sequence",
+								name:  "list-repeat",
 								token: &token{value: "b"},
 								nodes: []*node{{
 									name:  "symbol",
@@ -989,7 +988,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "a"},
 				nodes: []*node{{
 					name:  "symbol",
@@ -1016,7 +1015,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "list-sequence",
+					name:  "list-repeat",
 					token: &token{value: "a"},
 					nodes: []*node{{
 						name:  "symbol",
@@ -1030,7 +1029,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "b"},
 				nodes: []*node{{
 					name:  "symbol",
@@ -1057,7 +1056,7 @@ func TestParseMML(t *testing.T) {
 					name:  "open-paren",
 					token: &token{value: "("},
 				}, {
-					name:  "list-sequence",
+					name:  "list-repeat",
 					token: &token{value: "a"},
 					nodes: []*node{{
 						name:  "symbol",
@@ -1071,7 +1070,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "b"},
 				nodes: []*node{{
 					name:  "symbol",
@@ -1095,7 +1094,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "g"},
 				nodes: []*node{{
 					name:  "function-call",
@@ -1107,7 +1106,7 @@ func TestParseMML(t *testing.T) {
 						name:  "open-paren",
 						token: &token{value: "("},
 					}, {
-						name:  "list-sequence",
+						name:  "list-repeat",
 						token: &token{value: "a"},
 						nodes: []*node{{
 							name:  "symbol",
@@ -1124,7 +1123,7 @@ func TestParseMML(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg:  "function call sequence",
+		msg:  "function call repeat",
 		code: "f(a) f(b)g(a)",
 		nodes: []*node{{
 			name:  "function-call",
@@ -1136,7 +1135,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "a"},
 				nodes: []*node{{
 					name:  "symbol",
@@ -1156,7 +1155,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "b"},
 				nodes: []*node{{
 					name:  "symbol",
@@ -1176,7 +1175,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "a"},
 				nodes: []*node{{
 					name:  "symbol",
@@ -1200,7 +1199,7 @@ func TestParseMML(t *testing.T) {
 				name:  "open-paren",
 				token: &token{value: "("},
 			}, {
-				name:  "list-sequence",
+				name:  "list-repeat",
 				token: &token{value: "."},
 				nodes: []*node{{
 					name:  "spread-expression",
@@ -1276,7 +1275,7 @@ func TestParseMML(t *testing.T) {
 				name:  "nls",
 				token: &token{value: "default"},
 			}, {
-				name:  "switch-clause-sequence",
+				name:  "switch-clause-repeat",
 				token: &token{value: "default"},
 			}, {
 				name:  "nls",
@@ -1291,7 +1290,7 @@ func TestParseMML(t *testing.T) {
 					name:  "colon",
 					token: &token{value: ":"},
 				}, {
-					name:  "statement-sequence",
+					name:  "statement-repeat",
 					token: &token{value: "42"},
 					nodes: []*node{{
 						name:  "int",
@@ -1302,7 +1301,7 @@ func TestParseMML(t *testing.T) {
 				name:  "nls",
 				token: &token{value: "}"},
 			}, {
-				name:  "switch-clause-sequence",
+				name:  "switch-clause-repeat",
 				token: &token{value: "}"},
 			}, {
 				name:  "nls",
@@ -1343,7 +1342,7 @@ func TestParseMML(t *testing.T) {
 					token: &token{value: "\n"},
 				}},
 			}, {
-				name:  "switch-clause-sequence",
+				name:  "switch-clause-repeat",
 				token: &token{value: "case"},
 				nodes: []*node{{
 					name:  "switch-clause",
@@ -1358,7 +1357,7 @@ func TestParseMML(t *testing.T) {
 						name:  "colon",
 						token: &token{value: ":"},
 					}, {
-						name:  "statement-sequence",
+						name:  "statement-repeat",
 						token: &token{value: "b"},
 						nodes: []*node{{
 							name:  "symbol",
@@ -1382,7 +1381,7 @@ func TestParseMML(t *testing.T) {
 					name:  "colon",
 					token: &token{value: ":"},
 				}, {
-					name:  "statement-sequence",
+					name:  "statement-repeat",
 					token: &token{value: "x"},
 					nodes: []*node{{
 						name:  "symbol",
@@ -1396,7 +1395,7 @@ func TestParseMML(t *testing.T) {
 				name:  "nls",
 				token: &token{value: "case"},
 			}, {
-				name:  "switch-clause-sequence",
+				name:  "switch-clause-repeat",
 				token: &token{value: "case"},
 				nodes: []*node{{
 					name:  "switch-clause",
@@ -1411,7 +1410,7 @@ func TestParseMML(t *testing.T) {
 						name:  "colon",
 						token: &token{value: ":"},
 					}, {
-						name:  "statement-sequence",
+						name:  "statement-repeat",
 						token: &token{value: "d"},
 						nodes: []*node{{
 							name:  "symbol",
@@ -1447,8 +1446,8 @@ func TestParseMML(t *testing.T) {
 				return
 			}
 
-			if n.name != "statement-sequence" {
-				t.Error("invalid root node type", n.name, "statement-sequence")
+			if n.name != "statement-repeat" {
+				t.Error("invalid root node type", n.name, "statement-repeat")
 				return
 			}
 

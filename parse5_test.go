@@ -388,432 +388,432 @@ func TestParse(t *testing.T) {
 		},
 		text: "1 2 3 4",
 		fail: true,
-		// }, {
-		// 	msg: "choice of int and string",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 		{"string", stringToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"choice", "int-or-string", "int", "string"},
-		// 	},
-		// 	text: "\"foo\"",
-		// 	node: &node{
-		// 		name: "string",
-		// 		token:    &token{value: "\"foo\""},
-		// 	},
-		// }, {
-		// 	msg: "choice of int and sequence with optional int",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 		{"string", stringToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{"sequence", "sequence-with-optional", "optional-int", "string"},
-		// 		{"choice", "int-or-sequence-with-optional", "int", "sequence-with-optional"},
-		// 	},
-		// 	text: "42 \"foo\"",
-		// 	node: &node{
-		// 		name: "sequence-with-optional",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int",
-		// 			token:    &token{value: "42"},
-		// 		}, {
-		// 			name: "string",
-		// 			token:    &token{value: "\"foo\""},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "choice of int and sequence with optional int, token fall through",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 		{"string", stringToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{
-		// 			"sequence",
-		// 			"sequence-with-optional",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 			"string",
-		// 			"string",
-		// 		},
-		// 		{"choice", "int-or-sequence-with-optional", "int", "sequence-with-optional"},
-		// 	},
-		// 	text: "\"foo\" \"bar\"",
-		// 	node: &node{
-		// 		name: "sequence-with-optional",
-		// 		token:    &token{value: "\"foo\""},
-		// 		nodes: []*node{{
-		// 			name: "string",
-		// 			token:    &token{value: "\"foo\""},
-		// 		}, {
-		// 			name: "string",
-		// 			token:    &token{value: "\"bar\""},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "choice of int and sequence with optional int, init fall through",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 		{"string", stringToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"optional", "optional-int", "int"},
-		// 		{
-		// 			"sequence",
-		// 			"sequence-with-optional",
-		// 			"optional-int",
-		// 			"optional-int",
-		// 			"string",
-		// 			"string",
-		// 		},
-		// 		{"choice", "int-or-sequence-with-optional", "int", "sequence-with-optional"},
-		// 	},
-		// 	text: "\"foo\" \"bar\"",
-		// 	node: &node{
-		// 		name: "sequence-with-optional",
-		// 		token:    &token{value: "\"foo\""},
-		// 		nodes: []*node{{
-		// 			name: "string",
-		// 			token:    &token{value: "\"foo\""},
-		// 		}, {
-		// 			name: "string",
-		// 			token:    &token{value: "\"bar\""},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "expression inside expression",
-		// 	primitive: [][]interface{}{
-		// 		{"symbol", symbolToken},
-		// 		{"symbol-word", symbolWord},
-		// 		{"open-paren", openParen},
-		// 		{"close-paren", closeParen},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"sequence", "function-call", "expression", "open-paren", "expression", "close-paren"},
-		// 		{"sequence", "dynamic-symbol", "symbol-word", "open-paren", "expression", "close-paren"},
-		// 		{"choice", "expression", "symbol", "function-call", "dynamic-symbol"},
-		// 	},
-		// 	text: "symbol(f(a))",
-		// 	node: &node{
-		// 		name: "dynamic-symbol",
-		// 		token:    &token{value: "symbol"},
-		// 		nodes: []*node{{
-		// 			name: "symbol-word",
-		// 			token:    &token{value: "symbol"},
-		// 		}, {
-		// 			name: "open-paren",
-		// 			token:    &token{value: "("},
-		// 		}, {
-		// 			name: "function-call",
-		// 			token:    &token{value: "f"},
-		// 			nodes: []*node{{
-		// 				name: "symbol",
-		// 				token:    &token{value: "f"},
-		// 			}, {
-		// 				name: "open-paren",
-		// 				token:    &token{value: "("},
-		// 			}, {
-		// 				name: "symbol",
-		// 				token:    &token{value: "a"},
-		// 			}, {
-		// 				name: "close-paren",
-		// 				token:    &token{value: ")"},
-		// 			}},
-		// 		}, {
-		// 			name: "close-paren",
-		// 			token:    &token{value: ")"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "chained symbol query",
-		// 	primitive: [][]interface{}{
-		// 		{"symbol", symbolToken},
-		// 		{"dot", dot},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"sequence", "symbol-query", "expression", "dot", "symbol"},
-		// 		{"choice", "expression", "symbol", "symbol-query"},
-		// 	},
-		// 	text: "a.b.c",
-		// 	node: &node{
-		// 		name: "symbol-query",
-		// 		token:    &token{value: "a"},
-		// 		nodes: []*node{{
-		// 			name: "symbol-query",
-		// 			token:    &token{value: "a"},
-		// 			nodes: []*node{{
-		// 				name: "symbol",
-		// 				token:    &token{value: "a"},
-		// 			}, {
-		// 				name: "dot",
-		// 				token:    &token{value: "."},
-		// 			}, {
-		// 				name: "symbol",
-		// 				token:    &token{value: "b"},
-		// 			}},
-		// 		}, {
-		// 			name: "dot",
-		// 			token:    &token{value: "."},
-		// 		}, {
-		// 			name: "symbol",
-		// 			token:    &token{value: "c"},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "repeat in repeat",
-		// 	primitive: [][]interface{}{
-		// 		{"int", intToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"repeat", "int-repeat", "int"},
-		// 		{"repeat", "repeat-in-repeat", "int-repeat"},
-		// 	},
-		// 	text: "42",
-		// 	node: &node{
-		// 		name: "repeat-in-repeat",
-		// 		token:    &token{value: "42"},
-		// 		nodes: []*node{{
-		// 			name: "int-repeat",
-		// 			token:    &token{value: "42"},
-		// 			nodes: []*node{{
-		// 				name: "int",
-		// 				token:    &token{value: "42"},
-		// 			}},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "reproduce repeat endless loop",
-		// 	primitive: [][]interface{}{
-		// 		{"nl", nl},
-		// 		{"colon", colon},
-		// 		{"switch-word", switchWord},
-		// 		{"case-word", caseWord},
-		// 		{"default-word", defaultWord},
-		// 		{"open-brace", openBrace},
-		// 		{"close-brace", closeBrace},
-		// 		{"symbol", symbolToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"repeat", "nls", "nl"},
-		// 		{"choice", "match-expression", "expression"},
-		// 		{"sequence", "switch-clause", "case-word", "match-expression", "colon",
-		// 		"statement-repeat"},
-		// 		{"repeat", "switch-clause-repeat", "switch-clause"},
-		// 		{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repeat"},
-		// 		{"choice", "seq-sep", "nl"},
-		// 		{"choice", "statement-repeat-item", "expression", "seq-sep"},
-		// 		{"repeat", "statement-repeat", "statement-repeat-item"},
-		// 		{
-		// 			"sequence",
-		// 			"switch-conditional",
-		// 			"switch-word",
-		// 			"nls",
-		// 			"open-brace",
-		// 			"nls",
-		// 			"switch-clause-repeat",
-		// 			"nls",
-		// 			"default-clause",
-		// 			"nls",
-		// 			"switch-clause-repeat",
-		// 			"nls",
-		// 			"close-brace",
-		// 		},
-		// 		{"choice", "expression", "symbol", "switch-conditional"},
-		// 		{"repeat", "document", "statement-repeat"},
-		// 	},
-		// 	text: `switch {
-		// 		default: a
-		// 	}`,
-		// 	node: &node{
-		// 		name: "document",
-		// 		token:    &token{value: "switch"},
-		// 		nodes: []*node{{
-		// 			name: "statement-repeat",
-		// 			token:    &token{value: "switch"},
-		// 			nodes: []*node{{
-		// 				name: "switch-conditional",
-		// 				token:    &token{value: "switch"},
-		// 				nodes: []*node{{
-		// 					name: "switch-word",
-		// 					token:    &token{value: "switch"},
-		// 				}, {
-		// 					name: "nls",
-		// 					token:    &token{value: "{"},
-		// 				}, {
-		// 					name: "open-brace",
-		// 					token:    &token{value: "{"},
-		// 				}, {
-		// 					name: "nls",
-		// 					token:    &token{value: "\n"},
-		// 					nodes: []*node{{
-		// 						name: "nl",
-		// 						token:    &token{value: "\n"},
-		// 					}},
-		// 				}, {
-		// 					name: "switch-clause-repeat",
-		// 					token:    &token{value: "default"},
-		// 				}, {
-		// 					name: "nls",
-		// 					token:    &token{value: "default"},
-		// 				}, {
-		// 					name: "default-clause",
-		// 					token:    &token{value: "default"},
-		// 					nodes: []*node{{
-		// 						name: "default-word",
-		// 						token:    &token{value: "default"},
-		// 					}, {
-		// 						name: "colon",
-		// 						token:    &token{value: ":"},
-		// 					}, {
-		// 						name: "nls",
-		// 						token:    &token{value: "a"},
-		// 					}, {
-		// 						name: "statement-repeat",
-		// 						token:    &token{value: "a"},
-		// 						nodes: []*node{{
-		// 							name: "symbol",
-		// 							token:    &token{value: "a"},
-		// 						}, {
-		// 							name: "nl",
-		// 							token:    &token{value: "\n"},
-		// 						}},
-		// 					}},
-		// 				}, {
-		// 					name: "nls",
-		// 					token:    &token{value: "}"},
-		// 				}, {
-		// 					name: "switch-clause-repeat",
-		// 					token:    &token{value: "}"},
-		// 				}, {
-		// 					name: "nls",
-		// 					token:    &token{value: "}"},
-		// 				}, {
-		// 					name: "close-brace",
-		// 					token:    &token{value: "}"},
-		// 				}},
-		// 			}},
-		// 		}},
-		// 	},
-		// }, {
-		// 	msg: "newline in sequence",
-		// 	primitive: [][]interface{}{
-		// 		{"nl", nl},
-		// 		{"colon", colon},
-		// 		{"switch-word", switchWord},
-		// 		{"case-word", caseWord},
-		// 		{"default-word", defaultWord},
-		// 		{"open-brace", openBrace},
-		// 		{"close-brace", closeBrace},
-		// 		{"symbol", symbolToken},
-		// 	},
-		// 	complex: [][]string{
-		// 		{"repeat", "nls", "nl"},
-		// 		{"choice", "match-expression", "expression"},
-		// 		{"sequence", "switch-clause", "case-word", "match-expression", "colon",
-		// 		"statement-repeat"},
-		// 		{"repeat", "switch-clause-repeat", "switch-clause"},
-		// 		{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repeat"},
-		// 		{"choice", "seq-sep", "nl"},
-		// 		{"choice", "statement-repeat-item", "statement", "seq-sep"},
-		// 		{"repeat", "statement-repeat", "statement-repeat-item"},
-		// 		{
-		// 			"sequence",
-		// 			"switch-conditional",
-		// 			"switch-word",
-		// 			"nls",
-		// 			"open-brace",
-		// 			"nls",
-		// 			"switch-clause-repeat",
-		// 			"nls",
-		// 			"default-clause",
-		// 			"nls",
-		// 			"switch-clause-repeat",
-		// 			"nls",
-		// 			"close-brace",
-		// 		},
-		// 		{"choice", "conditional", "switch-conditional"},
-		// 		{"choice", "expression", "symbol", "conditional"},
-		// 		{"choice", "statement", "expression"},
-		// 		{"choice", "document", "statement-repeat"},
-		// 	},
-		// 	text: `switch {
-		// 		default: a
-		// 	}`,
-		// 	node: &node{
-		// 		name: "statement-repeat",
-		// 		token:    &token{value: "switch"},
-		// 		nodes: []*node{{
-		// 			name: "switch-conditional",
-		// 			token:    &token{value: "switch"},
-		// 			nodes: []*node{{
-		// 				name: "switch-word",
-		// 				token:    &token{value: "switch"},
-		// 			}, {
-		// 				name: "nls",
-		// 				token:    &token{value: "{"},
-		// 			}, {
-		// 				name: "open-brace",
-		// 				token:    &token{value: "{"},
-		// 			}, {
-		// 				name: "nls",
-		// 				token:    &token{value: "\n"},
-		// 				nodes: []*node{{
-		// 					name: "nl",
-		// 					token:    &token{value: "\n"},
-		// 				}},
-		// 			}, {
-		// 				name: "switch-clause-repeat",
-		// 				token:    &token{value: "default"},
-		// 			}, {
-		// 				name: "nls",
-		// 				token:    &token{value: "default"},
-		// 			}, {
-		// 				name: "default-clause",
-		// 				token:    &token{value: "default"},
-		// 				nodes: []*node{{
-		// 					name: "default-word",
-		// 					token:    &token{value: "default"},
-		// 				}, {
-		// 					name: "colon",
-		// 					token:    &token{value: ":"},
-		// 				}, {
-		// 					name: "nls",
-		// 					token:    &token{value: "a"},
-		// 				}, {
-		// 					name: "statement-repeat",
-		// 					token:    &token{value: "a"},
-		// 					nodes: []*node{{
-		// 						name: "symbol",
-		// 						token:    &token{value: "a"},
-		// 					}, {
-		// 						name: "nl",
-		// 						token:    &token{value: "\n"},
-		// 					}},
-		// 				}},
-		// 			}, {
-		// 				name: "nls",
-		// 				token:    &token{value: "}"},
-		// 			}, {
-		// 				name: "switch-clause-repeat",
-		// 				token:    &token{value: "}"},
-		// 			}, {
-		// 				name: "nls",
-		// 				token:    &token{value: "}"},
-		// 			}, {
-		// 				name: "close-brace",
-		// 				token:    &token{value: "}"},
-		// 			}},
-		// 		}},
-		// 	},
+	}, {
+		msg: "choice of int and string",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"choice", "int-or-string", "int", "string"},
+		},
+		text: "\"foo\"",
+		node: &node{
+			name:  "string",
+			token: &token{value: "\"foo\""},
+		},
+	}, {
+		msg: "choice of int and sequence with optional int",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{"sequence", "sequence-with-optional", "optional-int", "string"},
+			{"choice", "int-or-sequence-with-optional", "int", "sequence-with-optional"},
+		},
+		text: "42 \"foo\"",
+		node: &node{
+			name:  "sequence-with-optional",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}, {
+				name:  "string",
+				token: &token{value: "\"foo\""},
+			}},
+		},
+	}, {
+		msg: "choice of int and sequence with optional int, token fall through",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"sequence",
+				"sequence-with-optional",
+				"optional-int",
+				"optional-int",
+				"string",
+				"string",
+			},
+			{"choice", "int-or-sequence-with-optional", "int", "sequence-with-optional"},
+		},
+		text: "\"foo\" \"bar\"",
+		node: &node{
+			name:  "sequence-with-optional",
+			token: &token{value: "\"foo\""},
+			nodes: []*node{{
+				name:  "string",
+				token: &token{value: "\"foo\""},
+			}, {
+				name:  "string",
+				token: &token{value: "\"bar\""},
+			}},
+		},
+	}, {
+		msg: "choice of int and sequence with optional int, init fall through",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-int", "int"},
+			{
+				"sequence",
+				"sequence-with-optional",
+				"optional-int",
+				"optional-int",
+				"string",
+				"string",
+			},
+			{"choice", "int-or-sequence-with-optional", "int", "sequence-with-optional"},
+		},
+		text: "\"foo\" \"bar\"",
+		node: &node{
+			name:  "sequence-with-optional",
+			token: &token{value: "\"foo\""},
+			nodes: []*node{{
+				name:  "string",
+				token: &token{value: "\"foo\""},
+			}, {
+				name:  "string",
+				token: &token{value: "\"bar\""},
+			}},
+		},
+	}, {
+		msg: "expression inside expression",
+		primitive: [][]interface{}{
+			{"symbol", symbolToken},
+			{"symbol-word", symbolWord},
+			{"open-paren", openParen},
+			{"close-paren", closeParen},
+		},
+		complex: [][]string{
+			{"sequence", "function-call", "expression", "open-paren", "expression", "close-paren"},
+			{"sequence", "dynamic-symbol", "symbol-word", "open-paren", "expression", "close-paren"},
+			{"choice", "expression", "symbol", "function-call", "dynamic-symbol"},
+		},
+		text: "symbol(f(a))",
+		node: &node{
+			name:  "dynamic-symbol",
+			token: &token{value: "symbol"},
+			nodes: []*node{{
+				name:  "symbol-word",
+				token: &token{value: "symbol"},
+			}, {
+				name:  "open-paren",
+				token: &token{value: "("},
+			}, {
+				name:  "function-call",
+				token: &token{value: "f"},
+				nodes: []*node{{
+					name:  "symbol",
+					token: &token{value: "f"},
+				}, {
+					name:  "open-paren",
+					token: &token{value: "("},
+				}, {
+					name:  "symbol",
+					token: &token{value: "a"},
+				}, {
+					name:  "close-paren",
+					token: &token{value: ")"},
+				}},
+			}, {
+				name:  "close-paren",
+				token: &token{value: ")"},
+			}},
+		},
+	}, {
+		msg: "chained symbol query",
+		primitive: [][]interface{}{
+			{"symbol", symbolToken},
+			{"dot", dot},
+		},
+		complex: [][]string{
+			{"sequence", "symbol-query", "expression", "dot", "symbol"},
+			{"choice", "expression", "symbol", "symbol-query"},
+		},
+		text: "a.b.c",
+		node: &node{
+			name:  "symbol-query",
+			token: &token{value: "a"},
+			nodes: []*node{{
+				name:  "symbol-query",
+				token: &token{value: "a"},
+				nodes: []*node{{
+					name:  "symbol",
+					token: &token{value: "a"},
+				}, {
+					name:  "dot",
+					token: &token{value: "."},
+				}, {
+					name:  "symbol",
+					token: &token{value: "b"},
+				}},
+			}, {
+				name:  "dot",
+				token: &token{value: "."},
+			}, {
+				name:  "symbol",
+				token: &token{value: "c"},
+			}},
+		},
+	}, {
+		msg: "repeat in repeat",
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		complex: [][]string{
+			{"repeat", "int-repeat", "int"},
+			{"repeat", "repeat-in-repeat", "int-repeat"},
+		},
+		text: "42",
+		node: &node{
+			name:  "repeat-in-repeat",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int-repeat",
+				token: &token{value: "42"},
+				nodes: []*node{{
+					name:  "int",
+					token: &token{value: "42"},
+				}},
+			}},
+		},
+	}, {
+		msg: "reproduce repeat endless loop",
+		primitive: [][]interface{}{
+			{"nl", nl},
+			{"colon", colon},
+			{"switch-word", switchWord},
+			{"case-word", caseWord},
+			{"default-word", defaultWord},
+			{"open-brace", openBrace},
+			{"close-brace", closeBrace},
+			{"symbol", symbolToken},
+		},
+		complex: [][]string{
+			{"repeat", "nls", "nl"},
+			{"choice", "match-expression", "expression"},
+			{"sequence", "switch-clause", "case-word", "match-expression", "colon",
+				"statement-repeat"},
+			{"repeat", "switch-clause-repeat", "switch-clause"},
+			{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repeat"},
+			{"choice", "seq-sep", "nl"},
+			{"choice", "statement-repeat-item", "expression", "seq-sep"},
+			{"repeat", "statement-repeat", "statement-repeat-item"},
+			{
+				"sequence",
+				"switch-conditional",
+				"switch-word",
+				"nls",
+				"open-brace",
+				"nls",
+				"switch-clause-repeat",
+				"nls",
+				"default-clause",
+				"nls",
+				"switch-clause-repeat",
+				"nls",
+				"close-brace",
+			},
+			{"choice", "expression", "symbol", "switch-conditional"},
+			{"repeat", "document", "statement-repeat"},
+		},
+		text: `switch {
+				default: a
+			}`,
+		node: &node{
+			name:  "document",
+			token: &token{value: "switch"},
+			nodes: []*node{{
+				name:  "statement-repeat",
+				token: &token{value: "switch"},
+				nodes: []*node{{
+					name:  "switch-conditional",
+					token: &token{value: "switch"},
+					nodes: []*node{{
+						name:  "switch-word",
+						token: &token{value: "switch"},
+					}, {
+						name:  "nls",
+						token: &token{value: "{"},
+					}, {
+						name:  "open-brace",
+						token: &token{value: "{"},
+					}, {
+						name:  "nls",
+						token: &token{value: "\n"},
+						nodes: []*node{{
+							name:  "nl",
+							token: &token{value: "\n"},
+						}},
+					}, {
+						name:  "switch-clause-repeat",
+						token: &token{value: "default"},
+					}, {
+						name:  "nls",
+						token: &token{value: "default"},
+					}, {
+						name:  "default-clause",
+						token: &token{value: "default"},
+						nodes: []*node{{
+							name:  "default-word",
+							token: &token{value: "default"},
+						}, {
+							name:  "colon",
+							token: &token{value: ":"},
+						}, {
+							name:  "nls",
+							token: &token{value: "a"},
+						}, {
+							name:  "statement-repeat",
+							token: &token{value: "a"},
+							nodes: []*node{{
+								name:  "symbol",
+								token: &token{value: "a"},
+							}, {
+								name:  "nl",
+								token: &token{value: "\n"},
+							}},
+						}},
+					}, {
+						name:  "nls",
+						token: &token{value: "}"},
+					}, {
+						name:  "switch-clause-repeat",
+						token: &token{value: "}"},
+					}, {
+						name:  "nls",
+						token: &token{value: "}"},
+					}, {
+						name:  "close-brace",
+						token: &token{value: "}"},
+					}},
+				}},
+			}},
+		},
+	}, {
+		msg: "newline in sequence",
+		primitive: [][]interface{}{
+			{"nl", nl},
+			{"colon", colon},
+			{"switch-word", switchWord},
+			{"case-word", caseWord},
+			{"default-word", defaultWord},
+			{"open-brace", openBrace},
+			{"close-brace", closeBrace},
+			{"symbol", symbolToken},
+		},
+		complex: [][]string{
+			{"repeat", "nls", "nl"},
+			{"choice", "match-expression", "expression"},
+			{"sequence", "switch-clause", "case-word", "match-expression", "colon",
+				"statement-repeat"},
+			{"repeat", "switch-clause-repeat", "switch-clause"},
+			{"sequence", "default-clause", "default-word", "colon", "nls", "statement-repeat"},
+			{"choice", "seq-sep", "nl"},
+			{"choice", "statement-repeat-item", "statement", "seq-sep"},
+			{"repeat", "statement-repeat", "statement-repeat-item"},
+			{
+				"sequence",
+				"switch-conditional",
+				"switch-word",
+				"nls",
+				"open-brace",
+				"nls",
+				"switch-clause-repeat",
+				"nls",
+				"default-clause",
+				"nls",
+				"switch-clause-repeat",
+				"nls",
+				"close-brace",
+			},
+			{"choice", "conditional", "switch-conditional"},
+			{"choice", "expression", "symbol", "conditional"},
+			{"choice", "statement", "expression"},
+			{"choice", "document", "statement-repeat"},
+		},
+		text: `switch {
+				default: a
+			}`,
+		node: &node{
+			name:  "statement-repeat",
+			token: &token{value: "switch"},
+			nodes: []*node{{
+				name:  "switch-conditional",
+				token: &token{value: "switch"},
+				nodes: []*node{{
+					name:  "switch-word",
+					token: &token{value: "switch"},
+				}, {
+					name:  "nls",
+					token: &token{value: "{"},
+				}, {
+					name:  "open-brace",
+					token: &token{value: "{"},
+				}, {
+					name:  "nls",
+					token: &token{value: "\n"},
+					nodes: []*node{{
+						name:  "nl",
+						token: &token{value: "\n"},
+					}},
+				}, {
+					name:  "switch-clause-repeat",
+					token: &token{value: "default"},
+				}, {
+					name:  "nls",
+					token: &token{value: "default"},
+				}, {
+					name:  "default-clause",
+					token: &token{value: "default"},
+					nodes: []*node{{
+						name:  "default-word",
+						token: &token{value: "default"},
+					}, {
+						name:  "colon",
+						token: &token{value: ":"},
+					}, {
+						name:  "nls",
+						token: &token{value: "a"},
+					}, {
+						name:  "statement-repeat",
+						token: &token{value: "a"},
+						nodes: []*node{{
+							name:  "symbol",
+							token: &token{value: "a"},
+						}, {
+							name:  "nl",
+							token: &token{value: "\n"},
+						}},
+					}},
+				}, {
+					name:  "nls",
+					token: &token{value: "}"},
+				}, {
+					name:  "switch-clause-repeat",
+					token: &token{value: "}"},
+				}, {
+					name:  "nls",
+					token: &token{value: "}"},
+				}, {
+					name:  "close-brace",
+					token: &token{value: "}"},
+				}},
+			}},
+		},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			var l traceLevel
-			l = traceDebug
+			// l = traceDebug
 			trace := newTrace(l)
 			s := withTrace(trace)
 

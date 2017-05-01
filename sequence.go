@@ -210,6 +210,7 @@ func (g *sequenceGenerator) parser(t trace, c *cache, init *node) parser {
 		generators:     g.generators,
 		initGenerators: g.initGenerators,
 		initIsMember:   g.initIsMember,
+		initNode:       init,
 	}
 }
 
@@ -288,6 +289,7 @@ parseLoop:
 
 		if p.currentParser == nil {
 			if p.initNode == nil || p.initEvaluated {
+				p.trace.debug(p.generators[p.itemIndex] == nil)
 				p.currentParser = p.generators[p.itemIndex].parser(p.trace, p.cache, nil)
 			} else if p.itemIndex < len(p.initGenerators) {
 				if p.initGenerators[p.itemIndex] != nil {
@@ -523,12 +525,17 @@ parseLoop:
 			p.result.unparsed.merge(p.tokenStack)
 		}
 
-		if p.result.node != nil && len(p.result.node.tokens) > len(p.initNode.tokens) {
+		if p.result.node != nil && (p.initNode == nil || len(p.result.node.tokens) > len(p.initNode.tokens)) {
 			if p.result.unparsed == nil {
 				p.result.unparsed = newTokenStack()
 			}
 
-			p.result.unparsed.mergeTokens(p.result.node.tokens[len(p.initNode.tokens):])
+			var i int
+			if p.initNode != nil {
+				i = len(p.initNode.tokens)
+			}
+
+			p.result.unparsed.mergeTokens(p.result.node.tokens[i:])
 		}
 
 		p.result.accepting = false

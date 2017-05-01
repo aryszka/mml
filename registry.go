@@ -25,6 +25,7 @@ func duplicateNodeType(nodeType string) error {
 
 func newRegistry() *registry {
 	return &registry{
+		typeSeed:    1,
 		names:       make(map[nodeType]string),
 		types:       make(map[string]nodeType),
 		definitions: make(map[nodeType]definition),
@@ -42,6 +43,7 @@ func (r *registry) nodeType(name string) nodeType {
 	r.typeSeed++
 	r.types[name] = t
 	r.names[t] = name
+	println(t, name)
 	return t
 }
 

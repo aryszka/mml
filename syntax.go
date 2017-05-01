@@ -129,12 +129,19 @@ func (s *syntax) sequence(name string, itemNames ...string) error {
 	return d.registry.register(d)
 }
 
-func (s *syntax) choice(string, ...string) error {
+func (s *syntax) choice(name string, elementNames ...string) error {
 	if s.initDone {
 		return errDefinitionsClosed
 	}
 
-	return nil
+	nt := s.registry.nodeType(name)
+	et := make([]nodeType, len(elementNames))
+	for i, ni := range elementNames {
+		et[i] = s.registry.nodeType(ni)
+	}
+
+	d := newChoice(s.registry, name, nt, elementNames, et)
+	return d.registry.register(d)
 }
 
 func (s *syntax) root() (string, error) {
@@ -155,7 +162,6 @@ func (s *syntax) finalizeInit() error {
 		done = true
 		for k, g := range s.registry.generators {
 			if !g.valid() {
-				s.trace.info("dropping 1")
 				delete(s.registry.generators, k)
 				done = false
 				continue
@@ -166,7 +172,6 @@ func (s *syntax) finalizeInit() error {
 			}
 
 			if !g.valid() {
-				s.trace.info("dropping 2")
 				delete(s.registry.generators, k)
 				done = false
 			}
