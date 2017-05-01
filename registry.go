@@ -1,8 +1,8 @@
 package mml
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -11,8 +11,8 @@ type registry struct {
 	names       map[nodeType]string
 	types       map[string]nodeType
 	definitions map[nodeType]definition
-	rootDef string
-	generators map[string]generator
+	rootDef     string
+	generators  map[string]generator
 }
 
 var (
@@ -25,10 +25,10 @@ func duplicateNodeType(nodeType string) error {
 
 func newRegistry() *registry {
 	return &registry{
-		names: make(map[nodeType]string),
-		types: make(map[string]nodeType),
+		names:       make(map[nodeType]string),
+		types:       make(map[string]nodeType),
 		definitions: make(map[nodeType]definition),
-		generators: make(map[string]generator),
+		generators:  make(map[string]generator),
 	}
 }
 

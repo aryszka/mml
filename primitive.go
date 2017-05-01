@@ -36,17 +36,9 @@ func newPrimitive(r *registry, name string, nt nodeType, tt tokenType) *primitiv
 	}
 }
 
-func (d *primitiveDefinition) typeName() string {
-	return d.name
-}
-
-func (d *primitiveDefinition) nodeType() nodeType {
-	return d.typ
-}
-
-func (d *primitiveDefinition) member(t nodeType) (bool, error) {
-	return t == d.typ, nil
-}
+func (d *primitiveDefinition) typeName() string                { return d.name }
+func (d *primitiveDefinition) nodeType() nodeType              { return d.typ }
+func (d *primitiveDefinition) member(t nodeType) (bool, error) { return t == d.typ, nil }
 
 func (d *primitiveDefinition) generator(_ trace, init nodeType, excluded typeList) (generator, error) {
 	if g, ok := d.registry.generator(d.typ, init, excluded); ok {
@@ -64,23 +56,12 @@ func (d *primitiveDefinition) generator(_ trace, init nodeType, excluded typeLis
 	return g, nil
 }
 
-func (g *primitiveGenerator) typeName() string {
-	return g.name
-}
+func (g *primitiveGenerator) typeName() string     { return g.name }
+func (g *primitiveGenerator) nodeType() nodeType   { return g.typ }
+func (g *primitiveGenerator) valid() bool          { return g.isValid }
+func (g *primitiveGenerator) finalize(trace) error { return nil }
 
-func (g *primitiveGenerator) nodeType() nodeType {
-	return g.typ
-}
-
-func (g *primitiveGenerator) valid() bool {
-	return g.isValid
-}
-
-func (g *primitiveGenerator) finalize(trace) error {
-	return nil
-}
-
-func (g *primitiveGenerator) parser(t trace, init *node) parser {
+func (g *primitiveGenerator) parser(t trace, _ *cache, init *node) parser {
 	if init != nil {
 		panic(unexpectedInitNode(g.name, init.name))
 	}
@@ -93,13 +74,8 @@ func (g *primitiveGenerator) parser(t trace, init *node) parser {
 	}
 }
 
-func (p *primitiveParser) typeName() string {
-	return p.name
-}
-
-func (p *primitiveParser) nodeType() nodeType {
-	return p.typ
-}
+func (p *primitiveParser) typeName() string   { return p.name }
+func (p *primitiveParser) nodeType() nodeType { return p.typ }
 
 func (p *primitiveParser) parse(t *token) *parserResult {
 	p.trace.info("parsing", t)

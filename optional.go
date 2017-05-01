@@ -15,22 +15,19 @@ type optionalGenerator struct {
 	typ          nodeType
 	optionalName string
 	optionalType nodeType
-	optional generator
+	optional     generator
 	initIsMember bool
-	isValid bool
+	isValid      bool
 }
 
 type optionalParser struct {
-	name  string
-	typ   nodeType
-	trace trace
-	optional parser
-	initNode *node
+	name         string
+	typ          nodeType
+	trace        trace
+	cache        *cache
+	optional     parser
+	initNode     *node
 	initIsMember bool
-}
-
-func unspecifiedParser(typeName string) error {
-	return fmt.Errorf("unspecified parser: %s", typeName)
 }
 
 func optionalContainingSelf(nodeType string) error {
@@ -53,13 +50,8 @@ func newOptional(
 	}
 }
 
-func (d *optionalDefinition) typeName() string {
-	return d.name
-}
-
-func (d *optionalDefinition) nodeType() nodeType {
-	return d.typ
-}
+func (d *optionalDefinition) typeName() string   { return d.name }
+func (d *optionalDefinition) nodeType() nodeType { return d.typ }
 
 func (d *optionalDefinition) member(t nodeType) (bool, error) {
 	optional, ok := d.registry.definition(d.optionalType)
@@ -78,9 +70,9 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 	}
 
 	g := &optionalGenerator{
-		typ:      d.typ,
-		name: d.name,
-		isValid:  true,
+		typ:     d.typ,
+		name:    d.name,
+		isValid: true,
 	}
 
 	d.registry.setGenerator(d.typ, init, excluded, g)
@@ -121,17 +113,9 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 	return g, nil
 }
 
-func (g *optionalGenerator) typeName() string {
-	return g.name
-}
-
-func (g *optionalGenerator) nodeType() nodeType {
-	return g.typ
-}
-
-func (g *optionalGenerator) valid() bool {
-	return g.isValid
-}
+func (g *optionalGenerator) typeName() string   { return g.name }
+func (g *optionalGenerator) nodeType() nodeType { return g.typ }
+func (g *optionalGenerator) valid() bool        { return g.isValid }
 
 func (g *optionalGenerator) finalize(trace) error {
 	if g.optional != nil && !g.optional.valid() {
@@ -141,31 +125,27 @@ func (g *optionalGenerator) finalize(trace) error {
 	return nil
 }
 
-func (g *optionalGenerator) parser(t trace, init *node) parser {
+func (g *optionalGenerator) parser(t trace, c *cache, init *node) parser {
 	t = t.extend(g.name)
 
 	var op parser
 	if g.optional != nil {
-		op = g.optional.parser(t, init)
+		op = g.optional.parser(t, c, init)
 	}
 
 	return &optionalParser{
-		name: g.name,
-		typ: g.typ,
-		trace: t,
-		initNode: init,
-		optional: op,
+		name:         g.name,
+		typ:          g.typ,
+		trace:        t,
+		cache:        c,
+		initNode:     init,
+		optional:     op,
 		initIsMember: g.initIsMember,
 	}
 }
 
-func (p *optionalParser) typeName() string {
-	return p.name
-}
-
-func (p *optionalParser) nodeType() nodeType {
-	return p.typ
-}
+func (p *optionalParser) typeName() string   { return p.name }
+func (p *optionalParser) nodeType() nodeType { return p.typ }
 
 func (p *optionalParser) parse(t *token) *parserResult {
 	p.trace.info("parsing", t)

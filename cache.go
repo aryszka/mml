@@ -9,7 +9,7 @@ type tokenCache struct {
 }
 
 type cache struct {
-	tokens []tokenCache // TODO: try with pointers, too
+	tokens []*tokenCache // TODO: try with pointers, too
 }
 
 var errDamagedCache = errors.New("damaged token/node cache")
@@ -38,39 +38,46 @@ func (c *cache) get(offset int, t nodeType) (*node, bool, bool) {
 	return nil, false, false
 }
 
-func (c *cache) set(offset int, n *node, match bool) {
-	var tc tokenCache
-	if len(c.tokens) < offset {
+func (c *cache) set(offset int, t nodeType, n *node, match bool) {
+	if len(c.tokens) <= offset {
 		if cap(c.tokens) > offset {
-			c.tokens = c.tokens[:offset]
+			c.tokens = c.tokens[:offset+1]
 		} else {
 			c.tokens = c.tokens[:cap(c.tokens)]
 			for len(c.tokens) <= offset {
-				c.tokens = append(c.tokens, tc)
+				c.tokens = append(c.tokens, nil)
 			}
 		}
 	}
 
-	tc = c.tokens[offset]
+	tc := c.tokens[offset]
+	if tc == nil {
+		tc = &tokenCache{
+			match:   &intSet{},
+			noMatch: &intSet{},
+		}
+		c.tokens[offset] = tc
+	}
+
 	if !match {
 		// common use case leaked in. The reason is that this check is required in all current use
 		// cases. E.g. there can be a group cached already, which can be the first item of a longer
 		// group, and not matching the longer group should not overwrite the cached match of the
 		// shorter.
-		if tc.match.has(n.typ) {
+		if tc.match.has(t) {
 			return
 		}
 
-		tc.noMatch.set(n.typ)
+		tc.noMatch.set(t)
 		c.tokens[offset] = tc
 		return
 
 		// TODO: there was a missing return here
 	}
 
-	if tc.match.has(n.typ) {
+	if tc.match.has(t) {
 		for i, ni := range tc.nodes {
-			if ni.typ == n.typ {
+			if ni.typ == t {
 				tc.nodes[i] = n
 				c.tokens[offset] = tc
 				return
@@ -80,7 +87,10 @@ func (c *cache) set(offset int, n *node, match bool) {
 		panic(errDamagedCache)
 	}
 
-	tc.match.set(n.typ)
+	tc.match.set(t)
 	tc.nodes = append(tc.nodes, n)
-	c.tokens[offset] = tc
+}
+
+func (c *cache) clear() {
+	c.tokens = nil
 }

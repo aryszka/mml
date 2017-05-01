@@ -2,8 +2,8 @@ package mml
 
 import (
 	"errors"
-	"io"
 	"fmt"
+	"io"
 )
 
 type definition interface {
@@ -18,7 +18,7 @@ type generator interface {
 	nodeType() nodeType
 	finalize(trace) error
 	valid() bool
-	parser(trace, *node) parser
+	parser(trace, *cache, *node) parser
 }
 
 type parser interface {
@@ -36,21 +36,34 @@ type parserResult struct {
 }
 
 type syntax struct {
-	trace    trace
-	registry *registry
-	initDone bool
+	trace         trace
+	registry      *registry
+	initDone      bool
 	rootGenerator generator
+	cache         *cache
 }
 
 var (
-	errNotImplemented    = errors.New("not implemented")
-	errDefinitionsClosed = errors.New("definitions closed")
+	errNotImplemented       = errors.New("not implemented")
+	errDefinitionsClosed    = errors.New("definitions closed")
 	errFailedToCreateParser = errors.New("failed to create parser")
 	errUnexpectedEOF        = errors.New("unexpected EOF")
 )
 
 func unexpectedToken(nodeType string, t *token) error {
 	return fmt.Errorf("unexpected token: %v, %v", nodeType, t)
+}
+
+func unspecifiedParser(typeName string) error {
+	return fmt.Errorf("unspecified parser: %s", typeName)
+}
+
+func requiredParserInvalid(typeName string) error {
+	return fmt.Errorf("required parser invalid: %s", typeName)
+}
+
+func unexpectedResult(nodeType string) error {
+	return fmt.Errorf("unexpected parse result: %s", nodeType)
 }
 
 func newSyntax() *syntax {
@@ -61,6 +74,7 @@ func withTrace(t trace) *syntax {
 	return &syntax{
 		trace:    t,
 		registry: newRegistry(),
+		cache:    &cache{},
 	}
 }
 
@@ -89,12 +103,15 @@ func (s *syntax) optional(name string, optional string) error {
 	return d.registry.register(d)
 }
 
-func (s *syntax) repeat(string, string) error {
+func (s *syntax) repeat(name string, item string) error {
 	if s.initDone {
 		return errDefinitionsClosed
 	}
 
-	return nil
+	nt := s.registry.nodeType(name)
+	it := s.registry.nodeType(item)
+	d := newRepeat(s.registry, name, nt, item, it)
+	return d.registry.register(d)
 }
 
 func (s *syntax) sequence(string, ...string) error {
@@ -207,10 +224,12 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 		}
 	}
 
-	p := s.rootGenerator.parser(s.trace, nil)
+	s.cache.clear()
+	p := s.rootGenerator.parser(s.trace, s.cache, nil)
 	tr := newTokenReader(r, name)
 	last := &parserResult{accepting: true}
 	eof := &token{typ: eofTokenType}
+	var offset int
 	for {
 		t, err := tr.next()
 		if err != nil && err != io.EOF {
@@ -222,7 +241,6 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 				return nil, unexpectedToken("root", &t)
 			}
 
-			// TODO: should we check here if it is valid?
 			if !last.valid {
 				return nil, errUnexpectedEOF
 			}
@@ -231,6 +249,7 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 		}
 
 		if err == io.EOF {
+			eof.offset = offset + 1
 			last = p.parse(eof)
 
 			if !last.valid {
@@ -243,6 +262,8 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 
 			return last.node, nil
 		}
+
+		offset = t.offset
 
 		last = p.parse(&t)
 		if !last.accepting {

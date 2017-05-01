@@ -12,11 +12,11 @@ func (s *syntax) defineSyntax(primitive [][]interface{}, complex [][]string) err
 		switch c[0] {
 		case "optional":
 			err = s.optional(c[1], c[2])
-		case "sequence":
+		case "repeat":
 			err = s.repeat(c[1], c[2])
-		case "group":
+		case "sequence":
 			err = s.sequence(c[1], c[2:]...)
-		case "union":
+		case "choice":
 			err = s.choice(c[1], c[2:]...)
 		default:
 			panic("invalid parser type")
