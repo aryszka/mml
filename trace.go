@@ -36,10 +36,10 @@ func (p logPrinter) Println(a ...interface{}) {
 	log.Println(a...)
 }
 
-func (t noopTrace) extend(string) trace  { return t }
-func (t noopTrace) warn(...interface{})  {}
-func (t noopTrace) info(...interface{})  {}
-func (t noopTrace) debug(...interface{}) {}
+func (t *noopTrace) extend(string) trace  { return t }
+func (t *noopTrace) warn(...interface{})  {}
+func (t *noopTrace) info(...interface{})  {}
+func (t *noopTrace) debug(...interface{}) {}
 
 func newTrace(l traceLevel) *printTrace {
 	return withPrintFunc(l, logPrinter{})

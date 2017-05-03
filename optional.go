@@ -17,7 +17,7 @@ type optionalGenerator struct {
 	optionalType nodeType
 	optional     generator
 	isValid      bool
-	instance     *optionalParser
+	initIsMember bool
 }
 
 type optionalParser struct {
@@ -91,17 +91,10 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 	}
 
 	g := &optionalGenerator{
-		typ:     d.typ,
-		name:    d.name,
-		isValid: true,
-		instance: &optionalParser{
-			typ:          d.typ,
-			name:         d.name,
-			initIsMember: initIsMember,
-			result: &parserResult{
-				valid: true,
-			},
-		},
+		typ:          d.typ,
+		name:         d.name,
+		isValid:      true,
+		initIsMember: initIsMember,
 	}
 
 	d.registry.setGenerator(d.typ, init, excluded, g)
@@ -141,23 +134,39 @@ func (g *optionalGenerator) parser(t trace, c *cache, init *node) parser {
 		op = g.optional.parser(t, c, init)
 	}
 
-	g.instance.trace = t
-	g.instance.cache = c
-	g.instance.initNode = init
-	g.instance.optional = op
-
-	if g.instance.result.unparsed != nil {
-		g.instance.result.unparsed.clear()
+	return &optionalParser{
+		typ:          g.typ,
+		name:         g.name,
+		trace:        t,
+		cache:        c,
+		initIsMember: g.initIsMember,
+		initNode:     init,
+		optional:     op,
+		result: &parserResult{
+			valid: true,
+		},
 	}
-
-	return g.instance
 }
 
 func (p *optionalParser) typeName() string   { return p.name }
 func (p *optionalParser) nodeType() nodeType { return p.typ }
 
+// TODO: fix the cache so that it can be used in the optional and the choice
+
 func (p *optionalParser) parse(t *token) *parserResult {
 	p.trace.info("parsing", t)
+
+	if p.result.fillFromCache(
+		p.cache,
+		p.typ,
+		t,
+		p.initNode,
+		p.initIsMember,
+		false,
+	) {
+		p.trace.info("found in cache, valid:", p.result.valid)
+		return p.result
+	}
 
 	var or *parserResult
 	if p.optional != nil {
@@ -199,5 +208,19 @@ func (p *optionalParser) parse(t *token) *parserResult {
 		p.result.fromCache = false
 	}
 
+	var ct *token
+	if p.result.node != nil {
+		ct = p.result.node.token
+	} else if p.initNode != nil {
+		ct = p.initNode.token
+	} else {
+		if p.result.unparsed == nil || !p.result.unparsed.has() {
+			panic(unexpectedResult(p.name))
+		}
+
+		ct = p.result.unparsed.peek()
+	}
+
+	p.cache.set(ct.offset, p.typ, p.result.node, true)
 	return p.result
 }

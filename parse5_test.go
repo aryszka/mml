@@ -403,6 +403,43 @@ func TestParse(t *testing.T) {
 			token: &token{value: "\"foo\""},
 		},
 	}, {
+		msg: "choice of int and repetition with int, empty",
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		complex: [][]string{
+			{"repetition", "ints", "int"},
+			{"choice", "int-or-ints", "int", "ints"},
+		},
+		node: &node{
+			name:  "ints",
+			token: &token{},
+		},
+	}, {
+		msg: "choice of int and repetition with int",
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		complex: [][]string{
+			{"repetition", "ints", "int"},
+			{"choice", "int-or-ints", "int", "ints"},
+		},
+		text: "1 2 3",
+		node: &node{
+			name:  "ints",
+			token: &token{value: "1"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "1"},
+			}, {
+				name:  "int",
+				token: &token{value: "2"},
+			}, {
+				name:  "int",
+				token: &token{value: "3"},
+			}},
+		},
+	}, {
 		msg: "choice of int and sequence with optional int",
 		primitive: [][]interface{}{
 			{"int", intToken},
@@ -839,10 +876,36 @@ func TestParse(t *testing.T) {
 				token: &token{value: "3"},
 			}},
 		},
+		// }, {
+		// 	msg: "choice cached",
+		// 	primitive: [][]interface{}{
+		// 		{"int", intToken},
+		// 		{"string", stringToken},
+		// 		{"symbol", symbolToken},
+		// 	},
+		// 	complex: [][]string{
+		// 		{"choice", "int-or-string", "int", "string"},
+		// 		{"choice", "int-or-symbol", "int", "symbol"},
+		// 		{"sequence", "ints-symbols-strings", "int-or-string", "int-or-symbol"},
+		// 		{"sequence", "ints-strings", "int-or-string", "int-or-string"},
+		// 		{"choice", "choice-or-seqeunce", "ints-symbols-strings", "ints-strings"},
+		// 	},
+		// 	text: "42 \"foo\"",
+		// 	node: &node{
+		// 		name: "ints-strings",
+		// 		token: &token{value: "42"},
+		// 		nodes: []*node{{
+		// 			name: "int",
+		// 			token: &token{value: "42"},
+		// 		}, {
+		// 			name: "string",
+		// 			token: &token{value: "\"foo\""},
+		// 		}},
+		// 	},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			var l traceLevel
-			// l = traceDebug
+			l = traceDebug
 			trace := newTrace(l)
 			s := withTrace(trace)
 

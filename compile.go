@@ -3,10 +3,12 @@ package mml
 import (
 	// 	"bytes"
 	// 	"fmt"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"runtime/pprof"
+	"time"
 )
 
 //
@@ -774,13 +776,19 @@ func Compile(in io.Reader, out io.Writer) error {
 		log.Fatal(err)
 	}
 
+	s.init()
+
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
+
+	start := time.Now()
 
 	_, err = s.parse(in, "test")
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("done in: %v\n", time.Now().Sub(start))
 
 	return nil
 	// if err := compileHead(out); err != nil {

@@ -4,6 +4,8 @@ type tokenStack struct {
 	stack []*token
 }
 
+// TODO: consider representing the tokens as a linked list
+
 func newTokenStack() *tokenStack {
 	return withLength(0)
 }
@@ -15,6 +17,19 @@ func withLength(l int) *tokenStack {
 	}
 
 	return ts
+}
+
+func mergeStack(to, from *tokenStack) *tokenStack {
+	if from == nil {
+		return to
+	}
+
+	if to == nil {
+		to = newTokenStack()
+	}
+
+	to.merge(from)
+	return to
 }
 
 func (s *tokenStack) push(t *token) {
@@ -44,7 +59,11 @@ func (s *tokenStack) mergeTokens(t []*token) {
 }
 
 func (s *tokenStack) has() bool {
-	return len(s.stack) > 0
+	return s.len() > 0
+}
+
+func (s *tokenStack) len() int {
+	return len(s.stack)
 }
 
 func (s *tokenStack) peek() *token {
@@ -55,6 +74,14 @@ func (s *tokenStack) pop() *token {
 	var t *token
 	t, s.stack = s.stack[len(s.stack)-1], s.stack[:len(s.stack)-1]
 	return t
+}
+
+func (s *tokenStack) popIfAny() (*token, bool) {
+	if s == nil || !s.has() {
+		return nil, false
+	}
+
+	return s.pop(), true
 }
 
 func (s *tokenStack) drop(n int) {
@@ -71,6 +98,10 @@ func (s *tokenStack) clear() {
 }
 
 func (s *tokenStack) findCachedNode(n *node) int {
+	if s == nil {
+		return 0
+	}
+
 	for tokenIndex, token := range n.tokens {
 		if token != s.peek() {
 			continue

@@ -2,10 +2,15 @@ package mml
 
 import "errors"
 
+type cacheItem struct {
+	typ  nodeType
+	node *node
+}
+
 type tokenCache struct {
 	match   *intSet
 	noMatch *intSet
-	nodes   []*node // TODO: potential optimization can be to use a balanced binary tree
+	items   []*cacheItem // TODO: potential optimization can be to use a balanced binary tree
 }
 
 type cache struct {
@@ -13,6 +18,8 @@ type cache struct {
 }
 
 var errDamagedCache = errors.New("damaged token/node cache")
+
+// TODO: reconsider using values instead of pointers
 
 func (c *cache) get(offset int, t nodeType) (*node, bool, bool) {
 	if len(c.tokens) <= offset {
@@ -29,9 +36,9 @@ func (c *cache) get(offset int, t nodeType) (*node, bool, bool) {
 	}
 
 	if tc.match.has(t) {
-		for _, n := range tc.nodes {
-			if n.typ == t {
-				return n, true, true
+		for _, i := range tc.items {
+			if i.typ == t {
+				return i.node, true, true
 			}
 		}
 
@@ -72,17 +79,15 @@ func (c *cache) set(offset int, t nodeType, n *node, match bool) {
 		}
 
 		tc.noMatch.set(t)
-		c.tokens[offset] = tc
 		return
 
 		// TODO: there was a missing return here
 	}
 
 	if tc.match.has(t) {
-		for i, ni := range tc.nodes {
-			if ni.typ == t {
-				tc.nodes[i] = n
-				c.tokens[offset] = tc
+		for _, ii := range tc.items {
+			if ii.typ == t {
+				ii.node = n
 				return
 			}
 		}
@@ -91,7 +96,10 @@ func (c *cache) set(offset int, t nodeType, n *node, match bool) {
 	}
 
 	tc.match.set(t)
-	tc.nodes = append(tc.nodes, n)
+	tc.items = append(tc.items, &cacheItem{
+		typ:  t,
+		node: n,
+	})
 }
 
 func (c *cache) clear() {

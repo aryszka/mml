@@ -21,6 +21,7 @@ type primitiveParser struct {
 	name      string
 	typ       nodeType
 	trace     trace
+	cache     *cache
 	tokenType tokenType
 	success   *parserResult
 	fail      *parserResult
@@ -78,13 +79,18 @@ func (g *primitiveGenerator) nodeType() nodeType   { return g.typ }
 func (g *primitiveGenerator) valid() bool          { return g.isValid }
 func (g *primitiveGenerator) finalize(trace) error { return nil }
 
-func (g *primitiveGenerator) parser(t trace, _ *cache, init *node) parser {
+// TODO: can we always instantiate the parser when the token is already there? It would help checking the cache
+// before unnecessary instantiation
+
+func (g *primitiveGenerator) parser(t trace, c *cache, init *node) parser {
 	if init != nil {
 		panic(unexpectedInitNode(g.name, init.name))
 	}
 
 	g.instance.trace = t.extend(g.name)
+	g.instance.cache = c
 	g.instance.fail.unparsed.clear()
+	g.instance.success.fromCache = false
 	return g.instance
 }
 
@@ -93,6 +99,20 @@ func (p *primitiveParser) nodeType() nodeType { return p.typ }
 
 func (p *primitiveParser) parse(t *token) *parserResult {
 	p.trace.info("parsing", t)
+
+	if n, m, ok := p.cache.get(t.offset, p.typ); ok {
+		if m {
+			p.trace.info("found in cache, valid")
+			p.success.node = n
+			p.success.fromCache = true
+			p.success.unparsed.push(t)
+			return p.success
+		} else {
+			p.trace.info("found in cache, invalid")
+			p.fail.unparsed.push(t)
+			return p.fail
+		}
+	}
 
 	if t.typ == p.tokenType {
 		p.trace.info("valid")

@@ -20,20 +20,20 @@ type repetitionGenerator struct {
 }
 
 type repetitionParser struct {
-	name              string
-	typ               nodeType
-	trace             trace
-	cache             *cache
-	currentParser     parser
-	skip              int
-	skippingAfterDone bool
-	result            *parserResult
-	cacheChecked      bool
-	initNode          *node
-	initIsMember      bool
-	tokenStack        *tokenStack
-	initEvaluated     bool
-	rest              generator
+	name          string
+	typ           nodeType
+	trace         trace
+	cache         *cache
+	currentParser parser
+	rest          generator
+	result        *parserResult
+	tokenStack    *tokenStack
+	cacheChecked  bool
+	initNode      *node
+	initIsMember  bool
+	initEvaluated bool
+	skip          int
+	done          bool // TODO: rename this field
 }
 
 func newRepetition(
@@ -63,17 +63,9 @@ func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeLi
 		return g, nil
 	}
 
-	g := &repetitionGenerator{typ: d.typ, isValid: true, name: d.name}
-	d.registry.setGenerator(d.typ, init, excluded, g)
-
 	item, ok := d.registry.definition(d.itemType)
 	if !ok {
 		return nil, unspecifiedParser(d.itemName)
-	}
-
-	if excluded.contains(d.typ) {
-		g.isValid = false
-		return g, nil
 	}
 
 	first, err := item.generator(t, init, append(excluded, d.typ))
@@ -99,9 +91,21 @@ func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeLi
 		}
 	}
 
-	g.first = first
-	g.rest = rest
-	g.initIsMember = initIsMember
+	g := &repetitionGenerator{
+		typ:          d.typ,
+		isValid:      true,
+		name:         d.name,
+		first:        first,
+		rest:         rest,
+		initIsMember: initIsMember,
+	}
+
+	d.registry.setGenerator(d.typ, init, excluded, g)
+	if excluded.contains(d.typ) {
+		g.isValid = false
+		return g, nil
+	}
+
 	return g, nil
 }
 
@@ -138,6 +142,9 @@ func (g *repetitionGenerator) parser(t trace, c *cache, init *node) parser {
 		rest:          g.rest,
 		currentParser: currentParser,
 		initIsMember:  g.initIsMember,
+		result: &parserResult{
+			valid: true,
+		},
 	}
 }
 
@@ -149,164 +156,73 @@ parseLoop:
 	for {
 		p.trace.info("parsing", t)
 
-		if p.skip > 0 {
-			p.skip--
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			p.result.accepting = true
-			return p.result
-		}
-
-		if p.skippingAfterDone {
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			if p.result.unparsed == nil {
-				p.result.unparsed = newTokenStack()
-			}
-
-			p.result.accepting = false
-			p.result.unparsed.push(t)
+		var accepting, ret bool
+		if p.skip, accepting, ret = checkSkip(p.skip, p.done); ret {
+			p.result.accepting = accepting
 			return p.result
 		}
 
 		if !p.cacheChecked {
 			p.cacheChecked = true
 
-			ct := t
-			if p.initNode != nil {
-				ct = p.initNode.token
-			}
-
-			if n, m, ok := p.cache.get(ct.offset, p.typ); ok {
-				if p.result == nil {
-					p.result = &parserResult{}
-				}
-
-				if p.result.unparsed == nil {
-					p.result.unparsed = newTokenStack()
-				}
-
-				if m {
-					if !p.initIsMember {
-						p.result.valid = true
-						p.result.node = n
-						p.result.unparsed.push(t)
-						p.result.fromCache = true
-						p.result.accepting = false
-						p.trace.info("found in cache, valid:", p.result.valid, p.result.node)
-						return p.result
-					}
-				} else {
-					p.result.valid = false
-					p.result.unparsed.push(t)
-					p.result.fromCache = true
-					p.result.accepting = false
-					p.trace.info("found in cache, valid:", p.result.valid, p.result.node)
-					return p.result
-				}
+			if p.result.fillFromCache(
+				p.cache,
+				p.typ,
+				t,
+				p.initNode,
+				false,
+				p.initIsMember,
+			) {
+				p.trace.info("found in cache, valid:", p.result.valid)
+				p.done = true
+				return p.result
 			}
 		}
 
 		if p.currentParser == nil {
-			// the case when the item cannot accept the init node
-
-			if p.tokenStack == nil {
-				p.tokenStack = newTokenStack()
+			p.initEvaluated = true
+			if p.initIsMember {
+				p.result.ensureNode(p.name, p.typ)
+				p.result.node.append(p.initNode)
+				p.currentParser = p.rest.parser(p.trace, p.cache, nil)
+				continue parseLoop
 			}
 
-			p.tokenStack.push(t)
-			p.trace.info("sequence done, valid, no parser", p.result.node)
-			p.skippingAfterDone = p.skip > 0
+			p.result.ensureNode(p.name, p.typ)
+			p.result.node.token = t
+			p.result.unparsed = newTokenStack()
+			p.result.unparsed.push(t)
 
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			if p.result.unparsed == nil {
-				p.result.unparsed = newTokenStack()
-			}
-
-			p.result.accepting = p.skippingAfterDone
-			p.result.valid = true
-			p.result.unparsed.merge(p.tokenStack)
-
-			// NOTE: this was not set in parse4
-			// maybe every node should have a token
-			if p.result.node.token == nil {
-				if !p.result.unparsed.has() {
-					panic(unexpectedResult(p.name))
-				}
-
-				p.result.node.token = p.result.unparsed.peek()
-			}
-
-			// NOTE: this was cached in parse4 only if there were nodes in the sequence
-			var ct *token
-			if p.result.node == nil {
-				ct = p.result.unparsed.peek()
-			} else {
-				ct = p.result.node.token
-			}
-
-			p.cache.set(ct.offset, p.typ, p.result.node, p.result.valid)
-			p.result.accepting = false
+			p.trace.info("repetition done, valid, no parser")
+			p.done = true
+			p.cache.set(t.offset, p.typ, p.result.node, p.result.valid)
 			return p.result
 		}
 
 		ir := p.currentParser.parse(t)
 		if ir.accepting {
-			if p.tokenStack != nil && p.tokenStack.has() {
-				t = p.tokenStack.pop()
+			if st, ok := p.tokenStack.popIfAny(); ok {
+				t = st
 				continue parseLoop
-			}
-
-			if p.result == nil {
-				p.result = &parserResult{}
 			}
 
 			p.result.accepting = true
 			return p.result
 		}
 
-		if ir.unparsed != nil {
-			if p.tokenStack == nil {
-				p.tokenStack = newTokenStack()
-			}
-
-			p.tokenStack.merge(ir.unparsed)
-		}
-
+		p.tokenStack = mergeStack(p.tokenStack, ir.unparsed)
 		if ir.valid && ir.node != nil && len(ir.node.tokens) > 0 {
 			p.initEvaluated = true
 
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			if p.result.node == nil {
-				p.result.node = &node{
-					name: p.name,
-					typ:  p.typ,
-				}
-			}
-
+			p.result.ensureNode(p.name, p.typ)
 			p.result.node.append(ir.node)
 			if ir.fromCache {
-				if p.tokenStack == nil {
-					p.skip = 0
-				} else {
-					p.skip = p.tokenStack.findCachedNode(ir.node)
-				}
+				p.skip = p.tokenStack.findCachedNode(ir.node)
 			}
 
 			p.currentParser = p.rest.parser(p.trace, p.cache, nil)
-
-			if p.tokenStack != nil && p.tokenStack.has() {
-				t = p.tokenStack.pop()
+			if st, ok := p.tokenStack.popIfAny(); ok {
+				t = st
 				continue parseLoop
 			}
 
@@ -317,22 +233,12 @@ parseLoop:
 		if p.initIsMember && !p.initEvaluated {
 			p.initEvaluated = true
 
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			if p.result.node == nil {
-				p.result.node = &node{
-					name: p.name,
-					typ:  p.typ,
-				}
-			}
-
+			p.result.ensureNode(p.name, p.typ)
 			p.result.node.append(p.initNode)
 			p.currentParser = p.rest.parser(p.trace, p.cache, nil)
 
-			if p.tokenStack != nil && p.tokenStack.has() {
-				t = p.tokenStack.pop()
+			if st, ok := p.tokenStack.popIfAny(); ok {
+				t = st
 				continue parseLoop
 			}
 
@@ -340,39 +246,18 @@ parseLoop:
 			return p.result
 		}
 
-		if p.result == nil {
-			p.result = &parserResult{}
-		}
-
-		p.trace.info("sequence done, valid, item not valid", p.result.node)
-		p.skippingAfterDone = p.skip > 0
-		p.result.accepting = p.skippingAfterDone
+		p.result.accepting = p.skip > 0
 		p.result.valid = true
+		p.result.mergeStack(p.tokenStack)
 
-		if p.tokenStack != nil {
-			if p.result.unparsed == nil {
-				p.result.unparsed = newTokenStack()
-			}
-
-			p.result.unparsed.merge(p.tokenStack)
-		}
-
-		// NOTE: this was not set in parse4
-		// maybe every node should have a token
-		if p.result.node == nil {
-			p.result.node = &node{
-				typ:  p.typ,
-				name: p.name,
-			}
-
-			if p.result.unparsed == nil || !p.result.unparsed.has() {
-				panic(unexpectedResult(p.name))
-			}
-
+		p.result.ensureNode(p.name, p.typ)
+		if p.result.node.token == nil {
+			p.result.assertUnparsed(p.name)
 			p.result.node.token = p.result.unparsed.peek()
 		}
 
-		// NOTE: this was cached in parse4 only if there were nodes in the sequence
+		p.trace.info("repetition done, valid")
+		p.done = true
 		p.cache.set(p.result.node.token.offset, p.typ, p.result.node, p.result.valid)
 		return p.result
 	}

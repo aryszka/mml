@@ -20,21 +20,21 @@ type choiceGenerator struct {
 }
 
 type choiceParser struct {
-	name              string
-	typ               nodeType
-	trace             trace
-	cache             *cache
-	generators        [][]generator
-	initIsMember      bool
-	initNode          *node
-	result            *parserResult
-	currentParser     parser
-	skip              int
-	skippingAfterDone bool
-	cacheChecked      bool
-	tokenStack        *tokenStack
-	elementIndex      int
-	initTypeIndex     int
+	name          string
+	typ           nodeType
+	trace         trace
+	cache         *cache
+	generators    [][]generator
+	initIsMember  bool
+	initNode      *node
+	result        *parserResult
+	currentParser parser
+	skip          int
+	done          bool
+	cacheChecked  bool
+	tokenStack    *tokenStack
+	elementIndex  int
+	initTypeIndex int
 }
 
 func choiceWithoutElements(nodeType string) error {
@@ -203,11 +203,9 @@ func (g *choiceGenerator) finalize(trace) error {
 func (g *choiceGenerator) parser(t trace, c *cache, init *node) parser {
 	t = t.extend(g.name)
 
-	var result *parserResult
+	result := &parserResult{}
 	if g.initIsMember {
-		result = &parserResult{
-			node: init,
-		}
+		result.node = init
 	}
 
 	var currentParser parser
@@ -238,68 +236,30 @@ parseLoop:
 	for {
 		p.trace.info("parsing", t)
 
-		if p.skip > 0 {
-			p.skip--
-
+		var accepting, ret bool
+		if p.skip, accepting, ret = checkSkip(p.skip, p.done); ret {
 			if p.result == nil {
 				p.result = &parserResult{}
 			}
 
-			p.result.accepting = true
+			p.result.accepting = accepting
 			return p.result
 		}
 
-		if p.skippingAfterDone {
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			if p.result.unparsed == nil {
-				p.result.unparsed = newTokenStack()
-			}
-
-			p.result.accepting = false
-			p.result.unparsed.push(t)
-			return p.result
-		}
-
-		// parse4 not using cache in union
-		// maybe the new caching style helps
 		if !p.cacheChecked {
 			p.cacheChecked = true
 
-			ct := t
-			if p.initNode != nil {
-				ct = p.initNode.token
-			}
-
-			if n, m, ok := p.cache.get(ct.offset, p.typ); ok {
-				if p.result == nil {
-					p.result = &parserResult{}
-				}
-
-				if p.result.unparsed == nil {
-					p.result.unparsed = newTokenStack()
-				}
-
-				if m {
-					if !p.initIsMember {
-						p.result.valid = true
-						p.result.node = n
-						p.result.unparsed.push(t)
-						p.result.fromCache = true
-						p.result.accepting = false
-						p.trace.info("found in cache, valid:", p.result.valid, p.result.node)
-						return p.result
-					}
-				} else {
-					p.result.valid = false
-					p.result.unparsed.push(t)
-					p.result.fromCache = true
-					p.result.accepting = false
-					p.trace.info("found in cache, valid:", p.result.valid, p.result.node)
-					return p.result
-				}
+			if p.result.fillFromCache(
+				p.cache,
+				p.typ,
+				t,
+				p.initNode,
+				p.initIsMember,
+				false,
+			) {
+				p.trace.info("found in cache, valid:", p.result.valid)
+				p.done = true
+				return p.result
 			}
 		}
 
@@ -357,20 +317,20 @@ parseLoop:
 				p.result.accepting = false
 				p.result.valid = p.result.node != nil
 
-				// var ct *token
-				// if p.result.node != nil {
-				// 	ct = p.result.node.token
-				// } else if p.initNode != nil {
-				// 	ct = p.initNode.token
-				// } else {
-				// 	if p.tokenStack == nil || !p.tokenStack.has() {
-				// 		panic(unexpectedResult(p.name))
-				// 	}
+				var ct *token
+				if p.result.node != nil {
+					ct = p.result.node.token
+				} else if p.initNode != nil {
+					ct = p.initNode.token
+				} else {
+					if p.tokenStack == nil || !p.tokenStack.has() {
+						panic(unexpectedResult(p.name))
+					}
 
-				// 	ct = p.tokenStack.peek()
-				// }
+					ct = p.tokenStack.peek()
+				}
 
-				// p.cache.set(ct.offset, p.typ, p.result.node, p.result.valid)
+				p.cache.set(ct.offset, p.typ, p.result.node, p.result.valid)
 
 				if p.tokenStack != nil {
 					if p.result.unparsed == nil {
@@ -381,6 +341,7 @@ parseLoop:
 				}
 
 				p.result.accepting = false
+				p.done = true
 				return p.result
 			}
 
@@ -464,20 +425,20 @@ parseLoop:
 		p.result.valid = p.result.node != nil
 		p.trace.info("done, valid:", p.result.valid, p.result.node)
 
-		// var ct *token
-		// if p.result.node != nil {
-		// 	ct = p.result.node.token
-		// } else if p.initNode != nil {
-		// 	ct = p.initNode.token
-		// } else {
-		// 	if p.tokenStack == nil || !p.tokenStack.has() {
-		// 		panic(unexpectedResult(p.name))
-		// 	}
+		var ct *token
+		if p.result.node != nil {
+			ct = p.result.node.token
+		} else if p.initNode != nil {
+			ct = p.initNode.token
+		} else {
+			if p.tokenStack == nil || !p.tokenStack.has() {
+				panic(unexpectedResult(p.name))
+			}
 
-		// 	ct = p.tokenStack.peek()
-		// }
+			ct = p.tokenStack.peek()
+		}
 
-		// p.cache.set(ct.offset, p.typ, p.result.node, p.result.valid)
+		p.cache.set(ct.offset, p.typ, p.result.node, p.result.valid)
 
 		if p.tokenStack != nil {
 			if p.result.unparsed == nil {
@@ -488,8 +449,8 @@ parseLoop:
 		}
 
 		p.result.accepting = false
+		p.done = true
 		if p.skip > 0 {
-			p.skippingAfterDone = true
 			p.result.accepting = true
 			return p.result
 		}

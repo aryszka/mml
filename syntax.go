@@ -27,14 +27,6 @@ type parser interface {
 	parse(*token) *parserResult
 }
 
-type parserResult struct {
-	accepting bool
-	valid     bool
-	node      *node
-	fromCache bool
-	unparsed  *tokenStack
-}
-
 type syntax struct {
 	trace         trace
 	registry      *registry
@@ -67,7 +59,7 @@ func unexpectedResult(nodeType string) error {
 }
 
 func newSyntax() *syntax {
-	return withTrace(noopTrace{})
+	return withTrace(&noopTrace{})
 }
 
 func withTrace(t trace) *syntax {
@@ -254,6 +246,7 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 			}
 
 			if !last.valid {
+				println("one")
 				return nil, errUnexpectedEOF
 			}
 
@@ -265,10 +258,16 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 			last = p.parse(eof)
 
 			if !last.valid {
+				println("two")
 				return nil, errUnexpectedEOF
 			}
 
-			if !last.unparsed.has() || last.unparsed.peek() != eof {
+			if last.unparsed == nil ||
+				last.unparsed.len() != 1 ||
+				!last.unparsed.has() ||
+				last.unparsed.peek() != eof {
+
+				println("three", last.unparsed.peek().value)
 				return nil, errUnexpectedEOF
 			}
 

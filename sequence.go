@@ -21,22 +21,22 @@ type sequenceGenerator struct {
 }
 
 type sequenceParser struct {
-	name              string
-	typ               nodeType
-	trace             trace
-	cache             *cache
-	generators        []generator
-	initGenerators    []generator
-	initIsMember      []bool
-	skip              int
-	skippingAfterDone bool
-	result            *parserResult
-	cacheChecked      bool
-	initNode          *node
-	itemIndex         int
-	currentParser     parser
-	initEvaluated     bool
-	tokenStack        *tokenStack
+	name           string
+	typ            nodeType
+	trace          trace
+	cache          *cache
+	generators     []generator
+	initGenerators []generator
+	initIsMember   []bool
+	skip           int
+	done           bool
+	result         *parserResult
+	cacheChecked   bool
+	initNode       *node
+	itemIndex      int
+	currentParser  parser
+	initEvaluated  bool
+	tokenStack     *tokenStack
 }
 
 func sequenceWithoutItems(nodeType string) error {
@@ -211,6 +211,7 @@ func (g *sequenceGenerator) parser(t trace, c *cache, init *node) parser {
 		initGenerators: g.initGenerators,
 		initIsMember:   g.initIsMember,
 		initNode:       init,
+		result:         &parserResult{},
 	}
 }
 
@@ -222,78 +223,39 @@ parseLoop:
 	for {
 		p.trace.info("parsing", t)
 
-		if p.skip > 0 {
-			p.skip--
-
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			p.result.accepting = true
+		var accepting, ret bool
+		if p.skip, accepting, ret = checkSkip(p.skip, p.done); ret {
+			p.result.accepting = accepting
 			return p.result
 		}
-
-		if p.skippingAfterDone {
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
-			if p.result.unparsed == nil {
-				p.result.unparsed = newTokenStack()
-			}
-
-			p.result.accepting = false
-			p.result.unparsed.push(t)
-			return p.result
-		}
-
-		// need to check membership before the cache check
 
 		if !p.cacheChecked {
 			p.cacheChecked = true
 
-			ct := t
-			if p.initNode != nil {
-				ct = p.initNode.token
-			}
-
-			if n, m, ok := p.cache.get(ct.offset, p.typ); ok {
-				if p.result == nil {
-					p.result = &parserResult{}
-				}
-
-				if p.result.unparsed == nil {
-					p.result.unparsed = newTokenStack()
-				}
-
-				if m {
-					if len(p.initIsMember) > p.itemIndex && !p.initIsMember[p.itemIndex] {
-						p.result.valid = true
-						p.result.node = n
-						p.result.unparsed.push(t)
-						p.result.fromCache = true
-						p.result.accepting = false
-						p.trace.info("found in cache, valid:", p.result.valid, p.result.node)
-						return p.result
-					}
-				} else {
-					p.result.valid = false
-					p.result.unparsed.push(t)
-					p.result.fromCache = true
-					p.result.accepting = false
-					p.trace.info("found in cache, valid:", p.result.valid, p.result.node)
-					return p.result
-				}
+			if p.result.fillFromCache(
+				p.cache,
+				p.typ,
+				t,
+				p.initNode,
+				false,
+				len(p.initIsMember) > p.itemIndex && p.initIsMember[p.itemIndex],
+			) {
+				p.trace.info("found in cache, valid:", p.result.valid)
+				p.done = true
+				return p.result
 			}
 		}
 
 		if p.currentParser == nil {
 			if p.initNode == nil || p.initEvaluated {
-				p.trace.debug(p.generators[p.itemIndex] == nil)
 				p.currentParser = p.generators[p.itemIndex].parser(p.trace, p.cache, nil)
 			} else if p.itemIndex < len(p.initGenerators) {
 				if p.initGenerators[p.itemIndex] != nil {
-					p.currentParser = p.initGenerators[p.itemIndex].parser(p.trace, p.cache, p.initNode)
+					p.currentParser = p.initGenerators[p.itemIndex].parser(
+						p.trace,
+						p.cache,
+						p.initNode,
+					)
 				}
 			}
 		}
@@ -309,10 +271,6 @@ parseLoop:
 		} else {
 			ir = p.currentParser.parse(t)
 			if ir.accepting {
-				if p.result == nil {
-					p.result = &parserResult{}
-				}
-
 				p.result.accepting = true
 				if p.tokenStack != nil && p.tokenStack.has() {
 					t = p.tokenStack.pop()
@@ -339,10 +297,6 @@ parseLoop:
 		// TODO: when can the result node be nil?
 		if ir != nil && ir.valid && ir.node != nil {
 			p.initEvaluated = true
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
 			if p.result.node == nil {
 				p.result.node = &node{
 					name: p.name,
@@ -380,8 +334,9 @@ parseLoop:
 					p.result.unparsed.merge(p.tokenStack)
 				}
 
-				p.skippingAfterDone = p.skip > 0
-				p.result.accepting = p.skippingAfterDone
+				p.done = true
+
+				p.result.accepting = p.skip > 0
 				return p.result
 			}
 
@@ -395,10 +350,6 @@ parseLoop:
 		}
 
 		if ir != nil && ir.valid {
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
 			if p.itemIndex == len(p.generators) {
 				p.trace.info("group done, zero item, valid", p.result.node)
 				p.result.valid = true
@@ -429,8 +380,8 @@ parseLoop:
 					p.result.unparsed.merge(p.tokenStack)
 				}
 
-				p.skippingAfterDone = p.skip > 0
-				p.result.accepting = p.skippingAfterDone
+				p.done = true
+				p.result.accepting = p.skip > 0
 				return p.result
 			}
 
@@ -445,10 +396,6 @@ parseLoop:
 
 		if p.initNode != nil && !p.initEvaluated && len(p.initIsMember) >= p.itemIndex && p.initIsMember[p.itemIndex-1] {
 			p.initEvaluated = true
-
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
 
 			if p.result.node == nil {
 				p.result.node = &node{
@@ -483,6 +430,7 @@ parseLoop:
 				}
 
 				p.result.accepting = false
+				p.done = false
 				return p.result
 			}
 
@@ -496,10 +444,6 @@ parseLoop:
 		}
 
 		p.trace.info("group done, invalid")
-
-		if p.result == nil {
-			p.result = &parserResult{}
-		}
 
 		p.result.valid = false
 		p.result.accepting = false
@@ -539,6 +483,7 @@ parseLoop:
 		}
 
 		p.result.accepting = false
+		p.done = false
 		return p.result
 	}
 }

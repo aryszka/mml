@@ -22,10 +22,6 @@ func (s *intSet) set(i nodeType) {
 }
 
 func (s *intSet) has(i nodeType) bool {
-	if s == nil {
-		return false
-	}
-
 	bucket, flag := i/64, i%64
 	if nodeType(len(s.buckets)) <= bucket {
 		return false
