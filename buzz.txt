@@ -23,6 +23,4 @@ Primary use cases:
 - personal computing, e.g. rich calculators, or ad-hoc log analytics
 - simple tooling frontends
 
-Tail recursion:
-- return the next function and its args
-- unless there is a recover or defer in the scope
+for problems where go is not ideal but currently still the best choice
