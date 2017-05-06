@@ -19,6 +19,10 @@ var (
 	errNoParsersDefined = errors.New("no parsers defined")
 )
 
+func unspecifiedParser(typeName string) error {
+	return fmt.Errorf("unspecified parser: %s", typeName)
+}
+
 func duplicateNodeType(nodeType string) error {
 	return fmt.Errorf("duplicate node type definition in syntax: %s", nodeType)
 }
@@ -46,9 +50,34 @@ func (r *registry) nodeType(name string) nodeType {
 	return t
 }
 
+func (r *registry) typeName(t nodeType) string {
+	return r.names[t]
+}
+
 func (r *registry) definition(t nodeType) (definition, bool) {
-	g, ok := r.definitions[t]
-	return g, ok
+	d, ok := r.definitions[t]
+	return d, ok
+}
+
+func (r *registry) findDefinition(t nodeType) (definition, error) {
+	if d, ok := r.definition(t); ok {
+		return d, nil
+	} else {
+		return nil, unspecifiedParser(r.typeName(t))
+	}
+}
+
+func (r *registry) findDefinitions(types []nodeType) ([]definition, error) {
+	defs := make([]definition, len(types))
+	for i, t := range types {
+		if di, err := r.findDefinition(t); err != nil {
+			return nil, err
+		} else {
+			defs[i] = di
+		}
+	}
+
+	return defs, nil
 }
 
 func (r *registry) register(d definition) error {

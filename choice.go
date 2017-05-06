@@ -66,10 +66,10 @@ func (d *choiceDefinition) expand(ignore typeList) ([]definition, error) {
 	}
 
 	var definitions []definition
-	for i, et := range d.elementTypes {
-		ed, ok := d.registry.definition(et)
-		if !ok {
-			return nil, unspecifiedParser(d.elementNames[i])
+	for _, et := range d.elementTypes {
+		ed, err := d.registry.findDefinition(et)
+		if err != nil {
+			return nil, err
 		}
 
 		if cd, ok := ed.(*choiceDefinition); ok {
@@ -105,13 +105,13 @@ func (d *choiceDefinition) checkExpand() error {
 	return nil
 }
 
-func (d *choiceDefinition) member(t nodeType) (bool, error) {
+func (d *choiceDefinition) member(t nodeType, excluded typeList) (bool, error) {
 	if err := d.checkExpand(); err != nil {
 		return false, err
 	}
 
 	for _, e := range d.elements {
-		if m, err := e.member(t); m || err != nil {
+		if m, err := e.member(t, excluded); m || err != nil {
 			return m, err
 		}
 	}
@@ -161,7 +161,7 @@ func (d *choiceDefinition) generator(t trace, init nodeType, excluded typeList) 
 
 	var initIsMember bool
 	if init != 0 {
-		if m, err := d.member(init); err != nil {
+		if m, err := d.member(init, excluded); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
@@ -231,17 +231,15 @@ func (p *choiceParser) nodeType() nodeType { return p.typ }
 
 // TODO: reconsider choice caching
 
+// TODO: don't use the previous node as init if it was empty
+
 func (p *choiceParser) parse(t *token) *parserResult {
 parseLoop:
 	for {
-		p.trace.info("parsing", t)
+		traceToken(p.trace, t, p.initNode, p.result)
 
 		var accepting, ret bool
 		if p.skip, accepting, ret = checkSkip(p.skip, p.done); ret {
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
 			p.result.accepting = accepting
 			return p.result
 		}
@@ -270,10 +268,6 @@ parseLoop:
 				if p.tokenStack != nil && p.tokenStack.has() {
 					t = p.tokenStack.pop()
 					continue parseLoop
-				}
-
-				if p.result == nil {
-					p.result = &parserResult{}
 				}
 
 				p.result.accepting = true
@@ -306,10 +300,6 @@ parseLoop:
 				if p.generators[p.initTypeIndex][p.elementIndex] != nil {
 					break
 				}
-			}
-
-			if p.result == nil {
-				p.result = &parserResult{}
 			}
 
 			if p.elementIndex == len(p.generators[p.initTypeIndex]) {
@@ -357,10 +347,9 @@ parseLoop:
 		}
 
 		// TODO: test valid optional as the only match in a choice
-		if p.result == nil || p.result.node == nil || er != nil && er.node != nil && len(p.result.node.tokens) < len(er.node.tokens) {
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
+		if p.result.node == nil ||
+			er != nil && er.node != nil &&
+				len(p.result.node.tokens) < len(er.node.tokens) {
 
 			p.result.node = er.node
 
@@ -409,16 +398,8 @@ parseLoop:
 				continue parseLoop
 			}
 
-			if p.result == nil {
-				p.result = &parserResult{}
-			}
-
 			p.result.accepting = true
 			return p.result
-		}
-
-		if p.result == nil {
-			p.result = &parserResult{}
 		}
 
 		p.result.accepting = false

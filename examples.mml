@@ -497,6 +497,8 @@ select {}
 
 // --
 
+// use case because then it can be a declaration
+
 switch {
 	case a == 1: true
 	default: false
@@ -519,6 +521,8 @@ f(b, c...)
 match {
 	case type a int: true
 	case a0 a[0], ar a[1:]: true
+	case [a0, ...arest] a: a0
+	case {key: value string} s: value
 	case v a.value: true
 	case v a.symbol(b): true
 	default: false
@@ -537,9 +541,9 @@ match type a {
 let~ c1 <>
 let c2 <>
 select {
-	case c1 <- c2: // sends c2 through c1
-	case c1 = <-c2: // receives from c2 and captures in a new c1
-	case let c1 = <-c2: // receives from c2 and captures in a new c1 (full format)
+	c1 <- c2: // sends c2 through c1
+	c1 = <-c2: // receives from c2 and captures in a new c1
+	let c1 = <-c2: // receives from c2 and captures in a new c1 (full format)
 }
 
 // --
@@ -560,7 +564,8 @@ set a 2
 fn newPair(a, b) {
 	let p ~{a: a, b: b}
 	fn privateFunction(v) log(v)
-	{
+
+	return {
 		getA: fn() p.a
 		setA: fn(a) {
 			privateFunction(a)
@@ -571,13 +576,66 @@ fn newPair(a, b) {
 	}
 }
 
+// or?
+
+fn newPair(a, b) {
+	let p ~{a: a, b: b}
+	fn privateFunction(v) { log("setting a" v) }
+
+	{ getA: fn() p.a
+	  setA: fn(a) {
+	  	privateFunction(a)
+	  	p.a = a
+	  }
+	  getB: fn() p.b
+	  setB: fn(b) p.b = b
+	}
+
+	// we need a pretty syntax for the structure literal
+}
+
+fn f(m s) s.a > 0 ? m * s.a : s.b
+f(2 a:1 b:2)
+
+// careful with this construct because it can conflict with the range expression and the tertiary if
+
 let p newPair(1, 2)
 p.getA()
 
+// maybe should enforce return in blocks
+// switch could not be a value
+
 fn extendedPair(a, b) {
 	let p newPair(a, b)
-	{
+	return {
 		p...
 		setB: fn(b) p.setB(2 * b)
 	}
 }
+
+// function application:
+
+f(a)
+// or:
+a -> f
+
+f(g(a))
+// or:
+g(a) -> f
+// or:
+a -> g -> f
+
+f(a b c)
+// or:
+c -> f(a b)
+
+// partial application:
+
+fn (
+	f(ff, a) a -> ff
+	g(a, b) [a b]
+)
+
+// fn (b) [a b]
+f(g(a))
+a -> g -> f

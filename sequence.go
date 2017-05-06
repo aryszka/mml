@@ -65,7 +65,10 @@ func newSequence(
 
 func (d *sequenceDefinition) typeName() string                { return d.name }
 func (d *sequenceDefinition) nodeType() nodeType              { return d.typ }
-func (d *sequenceDefinition) member(t nodeType) (bool, error) { return t == d.typ, nil }
+
+func (d *sequenceDefinition) member(t nodeType, excluded typeList) (bool, error) {
+	return !excluded.contains(t) && t == d.typ, nil
+}
 
 func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
 	t = t.extend(d.name)
@@ -78,30 +81,23 @@ func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList
 		return nil, sequenceWithoutItems(d.name)
 	}
 
+	items, err := d.registry.findDefinitions(d.itemTypes)
+	if err != nil {
+		return nil, err
+	}
+
 	g := &sequenceGenerator{
 		typ:      d.typ,
 		name:     d.name,
 		isValid:  true,
 		initType: init,
 	}
-	d.registry.setGenerator(d.typ, init, excluded, g)
 
+	d.registry.setGenerator(d.typ, init, excluded, g)
 	if excluded.contains(d.typ) {
 		g.isValid = false
 		return g, nil
 	}
-
-	items := make([]definition, len(d.itemTypes))
-	for i, it := range d.itemTypes {
-		di, ok := d.registry.definition(it)
-		if !ok {
-			return nil, unspecifiedParser(d.itemNames[i])
-		}
-
-		items[i] = di
-	}
-
-	excluded = append(excluded, d.typ)
 
 	var (
 		generators     []generator
@@ -109,20 +105,79 @@ func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList
 		initIsMember   []bool
 	)
 
-	initType := init
+	excluded = append(excluded, d.typ)
+
+	// generators := make([]generator, len(items))
+	// for i, item := range items {
+	// 	if i == 0 && init != 0 {
+	// 		continue
+	// 	}
+
+	// 	var x typeList
+	// 	if i == 0 {
+	// 		x = excluded
+	// 	}
+
+	// 	gi, err := item.generator(t, 0, x)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	if !gi.valid() {
+	// 		return nil, sequenceItemParserInvalid(d.name)
+	// 	}
+
+	// 	generators[i] = gi
+	// }
+
+	// var (
+	// 	initGenerators []generator
+	// 	initIsMember []bool
+	// )
+
+	// if init != 0 {
+	// 	for i, item := range items {
+	// 		gi, err := item.generator(t, init, excluded)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+
+	// 		m, err := item.member(init)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+
+	// 		if !m && !gi.valid() {
+	// 			g.isValid = false
+	// 			return g, nil
+	// 		}
+
+	// 		initGenerators = append(initGenerators, gi)
+	// 		initIsMember = append(initIsMember, m)
+	// 	}
+	// }
+
+	// TODO: is it handled when the item generator becomes invalid after the generator was created?
+
+	// maybe three lists are needed
+
+	// TODO: always use the excluded for the first, in repetition, too
+
+	hasInit := init != 0
 	for i, di := range items {
 		var x typeList
-		if i == 0 || initType != 0 {
+		if i == 0 || hasInit {
 			x = excluded
 		}
 
-		if i > 0 || initType == 0 {
+		if i > 0 || !hasInit {
 			withoutInit, err := di.generator(t, 0, x)
 			if err != nil {
 				return nil, err
 			}
 
 			if !withoutInit.valid() {
+				t.debug(d.name, i)
 				return nil, sequenceItemParserInvalid(d.name)
 			}
 
@@ -131,13 +186,13 @@ func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList
 			generators = append(generators, nil)
 		}
 
-		if initType != 0 {
-			withInit, err := di.generator(t, initType, x)
+		if hasInit {
+			withInit, err := di.generator(t, init, x)
 			if err != nil {
 				return nil, err
 			}
 
-			m, err := di.member(initType)
+			m, err := di.member(init, excluded)
 			if err != nil {
 				return nil, err
 			}
@@ -152,7 +207,7 @@ func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList
 			initIsMember = append(initIsMember, m)
 
 			if withInit.valid() || m {
-				initType = 0
+				hasInit = false
 			}
 		}
 	}
@@ -218,10 +273,12 @@ func (g *sequenceGenerator) parser(t trace, c *cache, init *node) parser {
 func (p *sequenceParser) typeName() string   { return p.name }
 func (p *sequenceParser) nodeType() nodeType { return p.typ }
 
+// TODO: what happens if there is an init node but it's optional and returns valid but it's not consumed
+
 func (p *sequenceParser) parse(t *token) *parserResult {
 parseLoop:
 	for {
-		p.trace.info("parsing", t)
+		traceToken(p.trace, t, p.initNode, p.result)
 
 		var accepting, ret bool
 		if p.skip, accepting, ret = checkSkip(p.skip, p.done); ret {
@@ -247,6 +304,12 @@ parseLoop:
 		}
 
 		if p.currentParser == nil {
+			p.trace.debug(
+				"taking next parser",
+				p.initNode == nil,
+				p.initEvaluated,
+				p.itemIndex < len(p.initGenerators),
+			)
 			if p.initNode == nil || p.initEvaluated {
 				p.currentParser = p.generators[p.itemIndex].parser(p.trace, p.cache, nil)
 			} else if p.itemIndex < len(p.initGenerators) {
@@ -294,7 +357,6 @@ parseLoop:
 
 		p.itemIndex++
 
-		// TODO: when can the result node be nil?
 		if ir != nil && ir.valid && ir.node != nil {
 			p.initEvaluated = true
 			if p.result.node == nil {
@@ -312,7 +374,7 @@ parseLoop:
 			}
 
 			if p.itemIndex == len(p.generators) {
-				p.trace.info("group done, no more parsers, valid", p.result.node)
+				p.trace.info("sequence done, no more parsers, valid", p.result.node)
 				p.result.valid = true
 
 				ct := p.result.node.token
@@ -351,7 +413,7 @@ parseLoop:
 
 		if ir != nil && ir.valid {
 			if p.itemIndex == len(p.generators) {
-				p.trace.info("group done, zero item, valid", p.result.node)
+				p.trace.info("sequence done, zero item, valid", p.result.node)
 				p.result.valid = true
 
 				if p.result.node == nil {
@@ -407,7 +469,7 @@ parseLoop:
 			p.result.node.append(p.initNode)
 
 			if p.itemIndex == len(p.generators) {
-				p.trace.info("group done, init item, valid", p.result.node)
+				p.trace.info("sequence done, init item, valid", p.result.node)
 				p.result.valid = true
 
 				ct := p.result.node.token
@@ -443,7 +505,7 @@ parseLoop:
 			return p.result
 		}
 
-		p.trace.info("group done, invalid")
+		p.trace.info("sequence done, invalid")
 
 		p.result.valid = false
 		p.result.accepting = false

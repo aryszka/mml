@@ -255,6 +255,8 @@ func (s *syntax) newMMLSyntax() error {
 			"effect-definition",                 // TODO: test
 		},
 
+		// TODO: do the definition groups need the parens?
+
 		{"choice", "statement", "expression", "definition", "value-assignment"},
 		{"choice", "statement-repetition-item", "statement", "seq-sep"},
 		{"repetition", "statement-repetition", "statement-repetition-item"},

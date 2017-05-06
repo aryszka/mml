@@ -30,7 +30,7 @@ func (l typeList) contains(t nodeType) bool {
 func (n *node) append(na *node) {
 	n.nodes = append(n.nodes, na)
 	n.tokens = append(n.tokens, na.tokens...)
-	if len(n.nodes) == 1 {
+	if len(n.nodes) == 1 && len(n.tokens) > 0 {
 		n.token = n.tokens[0]
 	}
 }

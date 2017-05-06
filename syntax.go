@@ -9,7 +9,7 @@ import (
 type definition interface {
 	typeName() string
 	nodeType() nodeType
-	member(nodeType) (bool, error)
+	member(nodeType, typeList) (bool, error)
 	generator(trace, nodeType, typeList) (generator, error)
 }
 
@@ -35,6 +35,11 @@ type syntax struct {
 	cache         *cache
 }
 
+// TODO: test syntax validity:
+// - must include terminal and derive from
+// - optional and choice must derive from terminal, repetition or choice
+// - optional and choice loops should be prevented somehow
+
 var (
 	errNotImplemented       = errors.New("not implemented")
 	errDefinitionsClosed    = errors.New("definitions closed")
@@ -44,10 +49,6 @@ var (
 
 func unexpectedToken(nodeType string, t *token) error {
 	return fmt.Errorf("unexpected token: %v, %v", nodeType, t)
-}
-
-func unspecifiedParser(typeName string) error {
-	return fmt.Errorf("unspecified parser: %s", typeName)
 }
 
 func requiredParserInvalid(typeName string) error {
@@ -185,9 +186,9 @@ func (s *syntax) init() error {
 
 	rt := s.registry.nodeType(rn)
 
-	d, ok := s.registry.definition(rt)
-	if !ok {
-		return unspecifiedParser(rn)
+	d, err := s.registry.findDefinition(rt)
+	if err != nil {
+		return err
 	}
 
 	g, err := d.generator(s.trace, 0, nil)
@@ -234,6 +235,7 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 	last := &parserResult{accepting: true}
 	eof := &token{typ: eofTokenType}
 	var offset int
+	return nil, nil
 	for {
 		t, err := tr.next()
 		if err != nil && err != io.EOF {
@@ -258,7 +260,6 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 			last = p.parse(eof)
 
 			if !last.valid {
-				println("two")
 				return nil, errUnexpectedEOF
 			}
 

@@ -567,6 +567,102 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
+		msg: "repetition as expression",
+		primitive: [][]interface{}{
+			{"symbol", symbolToken},
+			{"symbol-word", symbolWord},
+			{"open-paren", openParen},
+			{"close-paren", closeParen},
+		},
+		complex: [][]string{
+			{"repetition", "symbols", "expression"},
+			{"sequence", "dynamic-symbol", "symbol-word", "open-paren", "expression", "close-paren"},
+			{"choice", "expression", "symbol", "dynamic-symbol", "symbols"},
+		},
+		text: "symbol(a b c)",
+		node: &node{
+			name:  "dynamic-symbol",
+			token: &token{value: "symbol"},
+			nodes: []*node{{
+				name:  "symbol-word",
+				token: &token{value: "symbol"},
+			}, {
+				name:  "open-paren",
+				token: &token{value: "("},
+			}, {
+				name:  "symbols",
+				token: &token{value: "a"},
+				nodes: []*node{{
+					name:  "symbol",
+					token: &token{value: "a"},
+				}, {
+					name:  "symbol",
+					token: &token{value: "b"},
+				}, {
+					name:  "symbol",
+					token: &token{value: "c"},
+				}},
+			}, {
+				name:  "close-paren",
+				token: &token{value: ")"},
+			}},
+		},
+	}, {
+		// TODO: the same thing should be tested with the sequence. Why the optional triggered the
+		// infinite loop?
+		msg: "repetition as optional expression",
+		primitive: [][]interface{}{
+			{"symbol", symbolToken},
+			{"symbol-word", symbolWord},
+		},
+		complex: [][]string{
+			{"optional", "optional-expression", "expression"},
+			{"repetition", "symbols", "optional-expression"},
+			{"choice", "expression", "symbol", "symbols"},
+		},
+		text: "a b c",
+		node: &node{
+			name:  "symbols",
+			token: &token{value: "a"},
+			nodes: []*node{{
+				name:  "symbol",
+				token: &token{value: "a"},
+			}, {
+				name:  "symbol",
+				token: &token{value: "b"},
+			}, {
+				name:  "symbol",
+				token: &token{value: "c"},
+			}},
+		},
+	}, {
+		msg: "optional expression as expression",
+		// TODO: check if the optional needs to add itself to the excluded or it really just should be
+		// only a pass through. Check two optionals with failurs and check optional and choice
+		// combination because it doesn't extend excluded either.
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-expression", "expression"},
+			{"choice", "expression", "optional-expression", "int"},
+		},
+		fail: false,
+	}, {
+		msg: "repetition as optional expression, no match",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"symbol", symbolToken},
+			{"symbol-word", symbolWord},
+		},
+		complex: [][]string{
+			{"optional", "optional-expression", "expression"},
+			{"repetition", "symbols", "optional-expression"},
+			{"choice", "expression", "symbol", "symbols"},
+		},
+		text: "1 2 3",
+		fail: true,
+	}, {
 		msg: "chained symbol query",
 		primitive: [][]interface{}{
 			{"symbol", symbolToken},
@@ -664,8 +760,8 @@ func TestParse(t *testing.T) {
 			{"repetition", "document", "statement-repetition"},
 		},
 		text: `switch {
-				default: a
-			}`,
+					default: a
+				}`,
 		node: &node{
 			name:  "document",
 			token: &token{value: "switch"},
@@ -779,8 +875,8 @@ func TestParse(t *testing.T) {
 			{"choice", "document", "statement-repetition"},
 		},
 		text: `switch {
-				default: a
-			}`,
+					default: a
+				}`,
 		node: &node{
 			name:  "statement-repetition",
 			token: &token{value: "switch"},
@@ -852,7 +948,6 @@ func TestParse(t *testing.T) {
 		primitive: [][]interface{}{
 			{"int", intToken},
 		},
-		// ints = int | int ints
 		complex: [][]string{
 			{"sequence", "int-sequence", "ints", "int"},
 			{"choice", "ints", "int", "int-sequence"},
@@ -876,30 +971,75 @@ func TestParse(t *testing.T) {
 				token: &token{value: "3"},
 			}},
 		},
+	}, {
+		msg: "choice cached",
+		primitive: [][]interface{}{
+			{"int", intToken},
+			{"string", stringToken},
+			{"symbol", symbolToken},
+		},
+		complex: [][]string{
+			{"choice", "int-or-string", "int", "string"},
+			{"choice", "int-or-symbol", "int", "symbol"},
+			{"sequence", "ints-symbols-strings", "int-or-string", "int-or-symbol"},
+			{"sequence", "ints-strings", "int-or-string", "int-or-string"},
+			{"choice", "choice-or-sequence", "ints-symbols-strings", "ints-strings"},
+		},
+		text: "42 \"foo\"",
+		node: &node{
+			name:  "ints-strings",
+			token: &token{value: "42"},
+			nodes: []*node{{
+				name:  "int",
+				token: &token{value: "42"},
+			}, {
+				name:  "string",
+				token: &token{value: "\"foo\""},
+			}},
+		},
 		// }, {
-		// 	msg: "choice cached",
+		// 	msg: "sequence as optional expression, no match",
+		// 	primitive: [][]interface{}{
+		// 		{"int", intToken},
+		// 		{"symbol", symbolToken},
+		// 		{"symbol-word", symbolWord},
+		// 	},
+		// 	complex: [][]string{
+		// 		{"optional", "optional-symbol", "symbol"},
+		// 		{"optional", "optional-expression", "expression"},
+		// 		{
+		// 			"sequence",
+		// 			"symbols",
+		// 			"optional-symbol",
+		// 			"optional-expression",
+		// 			"optional-expression",
+		// 		},
+		// 		{"choice", "expression", "symbol", "symbols"},
+		// 	},
+		// 	text: "1 2 3",
+		// }, {
+		// 	msg: "sequence init item not consumed by first valid item, second can accept it",
 		// 	primitive: [][]interface{}{
 		// 		{"int", intToken},
 		// 		{"string", stringToken},
-		// 		{"symbol", symbolToken},
 		// 	},
 		// 	complex: [][]string{
-		// 		{"choice", "int-or-string", "int", "string"},
-		// 		{"choice", "int-or-symbol", "int", "symbol"},
-		// 		{"sequence", "ints-symbols-strings", "int-or-string", "int-or-symbol"},
-		// 		{"sequence", "ints-strings", "int-or-string", "int-or-string"},
-		// 		{"choice", "choice-or-seqeunce", "ints-symbols-strings", "ints-strings"},
+		// 		{"sequence", "int-string", "int", "string"},
+		// 		{"optional", "optional-int-string", "int-string"},
+		// 		{"sequence", "two-ints", "int", "int"},
+		// 		{"sequence", "int-string-ints", "optional-int-string", "two-ints"},
+		// 		{"choice", "int-or-string-ints", "int", "int-string-ints"},
 		// 	},
-		// 	text: "42 \"foo\"",
+		// 	text: "42 42",
 		// 	node: &node{
-		// 		name: "ints-strings",
+		// 		name:  "string-ints",
 		// 		token: &token{value: "42"},
 		// 		nodes: []*node{{
-		// 			name: "int",
+		// 			name:  "int",
 		// 			token: &token{value: "42"},
 		// 		}, {
-		// 			name: "string",
-		// 			token: &token{value: "\"foo\""},
+		// 			name:  "int",
+		// 			token: &token{value: "42"},
 		// 		}},
 		// 	},
 	}} {

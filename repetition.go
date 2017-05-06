@@ -54,7 +54,10 @@ func newRepetition(
 
 func (d *repetitionDefinition) typeName() string                { return d.name }
 func (d *repetitionDefinition) nodeType() nodeType              { return d.typ }
-func (d *repetitionDefinition) member(t nodeType) (bool, error) { return t == d.typ, nil }
+
+func (d *repetitionDefinition) member(t nodeType, excluded typeList) (bool, error) {
+	return !excluded.contains(t) && t == d.typ, nil
+}
 
 func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
 	t = t.extend(d.name)
@@ -63,17 +66,44 @@ func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeLi
 		return g, nil
 	}
 
-	item, ok := d.registry.definition(d.itemType)
-	if !ok {
-		return nil, unspecifiedParser(d.itemName)
-	}
-
-	first, err := item.generator(t, init, append(excluded, d.typ))
+	item, err := d.registry.findDefinition(d.itemType)
 	if err != nil {
 		return nil, err
 	}
 
-	rest, err := item.generator(t, 0, nil)
+	g := &repetitionGenerator{
+		typ:          d.typ,
+		isValid:      true,
+		name:         d.name,
+	}
+
+	d.registry.setGenerator(d.typ, init, excluded, g)
+	if excluded.contains(d.typ) {
+		g.isValid = false
+		return g, nil
+	}
+
+	excluded = append(excluded, d.typ)
+
+	var initIsMember bool
+	if init != 0 {
+		if m, err := item.member(init, excluded); err != nil {
+			return nil, err
+		} else {
+			initIsMember = m
+		}
+	}
+
+	// TODO: revert the membership bullshit
+
+	g.initIsMember = initIsMember
+
+	first, err := item.generator(t, init, excluded)
+	if err != nil {
+		return nil, err
+	}
+
+	rest, err := item.generator(t, 0, typeList{d.typ})
 	if err != nil {
 		return nil, err
 	}
@@ -82,29 +112,8 @@ func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeLi
 		panic(requiredParserInvalid(d.itemName))
 	}
 
-	var initIsMember bool
-	if init != 0 {
-		if m, err := item.member(init); err != nil {
-			return nil, err
-		} else {
-			initIsMember = m
-		}
-	}
-
-	g := &repetitionGenerator{
-		typ:          d.typ,
-		isValid:      true,
-		name:         d.name,
-		first:        first,
-		rest:         rest,
-		initIsMember: initIsMember,
-	}
-
-	d.registry.setGenerator(d.typ, init, excluded, g)
-	if excluded.contains(d.typ) {
-		g.isValid = false
-		return g, nil
-	}
+	g.first = first
+	g.rest = rest
 
 	return g, nil
 }
@@ -151,10 +160,12 @@ func (g *repetitionGenerator) parser(t trace, c *cache, init *node) parser {
 func (p *repetitionParser) typeName() string   { return p.name }
 func (p *repetitionParser) nodeType() nodeType { return p.typ }
 
+// TODO: check if the node token is ensured in every such case where the node doesn't have any tokens
+
 func (p *repetitionParser) parse(t *token) *parserResult {
 parseLoop:
 	for {
-		p.trace.info("parsing", t)
+		traceToken(p.trace, t, p.initNode, p.result)
 
 		var accepting, ret bool
 		if p.skip, accepting, ret = checkSkip(p.skip, p.done); ret {

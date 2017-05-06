@@ -108,3 +108,16 @@ func checkSkip(skip int, done bool) (int, bool, bool) {
 
 	return 0, false, false
 }
+
+func nodeName(n *node) string {
+	var name string
+	if n != nil {
+		name = n.name
+	}
+
+	return name
+}
+
+func traceToken(trace trace, token *token, init *node, r *parserResult) {
+	trace.info("parsing", token, nodeName(init), ",", nodeName(r.node))
+}

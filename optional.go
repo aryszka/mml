@@ -54,13 +54,17 @@ func newOptional(
 func (d *optionalDefinition) typeName() string   { return d.name }
 func (d *optionalDefinition) nodeType() nodeType { return d.typ }
 
-func (d *optionalDefinition) member(t nodeType) (bool, error) {
-	optional, ok := d.registry.definition(d.optionalType)
-	if !ok {
-		return false, unspecifiedParser(d.optionalName)
+func (d *optionalDefinition) member(t nodeType, excluded typeList) (bool, error) {
+	if excluded.contains(t) {
+		return false, nil
 	}
 
-	return optional.member(t)
+	optional, err := d.registry.findDefinition(d.optionalType)
+	if err != nil {
+		return false, err
+	}
+
+	return optional.member(t, excluded)
 }
 
 func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
@@ -70,12 +74,12 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 		return g, nil
 	}
 
-	optional, ok := d.registry.definition(d.optionalType)
-	if !ok {
-		return nil, unspecifiedParser(d.optionalName)
+	optional, err := d.registry.findDefinition(d.optionalType)
+	if err != nil {
+		return nil, err
 	}
 
-	if m, err := optional.member(d.typ); err != nil {
+	if m, err := optional.member(d.typ, excluded); err != nil {
 		return nil, err
 	} else if m {
 		return nil, optionalContainingSelf(d.name)
@@ -83,7 +87,7 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 
 	var initIsMember bool
 	if init != 0 {
-		if m, err := optional.member(init); err != nil {
+		if m, err := optional.member(init, excluded); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
@@ -104,7 +108,8 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 		return g, nil
 	}
 
-	excluded = append(excluded, d.typ)
+	// TODO: test this with optional and choice
+	// excluded = append(excluded, d.typ)
 	optGenerator, err := optional.generator(t, init, excluded)
 	if err != nil {
 		return nil, err
@@ -154,7 +159,7 @@ func (p *optionalParser) nodeType() nodeType { return p.typ }
 // TODO: fix the cache so that it can be used in the optional and the choice
 
 func (p *optionalParser) parse(t *token) *parserResult {
-	p.trace.info("parsing", t)
+	traceToken(p.trace, t, p.initNode, p.result)
 
 	if p.result.fillFromCache(
 		p.cache,
@@ -203,7 +208,7 @@ func (p *optionalParser) parse(t *token) *parserResult {
 		p.result.node = p.initNode
 		p.result.fromCache = false
 	} else {
-		p.trace.info("missing optional, valid")
+		p.trace.info("empty optional, valid")
 		p.result.node = nil
 		p.result.fromCache = false
 	}
