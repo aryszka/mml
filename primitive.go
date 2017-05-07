@@ -43,8 +43,8 @@ func newPrimitive(r *registry, name string, nt nodeType, tt tokenType) *primitiv
 	}
 }
 
-func (d *primitiveDefinition) typeName() string                { return d.name }
-func (d *primitiveDefinition) nodeType() nodeType              { return d.typ }
+func (d *primitiveDefinition) typeName() string   { return d.name }
+func (d *primitiveDefinition) nodeType() nodeType { return d.typ }
 
 func (d *primitiveDefinition) member(t nodeType, excluded typeList) (bool, error) {
 	return !excluded.contains(t) && t == d.typ, nil

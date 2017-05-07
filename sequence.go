@@ -63,8 +63,8 @@ func newSequence(
 	}
 }
 
-func (d *sequenceDefinition) typeName() string                { return d.name }
-func (d *sequenceDefinition) nodeType() nodeType              { return d.typ }
+func (d *sequenceDefinition) typeName() string   { return d.name }
+func (d *sequenceDefinition) nodeType() nodeType { return d.typ }
 
 func (d *sequenceDefinition) member(t nodeType, excluded typeList) (bool, error) {
 	return !excluded.contains(t) && t == d.typ, nil

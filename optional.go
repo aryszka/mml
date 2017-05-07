@@ -54,6 +54,19 @@ func newOptional(
 func (d *optionalDefinition) typeName() string   { return d.name }
 func (d *optionalDefinition) nodeType() nodeType { return d.typ }
 
+func (d *optionalDefinition) expand(ignore typeList) ([]definition, error) {
+	optional, err := d.registry.findDefinition(d.optionalType)
+	if err != nil {
+		return nil, err
+	}
+
+	if xd, ok := optional.(expander); ok {
+		return xd.expand(append(ignore, d.typ))
+	}
+
+	return []definition{optional}, nil
+}
+
 func (d *optionalDefinition) member(t nodeType, excluded typeList) (bool, error) {
 	if excluded.contains(t) {
 		return false, nil

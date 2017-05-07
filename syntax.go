@@ -13,6 +13,10 @@ type definition interface {
 	generator(trace, nodeType, typeList) (generator, error)
 }
 
+type expander interface {
+	expand(typeList) ([]definition, error)
+}
+
 type generator interface {
 	typeName() string
 	nodeType() nodeType
@@ -235,7 +239,6 @@ func (s *syntax) parse(r io.Reader, name string) (*node, error) {
 	last := &parserResult{accepting: true}
 	eof := &token{typ: eofTokenType}
 	var offset int
-	return nil, nil
 	for {
 		t, err := tr.next()
 		if err != nil && err != io.EOF {

@@ -52,8 +52,8 @@ func newRepetition(
 	}
 }
 
-func (d *repetitionDefinition) typeName() string                { return d.name }
-func (d *repetitionDefinition) nodeType() nodeType              { return d.typ }
+func (d *repetitionDefinition) typeName() string   { return d.name }
+func (d *repetitionDefinition) nodeType() nodeType { return d.typ }
 
 func (d *repetitionDefinition) member(t nodeType, excluded typeList) (bool, error) {
 	return !excluded.contains(t) && t == d.typ, nil
@@ -72,9 +72,9 @@ func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeLi
 	}
 
 	g := &repetitionGenerator{
-		typ:          d.typ,
-		isValid:      true,
-		name:         d.name,
+		typ:     d.typ,
+		isValid: true,
+		name:    d.name,
 	}
 
 	d.registry.setGenerator(d.typ, init, excluded, g)

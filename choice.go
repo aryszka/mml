@@ -72,13 +72,13 @@ func (d *choiceDefinition) expand(ignore typeList) ([]definition, error) {
 			return nil, err
 		}
 
-		if cd, ok := ed.(*choiceDefinition); ok {
-			cdx, err := cd.expand(append(ignore, d.typ))
+		if xd, ok := ed.(expander); ok {
+			edx, err := xd.expand(append(ignore, d.typ))
 			if err != nil {
 				return nil, err
 			}
 
-			definitions = append(definitions, cdx...)
+			definitions = append(definitions, edx...)
 		} else if !ignore.contains(et) {
 			definitions = append(definitions, ed)
 		}
