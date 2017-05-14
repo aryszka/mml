@@ -86,12 +86,12 @@ func (p *classParser) match(t rune) bool {
 	return false
 }
 
-func (p *classParser) parse(c *parserContext) {
-	if c.fillFromCache(p.name, nil, nil) {
+func (p *classParser) parse(c *context) {
+	if c.fillFromCache(p.name, nil) {
 		return
 	}
 
-	if p.match(c.nextToken()) {
+	if t, ok := c.nextToken(); ok && p.match(t) {
 		offset := c.offset()
 		c.succeed(newNode(p.name, offset, offset + 1))
 	} else {

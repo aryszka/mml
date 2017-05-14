@@ -194,19 +194,19 @@ func (p *sequenceParser) nextParser() (bool, bool) {
 }
 
 func (p *sequenceParser) parsed() int {
-	r := p.node.To - p.node.From
+	parsed := p.node.To - p.node.From
 	if p.init != nil {
 		ri := p.init.To - p.init.From
-		if ri <= r {
-			r -= ri
+		if ri <= parsed {
+			parsed -= ri
 		}
 	}
 
-	return r
+	return parsed
 }
 
-func (p *sequenceParser) parse(c *parserContext) {
-	if c.fillFromCache(p.name, nil, p.init) {
+func (p *sequenceParser) parse(c *context) {
+	if c.fillFromCache(p.name, p.init) {
 		return
 	}
 
@@ -217,7 +217,7 @@ func (p *sequenceParser) parse(c *parserContext) {
 		}
 
 		if next, ok := p.nextParser(); !ok {
-			c.reverse(p.parsed())
+			c.moveOffset(-p.parsed())
 			c.fail(p.name)
 			return
 		} else if next {
@@ -230,7 +230,7 @@ func (p *sequenceParser) parse(c *parserContext) {
 			continue
 		}
 
-		c.reverse(p.parsed())
+		c.moveOffset(-p.parsed())
 		c.fail(p.name)
 		return
 	}

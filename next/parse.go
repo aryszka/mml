@@ -1,5 +1,11 @@
 package next
 
+import (
+	"io"
+	"errors"
+	"unicode"
+)
+
 type definition interface {
 	nodeName() string
 	member(string) (bool, error)
@@ -18,18 +24,24 @@ type generator interface {
 
 type parser interface {
 	nodeName() string
-	parse(*parserContext)
+	parse(*context)
 }
 
-type parserContext struct {
+type context struct {
+	// it is valid to hack it and provide a non unicode reader
+	reader io.RuneReader
+
+	readOffset int
+	currentOffset int
+	tokens []rune
+	readErr error
+
 	cache *cache
-	token *Token
-	accepting bool
 	valid     bool
 	node      *Node
-	unparsed  *stack
-	fromCache bool
 }
+
+var ErrInvalidCharacter = errors.New("invalid character")
 
 func stringsContain(ss []string, s string) bool {
 	for _, si := range ss {
@@ -41,110 +53,84 @@ func stringsContain(ss []string, s string) bool {
 	return false
 }
 
-func (c *parserContext) nextToken() rune {
-	panic(ErrNotImplemented)
+func newParserContext(r io.RuneReader) *context {
+	return &context{
+		reader: r,
+		currentOffset: -1,
+	}
 }
 
-func (c *parserContext) offset() int {
-	panic(ErrNotImplemented)
+func (c *context) read() bool {
+	if c.readErr != nil {
+		return false
+	}
+
+	t, _, err := c.reader.ReadRune()
+	if err != nil {
+		c.readErr = err
+		return false
+	}
+
+	if t == unicode.ReplacementChar {
+		c.readErr = ErrInvalidCharacter
+		return false
+	}
+
+	c.tokens = append(c.tokens, t)
+	return true
 }
 
-func (c *parserContext) succeed(*Node) {
-	panic(ErrNotImplemented)
+func (c *context) nextToken() (rune, bool) {
+	c.currentOffset++
+	if c.currentOffset == c.readOffset {
+		if !c.read() {
+			return 0, false
+		}
+	}
+
+	return c.tokens[c.currentOffset], true
 }
 
-func (c *parserContext) fail(string) {
-	panic(ErrNotImplemented)
+func (c *context) offset() int {
+	return c.currentOffset
 }
 
-func (c *parserContext) fillFromCache(string, *Node, *Node) bool {
-	panic(ErrNotImplemented)
+func (c *context) moveOffset(d int) {
+	c.currentOffset += d
 }
 
-func (c *parserContext) reverse(int) {
-	panic(ErrNotImplemented)
+func (c *context) succeed(n *Node) {
+	c.valid = true
+	c.node = n
+	c.cache.set(n.From, n.Name, n)
 }
 
-// func (c *parserContext) initNext() {
-// 	c.accepting = false
-// 	c.valid = false
-// 	c.node = nil
-// 	c.fromCache = false
-// 	c.unparsed.clear()
-// }
-// 
-// func (c *parserContext) fillFromCache(name string, init, itemInit *Node) bool {
-// 	t := c.token
-// 
-// 	if init != nil {
-// 		t = init.Reference
-// 	}
-// 	
-// 	if itemInit != nil {
-// 		t = itemInit.Reference
-// 	}
-// 
-// 	n, m, ok := c.cache.get(t.Offset, name)
-// 	if !ok {
-// 		return false
-// 	}
-// 
-// 	if init != nil && n != init {
-// 		return false
-// 	}
-// 
-// 	if itemInit != nil && (len(n.Nodes) == 0 || n.Nodes[0] != itemInit) {
-// 		return false
-// 	}
-// 
-// 	c.valid = m
-// 	c.node = n
-// 	c.fromCache = true
-// 	c.unparsed.push(c.token)
-// 	return true
-// }
-// 
-// func (c *parserContext) succeed(name string, n *Node, s *stack, accepting bool) {
-// 	c.valid = true
-// 	c.node = n
-// 	c.accepting = accepting
-// 
-// 	if s != nil {
-// 		c.unparsed.merge(s)
-// 	}
-// 
-// 	c.cache.set(c.node.Reference.Offset, name, c.node)
-// }
-// 
-// func (c *parserContext) fail(name string, s *stack, accepting bool) {
-// 	c.accepting = accepting
-// 
-// 	if s != nil {
-// 		c.unparsed.merge(s)
-// 	}
-// 
-// 	c.unparsed.push(c.token)
-// 
-// 	// cache, reference, node nil
-// }
-// 
-// func checkSkip(skip int, done bool) (int, bool, bool) {
-// 	if skip == 0 {
-// 		return 0, false, false
-// 	}
-// 
-// 	skip--
-// 	if skip > 0 || !done {
-// 		return skip, true, true
-// 	}
-// 
-// 	if done {
-// 		return 0, false, true
-// 	}
-// 
-// 	return 0, false, false
-// }
+func (c *context) fail(name string) {
+	c.moveOffset(-1)
+	c.cache.set(c.currentOffset, name, nil)
+}
 
-// could be a reader
-// could contain a stack of the whole read tokens and the rest just could use references to the tokens
-// skip could become a single operation and there was no need for the stack
+func (c *context) fillFromCache(name string, init *Node) bool {
+	if c.currentOffset < 0 {
+		return false
+	}
+
+	offset := c.currentOffset
+	if init != nil {
+		offset = init.From
+	}
+
+	n, m, ok := c.cache.get(offset, name)
+	if !ok {
+		return false
+	}
+
+	if init != nil && !n.startsWith(init) {
+		return false
+	}
+
+	c.valid = m
+	c.node = n
+	c.moveOffset(n.To - n.From - 1)
+	return true
+}

@@ -15,46 +15,33 @@ func newNode(name string, from, to int) *Node {
 	}
 }
 
-func (n *Node) startsWith(*Node) bool {
-	panic(ErrNotImplemented)
+func (n *Node) startsWith(p *Node) bool {
+	if n == p {
+		return true
+	}
+
+	for _, ni := range n.Nodes {
+		if ni.startsWith(p) {
+			return true
+		}
+
+		if ni.To != n.From {
+			return false
+		}
+	}
+
+	return false
+}
+
+func (n *Node) appendRange(from, to int) {
+	if n.From < 0 {
+		n.From = from
+	}
+
+	n.To = to
 }
 
 func (n *Node) appendNode(p *Node) {
-	panic(ErrNotImplemented)
+	n.Nodes = append(n.Nodes, p)
+	n.appendRange(p.From, p.To)
 }
-
-// func (n *Node) appendNode(p *Node) {
-// 	n.Nodes = append(n.Nodes, p)
-// 	n.appendToken(p.Tokens...)
-// }
-// 
-// func (n *Node) appendToken(t ...*Token) {
-// 	for _, ti := range t {
-// 		n.Tokens = append(n.Tokens, ti)
-// 		if n.Reference == nil {
-// 			n.Reference = ti
-// 		}
-// 	}
-// }
-// 
-// func (n *Node) startsWith(p *Node) bool {
-// 	if n == p {
-// 		return true
-// 	}
-// 
-// 	if len(n.Nodes) == 0 {
-// 		return false
-// 	}
-// 
-// 	for _, ni := range n.Nodes {
-// 		if ni.startsWith(p) {
-// 			return true
-// 		}
-// 
-// 		if len(ni.Tokens) > 0 {
-// 			return false
-// 		}
-// 	}
-// 
-// 	return false
-// }

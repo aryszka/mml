@@ -63,12 +63,12 @@ func (g *charGenerator) parser(t trace, _ *Node) parser {
 
 func (p *charParser) nodeName() string { return p.name }
 
-func (p *charParser) parse(c *parserContext) {
-	if c.fillFromCache(p.name, nil, nil) {
+func (p *charParser) parse(c *context) {
+	if c.fillFromCache(p.name, nil) {
 		return
 	}
 
-	if c.nextToken() == p.value {
+	if t, ok := c.nextToken(); ok && t == p.value {
 		offset := c.offset()
 		c.succeed(newNode(p.name, offset, offset + 1))
 	} else {
