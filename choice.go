@@ -105,13 +105,13 @@ func (d *choiceDefinition) checkExpand() error {
 	return nil
 }
 
-func (d *choiceDefinition) member(t nodeType, excluded typeList) (bool, error) {
+func (d *choiceDefinition) member(t nodeType) (bool, error) {
 	if err := d.checkExpand(); err != nil {
 		return false, err
 	}
 
 	for _, e := range d.elements {
-		if m, err := e.member(t, excluded); m || err != nil {
+		if m, err := e.member(t); m || err != nil {
 			return m, err
 		}
 	}
@@ -161,7 +161,7 @@ func (d *choiceDefinition) generator(t trace, init nodeType, excluded typeList) 
 
 	var initIsMember bool
 	if init != 0 {
-		if m, err := d.member(init, excluded); err != nil {
+		if m, err := d.member(init); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
@@ -206,6 +206,7 @@ func (g *choiceGenerator) parser(t trace, c *cache, init *node) parser {
 	result := &parserResult{}
 	if g.initIsMember {
 		result.node = init
+		result.valid = true
 	}
 
 	var currentParser parser
@@ -349,9 +350,13 @@ parseLoop:
 		// TODO: test valid optional as the only match in a choice
 		if p.result.node == nil ||
 			er != nil && er.node != nil &&
-				len(p.result.node.tokens) < len(er.node.tokens) {
+				len(p.result.node.tokens) < len(er.node.tokens) ||
+			er != nil && er.valid && er.node == nil {
+
+			p.trace.info("taking result")
 
 			p.result.node = er.node
+			p.result.valid = true
 
 			p.initTypeIndex = p.elementIndex + 1
 			if p.initTypeIndex < len(p.generators) {
@@ -403,7 +408,6 @@ parseLoop:
 		}
 
 		p.result.accepting = false
-		p.result.valid = p.result.node != nil
 		p.trace.info("done, valid:", p.result.valid, p.result.node)
 
 		var ct *token

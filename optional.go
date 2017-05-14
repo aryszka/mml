@@ -31,6 +31,8 @@ type optionalParser struct {
 	result       *parserResult
 }
 
+// TODO: the empty is a bad idea, everything should have its own node
+
 func optionalContainingSelf(nodeType string) error {
 	return fmt.Errorf("optional containing self: %s", nodeType)
 }
@@ -54,31 +56,41 @@ func newOptional(
 func (d *optionalDefinition) typeName() string   { return d.name }
 func (d *optionalDefinition) nodeType() nodeType { return d.typ }
 
-func (d *optionalDefinition) expand(ignore typeList) ([]definition, error) {
-	optional, err := d.registry.findDefinition(d.optionalType)
-	if err != nil {
-		return nil, err
-	}
+// func (d *optionalDefinition) expand(ignore typeList) ([]definition, error) {
+// 	optional, err := d.registry.findDefinition(d.optionalType)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	var defs []definition
+// 	xd, ok := optional.(expander);
+// 	if ok {
+// 		defs, err = xd.expand(append(ignore, d.typ))
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	} else {
+// 		defs = []definition{optional}
+// 	}
+//
+// 	defs = append(defs, emptyParser)
+// 	return defs, nil
+// }
 
-	if xd, ok := optional.(expander); ok {
-		return xd.expand(append(ignore, d.typ))
-	}
-
-	return []definition{optional}, nil
-}
-
-func (d *optionalDefinition) member(t nodeType, excluded typeList) (bool, error) {
-	if excluded.contains(t) {
-		return false, nil
-	}
-
+func (d *optionalDefinition) member(t nodeType) (bool, error) {
 	optional, err := d.registry.findDefinition(d.optionalType)
 	if err != nil {
 		return false, err
 	}
 
-	return optional.member(t, excluded)
+	if t == d.typ {
+		return true, nil
+	}
+
+	return optional.member(t)
 }
+
+// TODO: for the test "optional expression as expression, empty input", introduce the 'nothing' parser?
 
 func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
 	t = t.extend(d.name)
@@ -92,15 +104,21 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 		return nil, err
 	}
 
-	if m, err := optional.member(d.typ, excluded); err != nil {
-		return nil, err
-	} else if m {
-		return nil, optionalContainingSelf(d.name)
-	}
+	// TODO: why not?
+	// the problem is when it contains only itself
+	// it makes no sense. This check should have failed.
+	// what happens if it contains itself through a repetition?
+	// maybe the same check should go into the repetition, too
+	// or just still why not, and only check that every rule expands to terminals
+	// if m, err := optional.member(d.typ); err != nil {
+	// 	return nil, err
+	// } else if m {
+	// 	return nil, optionalContainingSelf(d.name)
+	// }
 
 	var initIsMember bool
 	if init != 0 {
-		if m, err := optional.member(init, excluded); err != nil {
+		if m, err := optional.member(init); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
@@ -121,8 +139,6 @@ func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList
 		return g, nil
 	}
 
-	// TODO: test this with optional and choice
-	// excluded = append(excluded, d.typ)
 	optGenerator, err := optional.generator(t, init, excluded)
 	if err != nil {
 		return nil, err

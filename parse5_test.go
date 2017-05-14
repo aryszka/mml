@@ -636,10 +636,11 @@ func TestParse(t *testing.T) {
 			}},
 		},
 	}, {
-		msg: "optional expression as expression",
-		// TODO: check if the optional needs to add itself to the excluded or it really just should be
-		// only a pass through. Check two optionals with failurs and check optional and choice
-		// combination because it doesn't extend excluded either.
+		msg: "optional expression as expression, empty input",
+		// // this should be equivalent to optional int:
+		// int = [0-9]*
+		// optional-expression = expression?
+		// expression = optional-expression | int
 		primitive: [][]interface{}{
 			{"int", intToken},
 		},
@@ -647,7 +648,20 @@ func TestParse(t *testing.T) {
 			{"optional", "optional-expression", "expression"},
 			{"choice", "expression", "optional-expression", "int"},
 		},
-		fail: false,
+	}, {
+		msg: "optional expression as expression, valid input",
+		primitive: [][]interface{}{
+			{"int", intToken},
+		},
+		complex: [][]string{
+			{"optional", "optional-expression", "expression"},
+			{"choice", "expression", "optional-expression", "int"},
+		},
+		text: "42",
+		node: &node{
+			name:  "int",
+			token: &token{value: "42"},
+		},
 	}, {
 		msg: "repetition as optional expression, no match",
 		primitive: [][]interface{}{

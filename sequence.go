@@ -66,8 +66,8 @@ func newSequence(
 func (d *sequenceDefinition) typeName() string   { return d.name }
 func (d *sequenceDefinition) nodeType() nodeType { return d.typ }
 
-func (d *sequenceDefinition) member(t nodeType, excluded typeList) (bool, error) {
-	return !excluded.contains(t) && t == d.typ, nil
+func (d *sequenceDefinition) member(t nodeType) (bool, error) {
+	return t == d.typ, nil
 }
 
 func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
@@ -192,7 +192,7 @@ func (d *sequenceDefinition) generator(t trace, init nodeType, excluded typeList
 				return nil, err
 			}
 
-			m, err := di.member(init, excluded)
+			m, err := di.member(init)
 			if err != nil {
 				return nil, err
 			}
@@ -549,3 +549,6 @@ parseLoop:
 		return p.result
 	}
 }
+
+func (s *sequenceGenerator) valid() bool { return s.isValid }
+func (s *sequenceGenerator) validate(trace) error {}

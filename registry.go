@@ -15,9 +15,7 @@ type registry struct {
 	generators  map[string]generator
 }
 
-var (
-	errNoParsersDefined = errors.New("no parsers defined")
-)
+var errNoParsersDefined = errors.New("no parsers defined")
 
 func unspecifiedParser(typeName string) error {
 	return fmt.Errorf("unspecified parser: %s", typeName)

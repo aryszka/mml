@@ -9,7 +9,7 @@ import (
 type definition interface {
 	typeName() string
 	nodeType() nodeType
-	member(nodeType, typeList) (bool, error)
+	member(nodeType) (bool, error)
 	generator(trace, nodeType, typeList) (generator, error)
 }
 

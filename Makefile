@@ -1,12 +1,18 @@
 SOURCES = $(shell find . -name '*.go')
+NEXT_SOURCES = $(shell find next -name '*.go')
 
 default: build
+
+next: build-next
 
 imports:
 	@goimports -w $(SOURCES)
 
 build: $(SOURCES)
 	go build ./...
+
+build-next: $(NEXT_SOURCES)
+	go build ./next
 
 install: $(SOURCES)
 	go install ./cmd/mml

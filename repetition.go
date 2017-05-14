@@ -55,8 +55,8 @@ func newRepetition(
 func (d *repetitionDefinition) typeName() string   { return d.name }
 func (d *repetitionDefinition) nodeType() nodeType { return d.typ }
 
-func (d *repetitionDefinition) member(t nodeType, excluded typeList) (bool, error) {
-	return !excluded.contains(t) && t == d.typ, nil
+func (d *repetitionDefinition) member(t nodeType) (bool, error) {
+	return t == d.typ, nil
 }
 
 func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
@@ -87,7 +87,7 @@ func (d *repetitionDefinition) generator(t trace, init nodeType, excluded typeLi
 
 	var initIsMember bool
 	if init != 0 {
-		if m, err := item.member(init, excluded); err != nil {
+		if m, err := item.member(init); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
