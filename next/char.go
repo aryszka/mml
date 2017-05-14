@@ -49,8 +49,8 @@ func (d *charDefinition) generator(_ trace, init string, excluded []string) (gen
 	return g, nil
 }
 
-func (g *charGenerator) nodeName() string     { return g.name }
-func (g *charGenerator) valid() bool          { return g.isValid }
+func (g *charGenerator) nodeName() string               { return g.name }
+func (g *charGenerator) valid() bool                    { return g.isValid }
 func (g *charGenerator) validate(trace, []string) error { return nil }
 
 func (g *charGenerator) parser(t trace, _ *Node) parser {
@@ -70,7 +70,7 @@ func (p *charParser) parse(c *context) {
 
 	if t, ok := c.nextToken(); ok && t == p.value {
 		offset := c.offset()
-		c.succeed(newNode(p.name, offset, offset + 1))
+		c.succeed(newNode(p.name, offset, offset+1))
 	} else {
 		c.fail(p.name)
 	}

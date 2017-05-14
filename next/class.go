@@ -54,8 +54,8 @@ func (d *classDefinition) generator(_ trace, init string, excluded []string) (ge
 	return g, nil
 }
 
-func (g *classGenerator) nodeName() string     { return g.name }
-func (g *classGenerator) valid() bool          { return g.isValid }
+func (g *classGenerator) nodeName() string               { return g.name }
+func (g *classGenerator) valid() bool                    { return g.isValid }
 func (g *classGenerator) validate(trace, []string) error { return nil }
 
 func (g *classGenerator) parser(t trace, _ *Node) parser {
@@ -93,7 +93,7 @@ func (p *classParser) parse(c *context) {
 
 	if t, ok := c.nextToken(); ok && p.match(t) {
 		offset := c.offset()
-		c.succeed(newNode(p.name, offset, offset + 1))
+		c.succeed(newNode(p.name, offset, offset+1))
 	} else {
 		c.fail(p.name)
 	}

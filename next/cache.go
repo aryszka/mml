@@ -1,7 +1,7 @@
 package next
 
 type cacheItem struct {
-	name  string
+	name string
 	node *Node
 }
 
@@ -82,7 +82,7 @@ func (c *cache) set(offset int, name string, n *Node) {
 	}
 
 	tc.match = append(tc.match, &cacheItem{
-		name:  name,
+		name: name,
 		node: n,
 	})
 }

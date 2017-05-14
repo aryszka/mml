@@ -8,7 +8,7 @@ import (
 type registry struct {
 	definitions map[string]definition
 	root        definition
-	generators map[string]generator
+	generators  map[string]generator
 }
 
 func duplicateDefinition(name string) error {

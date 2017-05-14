@@ -1,8 +1,8 @@
 package next
 
 import (
-	"io"
 	"errors"
+	"io"
 	"unicode"
 )
 
@@ -31,14 +31,14 @@ type context struct {
 	// it is valid to hack it and provide a non unicode reader
 	reader io.RuneReader
 
-	readOffset int
+	readOffset    int
 	currentOffset int
-	tokens []rune
-	readErr error
+	tokens        []rune
+	readErr       error
 
 	cache *cache
-	valid     bool
-	node      *Node
+	valid bool
+	node  *Node
 }
 
 var ErrInvalidCharacter = errors.New("invalid character")
@@ -55,7 +55,7 @@ func stringsContain(ss []string, s string) bool {
 
 func newParserContext(r io.RuneReader) *context {
 	return &context{
-		reader: r,
+		reader:        r,
 		currentOffset: -1,
 	}
 }

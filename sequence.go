@@ -550,5 +550,5 @@ parseLoop:
 	}
 }
 
-func (s *sequenceGenerator) valid() bool { return s.isValid }
+func (s *sequenceGenerator) valid() bool          { return s.isValid }
 func (s *sequenceGenerator) validate(trace) error {}

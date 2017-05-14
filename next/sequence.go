@@ -3,29 +3,29 @@ package next
 import "fmt"
 
 type sequenceDefinition struct {
-	name string
-	items []string
+	name     string
+	items    []string
 	registry *registry
 }
 
 type sequenceGenerator struct {
-	name string
-	isValid bool
-	init string
-	initial []generator
-	rest []generator
+	name         string
+	isValid      bool
+	init         string
+	initial      []generator
+	rest         []generator
 	initIsMember []bool
 }
 
 type sequenceParser struct {
-	name string
-	trace trace
-	init *Node
-	initial []generator
-	rest []generator
+	name         string
+	trace        trace
+	init         *Node
+	initial      []generator
+	rest         []generator
 	initIsMember []bool
-	node *Node
-	itemParser parser
+	node         *Node
+	itemParser   parser
 }
 
 func sequenceWithoutItems(name string) error {
@@ -38,8 +38,8 @@ func invalidSequenceItem(name, itemName string) error {
 
 func newSequence(r *registry, name string, items []string) *sequenceDefinition {
 	return &sequenceDefinition{
-		name: name,
-		items: items,
+		name:     name,
+		items:    items,
 		registry: r,
 	}
 }
@@ -109,7 +109,7 @@ func (d *sequenceDefinition) generator(t trace, init string, excluded []string) 
 }
 
 func (g *sequenceGenerator) nodeName() string { return g.name }
-func (g *sequenceGenerator) valid() bool { return g.isValid }
+func (g *sequenceGenerator) valid() bool      { return g.isValid }
 
 // TODO: for the sake of the generated code, better not to keep the invalid generators
 
@@ -148,11 +148,11 @@ func (g *sequenceGenerator) validate(trace, []string) error {
 
 func (g *sequenceGenerator) parser(t trace, init *Node) parser {
 	return &sequenceParser{
-		name: g.name,
-		trace: t.extend(g.name),
-		init: init,
-		initial: g.initial,
-		rest: g.rest,
+		name:         g.name,
+		trace:        t.extend(g.name),
+		init:         init,
+		initial:      g.initial,
+		rest:         g.rest,
 		initIsMember: g.initIsMember,
 	}
 }

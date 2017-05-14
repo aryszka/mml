@@ -1,17 +1,17 @@
 package next
 
 type Node struct {
-	Name string
+	Name  string
 	Nodes []*Node
-	From int
-	To int
+	From  int
+	To    int
 }
 
 func newNode(name string, from, to int) *Node {
 	return &Node{
 		Name: name,
 		From: from,
-		To: to,
+		To:   to,
 	}
 }
 
