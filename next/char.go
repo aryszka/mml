@@ -1,0 +1,77 @@
+package next
+
+type charDefinition struct {
+	name     string
+	value    rune
+	registry *registry
+}
+
+type charGenerator struct {
+	name    string
+	value   rune
+	isValid bool
+}
+
+type charParser struct {
+	name  string
+	trace trace
+	value rune
+}
+
+func newCharDefinition(r *registry, name string, value rune) *charDefinition {
+	return &charDefinition{
+		name:     name,
+		value:    value,
+		registry: r,
+	}
+}
+
+func (d *charDefinition) nodeName() string {
+	return d.name
+}
+
+func (d *charDefinition) member(name string) (bool, error) {
+	return name == d.name, nil
+}
+
+func (d *charDefinition) generator(_ trace, init string, excluded []string) (generator, error) {
+	if g, ok := d.registry.generator(d.name, init, excluded); ok {
+		return g, nil
+	}
+
+	g := &charGenerator{
+		name:    d.name,
+		isValid: stringsContain(excluded, d.name) && init == "",
+		value:   d.value,
+	}
+
+	d.registry.setGenerator(d.name, init, excluded, g)
+	return g, nil
+}
+
+func (g *charGenerator) nodeName() string     { return g.name }
+func (g *charGenerator) valid() bool          { return g.isValid }
+func (g *charGenerator) validate(trace, []string) error { return nil }
+
+func (g *charGenerator) parser(t trace, _ *Node) parser {
+	return &charParser{
+		name:  g.name,
+		trace: t.extend(g.name),
+		value: g.value,
+	}
+}
+
+func (p *charParser) nodeName() string { return p.name }
+
+func (p *charParser) parse(c *parserContext) {
+	if c.fillFromCache(p.name, nil, nil) {
+		return
+	}
+
+	if c.nextToken() == p.value {
+		offset := c.offset()
+		c.succeed(newNode(p.name, offset, offset + 1))
+	} else {
+		c.fail(p.name)
+	}
+}
