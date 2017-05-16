@@ -18,7 +18,7 @@ type classGenerator struct {
 
 type classParser struct {
 	name   string
-	trace  trace
+	trace  Trace
 	not    bool
 	chars  []rune
 	ranges [][]rune
@@ -37,14 +37,14 @@ func newClassDefinition(r *registry, name string, not bool, chars []rune, ranges
 func (d *classDefinition) nodeName() string                 { return d.name }
 func (d *classDefinition) member(name string) (bool, error) { return name == d.name, nil }
 
-func (d *classDefinition) generator(_ trace, init string, excluded []string) (generator, error) {
+func (d *classDefinition) generator(_ Trace, init string, excluded []string) (generator, error) {
 	if g, ok := d.registry.generator(d.name, init, excluded); ok {
 		return g, nil
 	}
 
 	g := &classGenerator{
 		name:    d.name,
-		isValid: stringsContain(excluded, d.name) && init == "",
+		isValid: !stringsContain(excluded, d.name) && init == "",
 		not:     d.not,
 		chars:   d.chars,
 		ranges:  d.ranges,
@@ -56,12 +56,12 @@ func (d *classDefinition) generator(_ trace, init string, excluded []string) (ge
 
 func (g *classGenerator) nodeName() string               { return g.name }
 func (g *classGenerator) valid() bool                    { return g.isValid }
-func (g *classGenerator) validate(trace, []string) error { return nil }
+func (g *classGenerator) validate(Trace, []string) error { return nil }
 
-func (g *classGenerator) parser(t trace, _ *Node) parser {
+func (g *classGenerator) parser(t Trace, _ *Node) parser {
 	return &classParser{
 		name:   g.name,
-		trace:  t.extend(g.name),
+		trace:  t.Extend(g.name),
 		not:    g.not,
 		chars:  g.chars,
 		ranges: g.ranges,

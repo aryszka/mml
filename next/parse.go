@@ -9,7 +9,7 @@ import (
 type definition interface {
 	nodeName() string
 	member(string) (bool, error)
-	generator(trace, string, []string) (generator, error)
+	generator(Trace, string, []string) (generator, error)
 
 	// TODO: try to do this during validation of the generators
 	// terminates([]string) bool
@@ -18,8 +18,8 @@ type definition interface {
 type generator interface {
 	nodeName() string
 	valid() bool
-	validate(trace, []string) error
-	parser(trace, *Node) parser
+	validate(Trace, []string) error
+	parser(Trace, *Node) parser
 }
 
 type parser interface {
@@ -53,9 +53,11 @@ func stringsContain(ss []string, s string) bool {
 	return false
 }
 
-func newParserContext(r io.RuneReader) *context {
+func newContext(r io.RuneReader) *context {
 	return &context{
 		reader:        r,
+		cache:         &cache{},
+		readOffset:    -1,
 		currentOffset: -1,
 	}
 }
@@ -81,8 +83,9 @@ func (c *context) read() bool {
 }
 
 func (c *context) nextToken() (rune, bool) {
-	c.currentOffset++
 	if c.currentOffset == c.readOffset {
+		c.currentOffset++
+		c.readOffset++
 		if !c.read() {
 			return 0, false
 		}

@@ -19,6 +19,13 @@ func unspecifiedParser(name string) error {
 	return fmt.Errorf("unspecified parser: %s", name)
 }
 
+func newRegistry() *registry {
+	return &registry{
+		definitions: make(map[string]definition),
+		generators:  make(map[string]generator),
+	}
+}
+
 func (r *registry) register(d definition) error {
 	n := d.nodeName()
 	if _, exists := r.definitions[n]; exists {

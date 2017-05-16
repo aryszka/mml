@@ -19,7 +19,7 @@ type sequenceGenerator struct {
 
 type sequenceParser struct {
 	name         string
-	trace        trace
+	trace        Trace
 	init         *Node
 	initial      []generator
 	rest         []generator
@@ -47,8 +47,8 @@ func newSequence(r *registry, name string, items []string) *sequenceDefinition {
 func (d *sequenceDefinition) nodeName() string                 { return d.name }
 func (d *sequenceDefinition) member(name string) (bool, error) { return name == d.name, nil }
 
-func (d *sequenceDefinition) generator(t trace, init string, excluded []string) (generator, error) {
-	t = t.extend(d.name)
+func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) (generator, error) {
+	t = t.Extend(d.name)
 
 	if g, ok := d.registry.generator(d.name, init, excluded); ok {
 		return g, nil
@@ -113,7 +113,7 @@ func (g *sequenceGenerator) valid() bool      { return g.isValid }
 
 // TODO: for the sake of the generated code, better not to keep the invalid generators
 
-func (g *sequenceGenerator) validate(trace, []string) error {
+func (g *sequenceGenerator) validate(Trace, []string) error {
 	if !g.isValid {
 		return nil
 	}
@@ -146,10 +146,11 @@ func (g *sequenceGenerator) validate(trace, []string) error {
 	return nil
 }
 
-func (g *sequenceGenerator) parser(t trace, init *Node) parser {
+func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 	return &sequenceParser{
 		name:         g.name,
-		trace:        t.extend(g.name),
+		trace:        t.Extend(g.name),
+		node:         &Node{Name: g.name, From: -1, To: -1},
 		init:         init,
 		initial:      g.initial,
 		rest:         g.rest,

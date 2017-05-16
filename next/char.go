@@ -14,7 +14,7 @@ type charGenerator struct {
 
 type charParser struct {
 	name  string
-	trace trace
+	trace Trace
 	value rune
 }
 
@@ -34,14 +34,14 @@ func (d *charDefinition) member(name string) (bool, error) {
 	return name == d.name, nil
 }
 
-func (d *charDefinition) generator(_ trace, init string, excluded []string) (generator, error) {
+func (d *charDefinition) generator(_ Trace, init string, excluded []string) (generator, error) {
 	if g, ok := d.registry.generator(d.name, init, excluded); ok {
 		return g, nil
 	}
 
 	g := &charGenerator{
 		name:    d.name,
-		isValid: stringsContain(excluded, d.name) && init == "",
+		isValid: !stringsContain(excluded, d.name) && init == "",
 		value:   d.value,
 	}
 
@@ -51,12 +51,12 @@ func (d *charDefinition) generator(_ trace, init string, excluded []string) (gen
 
 func (g *charGenerator) nodeName() string               { return g.name }
 func (g *charGenerator) valid() bool                    { return g.isValid }
-func (g *charGenerator) validate(trace, []string) error { return nil }
+func (g *charGenerator) validate(Trace, []string) error { return nil }
 
-func (g *charGenerator) parser(t trace, _ *Node) parser {
+func (g *charGenerator) parser(t Trace, _ *Node) parser {
 	return &charParser{
 		name:  g.name,
-		trace: t.extend(g.name),
+		trace: t.Extend(g.name),
 		value: g.value,
 	}
 }

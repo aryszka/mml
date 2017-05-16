@@ -7,6 +7,7 @@ An effort to rebalance precision and epxressiveness.
 A functional programming language without elitism.
 An alternative frontend for Go.
 This is not a serious language.
+A programming language for fun.
 
 MML styleguide:
 
