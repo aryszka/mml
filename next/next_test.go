@@ -3,6 +3,7 @@ package next
 import (
 	"bytes"
 	"testing"
+	"time"
 )
 
 type syntaxTest struct {
@@ -93,11 +94,19 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 				}
 			}
 
+			if err := s.Init(); err != nil {
+				t.Error(err)
+				return
+			}
+
+			start := time.Now()
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
 			if err != nil {
 				t.Error(err)
 				return
 			}
+
+			t.Log("parse time", time.Now().Sub(start))
 
 			if !checkNode(n, ti.node) {
 				t.Error("node doesn't match", n)

@@ -53,6 +53,10 @@ func (s *Syntax) register(d definition) error {
 }
 
 func (s *Syntax) Terminal(name string, t ...Terminal) error {
+	if len(t) == 0 {
+		return ErrNoDefinitions
+	}
+
 	defs := terminalDefinitions(s.registry, name, t)
 	names := make([]string, len(defs))
 	for i, d := range defs {

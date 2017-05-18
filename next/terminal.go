@@ -7,18 +7,19 @@ type Terminal struct {
 	Class string
 }
 
-func makeCharDefinitions(r *registry, name, chars string) []definition {
+func makeCharDefinitions(r *registry, name string, indexOffset int, chars string) []definition {
 	c := []rune(chars)
 
 	defs := make([]definition, len(c))
 	for i, ci := range c {
-		defs[i] = newCharDefinition(r, fmt.Sprintf("%s:%d", name, i), ci)
+		defs[i] = newCharDefinition(r, fmt.Sprintf("%s:%d", name, indexOffset + i), ci)
 	}
 
 	return defs
 }
 
-func makeClassDefinition(r *registry, name, class string) definition {
+func makeClassDefinition(r *registry, name string, index int, class string) definition {
+	name = fmt.Sprintf("%s:%d", name, index)
 	c := []rune(class)
 
 	var not bool
@@ -47,11 +48,10 @@ func makeClassDefinition(r *registry, name, class string) definition {
 func terminalDefinitions(r *registry, name string, t []Terminal) []definition {
 	var defs []definition
 	for i, ti := range t {
-		name := fmt.Sprintf("%s:%d", name, i)
 		if ti.Chars != "" {
-			defs = append(defs, makeCharDefinitions(r, name, ti.Chars)...)
+			defs = append(defs, makeCharDefinitions(r, name, i, ti.Chars)...)
 		} else {
-			defs = append(defs, makeClassDefinition(r, name, ti.Class))
+			defs = append(defs, makeClassDefinition(r, name, i, ti.Class))
 		}
 	}
 

@@ -12,15 +12,15 @@ func TestSymbol(t *testing.T) {
 			From: 0,
 			To:   3,
 			Nodes: []*Node{{
-				Name: "foo-word:0:0",
+				Name: "foo-word:0",
 				From: 0,
 				To:   1,
 			}, {
-				Name: "foo-word:0:1",
+				Name: "foo-word:1",
 				From: 1,
 				To:   2,
 			}, {
-				Name: "foo-word:0:2",
+				Name: "foo-word:2",
 				From: 2,
 				To:   3,
 			}},
