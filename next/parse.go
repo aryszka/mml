@@ -53,6 +53,8 @@ func stringsContain(ss []string, s string) bool {
 	return false
 }
 
+// TODO: this offset is messy like this
+
 func newContext(r io.RuneReader) *context {
 	return &context{
 		reader:        r,
@@ -109,8 +111,16 @@ func (c *context) succeed(n *Node) {
 }
 
 func (c *context) fail(name string) {
-	c.moveOffset(-1)
 	c.cache.set(c.currentOffset, name, nil)
+	c.moveOffset(-1)
+}
+
+func (c *context) failAt(name string, offset int) {
+	println(offset)
+	c.cache.set(offset, name, nil)
+
+	// TODO: offset is a mess like this
+	c.currentOffset = offset - 1
 }
 
 func (c *context) fillFromCache(name string, init *Node) bool {
@@ -123,7 +133,8 @@ func (c *context) fillFromCache(name string, init *Node) bool {
 		offset = init.From
 	}
 
-	n, m, ok := c.cache.get(offset, name)
+	// TODO: offset is a mess like this
+	n, m, ok := c.cache.get(offset+1, name)
 	if !ok {
 		return false
 	}

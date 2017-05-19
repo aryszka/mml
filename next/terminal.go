@@ -12,7 +12,7 @@ func makeCharDefinitions(r *registry, name string, indexOffset int, chars string
 
 	defs := make([]definition, len(c))
 	for i, ci := range c {
-		defs[i] = newCharDefinition(r, fmt.Sprintf("%s:%d", name, indexOffset + i), ci)
+		defs[i] = newCharDefinition(r, fmt.Sprintf("%s:%d", name, indexOffset+i), ci)
 	}
 
 	return defs

@@ -24,7 +24,6 @@ func checkNode(left, right *Node) bool {
 	}
 
 	if left.Name != right.Name {
-		println("name", left.Name, right.Name)
 		return false
 	}
 
@@ -101,12 +100,17 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 
 			start := time.Now()
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
-			if err != nil {
+			t.Log("parse time", time.Now().Sub(start))
+
+			if ti.fail && err == nil {
+				t.Error("failed to fail")
+				return
+			} else if !ti.fail && err != nil {
 				t.Error(err)
 				return
+			} else if ti.fail {
+				return
 			}
-
-			t.Log("parse time", time.Now().Sub(start))
 
 			if !checkNode(n, ti.node) {
 				t.Error("node doesn't match", n)

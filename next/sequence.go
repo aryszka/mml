@@ -211,6 +211,10 @@ func (p *sequenceParser) parse(c *context) {
 		return
 	}
 
+	// TODO: this offset is a mess like this
+	p.node.From = c.offset() + 1
+	p.node.To = p.node.From
+
 	for {
 		if len(p.initial) == 0 {
 			c.succeed(p.node)
@@ -218,8 +222,7 @@ func (p *sequenceParser) parse(c *context) {
 		}
 
 		if next, ok := p.nextParser(); !ok {
-			c.moveOffset(-p.parsed())
-			c.fail(p.name)
+			c.failAt(p.name, p.node.From)
 			return
 		} else if next {
 			continue
@@ -231,8 +234,7 @@ func (p *sequenceParser) parse(c *context) {
 			continue
 		}
 
-		c.moveOffset(-p.parsed())
-		c.fail(p.name)
+		c.failAt(p.name, p.node.From)
 		return
 	}
 }

@@ -4,7 +4,7 @@ import "testing"
 
 func TestSymbol(t *testing.T) {
 	testSyntax(t, []syntaxTest{{
-		msg:    "symbol",
+		msg:    "word",
 		syntax: [][]string{{"chars", "foo-word", "foo"}},
 		text:   "foo",
 		node: &Node{
@@ -25,5 +25,29 @@ func TestSymbol(t *testing.T) {
 				To:   3,
 			}},
 		},
+	}, {
+		msg:    "word, no match",
+		syntax: [][]string{{"chars", "foo-word", "foo"}},
+		text:   "bar",
+		fail:   true,
+	}, {
+		msg:    "letter",
+		syntax: [][]string{{"class", "a", "a-z"}},
+		text:   "a",
+		node: &Node{
+			Name: "a",
+			From: 0,
+			To:   1,
+			Nodes: []*Node{{
+				Name: "a:0",
+				From: 0,
+				To:   1,
+			}},
+		},
+	}, {
+		msg:    "letter, fail",
+		syntax: [][]string{{"class", "a", "a-z"}},
+		text:   "A",
+		fail:   true,
 	}})
 }
