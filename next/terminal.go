@@ -3,8 +3,14 @@ package next
 import "fmt"
 
 type Terminal struct {
-	Chars string
-	Class string
+	Chars    string
+	Class    string
+	Anything bool
+}
+
+func makeAnyCharDefinition(r *registry, name string, indexOffset int) []definition {
+	name = fmt.Sprintf("%s:%d", name, indexOffset)
+	return []definition{newAnyCharDefinition(r, name)}
 }
 
 func makeCharDefinitions(r *registry, name string, indexOffset int, chars string) []definition {
@@ -48,7 +54,9 @@ func makeClassDefinition(r *registry, name string, index int, class string) defi
 func terminalDefinitions(r *registry, name string, t []Terminal) []definition {
 	var defs []definition
 	for i, ti := range t {
-		if ti.Chars != "" {
+		if ti.Anything {
+			defs = append(defs, makeAnyCharDefinition(r, name, i)...)
+		} else if ti.Chars != "" {
 			defs = append(defs, makeCharDefinitions(r, name, i, ti.Chars)...)
 		} else {
 			defs = append(defs, makeClassDefinition(r, name, i, ti.Class))

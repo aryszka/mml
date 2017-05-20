@@ -142,6 +142,8 @@ func (p *repetitionParser) nextParser() (bool, bool) {
 }
 
 func (p *repetitionParser) parse(c *context) {
+	p.trace.Info("parsing")
+
 	if c.fillFromCache(p.name, p.init) {
 		return
 	}
@@ -151,7 +153,7 @@ func (p *repetitionParser) parse(c *context) {
 
 	for {
 		if member, ok := p.nextParser(); !ok {
-			c.succeed(p.node)
+			c.success(p.node)
 			return
 		} else if member {
 			p.node.appendNode(p.init)
@@ -164,7 +166,7 @@ func (p *repetitionParser) parse(c *context) {
 			continue
 		}
 
-		c.succeed(p.node)
+		c.success(p.node)
 		return
 	}
 }

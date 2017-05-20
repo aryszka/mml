@@ -71,21 +71,34 @@ func stringToCommitType(s string) CommitType {
 }
 
 func testSyntax(t *testing.T, st []syntaxTest) {
-	traceLevel := TraceDebug
+	// traceLevel := TraceDebug
+	traceLevel := TraceOff
 
 	for _, ti := range st {
 		t.Run(ti.msg, func(t *testing.T) {
 			s := NewSyntax(Options{Trace: NewTrace(traceLevel)})
 
 			for _, d := range ti.syntax {
-				if len(d) < 3 {
+				if len(d) < 2 {
 					t.Error("invalid syntax definition")
 					return
 				}
 
 				var err error
 				switch d[0] {
+				case "anything":
+					if len(d) < 2 {
+						t.Error("invalid syntax definition")
+						return
+					}
+
+					err = s.Terminal(d[1], Terminal{Anything: true})
 				case "chars":
+					if len(d) < 3 {
+						t.Error("invalid syntax definition")
+						return
+					}
+
 					ts := make([]Terminal, len(d)-2)
 					for i, di := range d[2:] {
 						ts[i] = Terminal{Chars: di}
@@ -93,12 +106,25 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 
 					err = s.Terminal(d[1], ts...)
 				case "class":
+					if len(d) < 3 {
+						t.Error("invalid syntax definition")
+						return
+					}
+
 					ts := make([]Terminal, len(d)-2)
 					for i, di := range d[2:] {
 						ts[i] = Terminal{Class: di}
 					}
 
 					err = s.Terminal(d[1], Terminal{Class: d[2]})
+				case "optional":
+					if len(d) < 3 {
+						t.Error("invalid syntax definition")
+						return
+					}
+
+					ct := stringToCommitType(d[2])
+					err = s.Optional(d[1], ct, d[3])
 				case "repetition":
 					if len(d) < 3 {
 						t.Error("invalid syntax definition")

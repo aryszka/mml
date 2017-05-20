@@ -2,6 +2,7 @@ package next
 
 type classDefinition struct {
 	name     string
+	anything bool
 	not      bool
 	chars    []rune
 	ranges   [][]rune
@@ -9,19 +10,29 @@ type classDefinition struct {
 }
 
 type classGenerator struct {
-	name    string
-	isValid bool
-	not     bool
-	chars   []rune
-	ranges  [][]rune
+	name     string
+	isValid  bool
+	anything bool
+	not      bool
+	chars    []rune
+	ranges   [][]rune
 }
 
 type classParser struct {
-	name   string
-	trace  Trace
-	not    bool
-	chars  []rune
-	ranges [][]rune
+	name     string
+	trace    Trace
+	anything bool
+	not      bool
+	chars    []rune
+	ranges   [][]rune
+}
+
+func newAnyCharDefinition(r *registry, name string) *classDefinition {
+	return &classDefinition{
+		name:     name,
+		anything: true,
+		registry: r,
+	}
 }
 
 func newClassDefinition(r *registry, name string, not bool, chars []rune, ranges [][]rune) *classDefinition {
@@ -43,11 +54,12 @@ func (d *classDefinition) generator(_ Trace, init string, excluded []string) (ge
 	}
 
 	g := &classGenerator{
-		name:    d.name,
-		isValid: !stringsContain(excluded, d.name) && init == "",
-		not:     d.not,
-		chars:   d.chars,
-		ranges:  d.ranges,
+		name:     d.name,
+		isValid:  !stringsContain(excluded, d.name) && init == "",
+		anything: d.anything,
+		not:      d.not,
+		chars:    d.chars,
+		ranges:   d.ranges,
 	}
 
 	d.registry.setGenerator(d.name, init, excluded, g)
@@ -60,11 +72,12 @@ func (g *classGenerator) validate(Trace, []string) error { return nil }
 
 func (g *classGenerator) parser(t Trace, _ *Node) parser {
 	return &classParser{
-		name:   g.name,
-		trace:  t.Extend(g.name),
-		not:    g.not,
-		chars:  g.chars,
-		ranges: g.ranges,
+		name:     g.name,
+		trace:    t.Extend(g.name),
+		anything: g.anything,
+		not:      g.not,
+		chars:    g.chars,
+		ranges:   g.ranges,
 	}
 }
 
@@ -87,14 +100,18 @@ func (p *classParser) match(t rune) bool {
 }
 
 func (p *classParser) parse(c *context) {
+	p.trace.Info("parsing")
+
 	if c.fillFromCache(p.name, nil) {
 		return
 	}
 
-	if t, ok := c.token(); ok && p.match(t) {
-		c.succeed(newNode(p.name, Alias, c.offset, c.offset+1))
+	if t, ok := c.token(); ok && (p.anything || p.match(t)) {
+		p.trace.Info("success", c.offset, t)
+		c.success(newNode(p.name, Alias, c.offset, c.offset+1))
 		c.offset += 1
 	} else {
+		p.trace.Info("fail", c.offset)
 		c.fail(p.name)
 	}
 }

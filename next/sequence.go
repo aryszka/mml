@@ -189,6 +189,8 @@ func (p *sequenceParser) fail(c *context) {
 }
 
 func (p *sequenceParser) parse(c *context) {
+	p.trace.Info("parsing")
+
 	if c.fillFromCache(p.name, p.init) {
 		return
 	}
@@ -198,7 +200,7 @@ func (p *sequenceParser) parse(c *context) {
 
 	for {
 		if len(p.initial) == 0 {
-			c.succeed(p.node)
+			c.success(p.node)
 			return
 		}
 

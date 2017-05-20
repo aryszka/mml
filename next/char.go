@@ -66,14 +66,18 @@ func (g *charGenerator) parser(t Trace, _ *Node) parser {
 func (p *charParser) nodeName() string { return p.name }
 
 func (p *charParser) parse(c *context) {
+	p.trace.Info("parsing")
+
 	if c.fillFromCache(p.name, nil) {
 		return
 	}
 
 	if t, ok := c.token(); ok && t == p.value {
-		c.succeed(newNode(p.name, Alias, c.offset, c.offset+1))
+		p.trace.Info("success", c.offset, t)
+		c.success(newNode(p.name, Alias, c.offset, c.offset+1))
 		c.offset += 1
 	} else {
+		p.trace.Info("fail", c.offset)
 		c.fail(p.name)
 	}
 }

@@ -69,8 +69,8 @@ func (s *Syntax) Terminal(name string, t ...Terminal) error {
 	return s.register(newSequence(s.registry, name, Alias, names))
 }
 
-func (s *Syntax) Optional(string, CommitType, string) error {
-	panic(ErrNotImplemented)
+func (s *Syntax) Optional(name string, ct CommitType, optional string) error {
+	return s.register(newOptional(s.registry, name, ct, optional))
 }
 
 func (s *Syntax) Repetition(name string, ct CommitType, item string) error {

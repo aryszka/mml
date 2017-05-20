@@ -106,7 +106,7 @@ func (c *context) token() (rune, bool) {
 	return c.tokens[c.offset], true
 }
 
-func (c *context) succeed(n *Node) {
+func (c *context) success(n *Node) {
 	c.valid = true
 	c.node = n
 	c.cache.set(n.from, n.Name, n)
@@ -133,8 +133,11 @@ func (c *context) fillFromCache(name string, init *Node) bool {
 	}
 
 	c.valid = m
-	c.node = n
-	c.offset += n.to - n.from
+	if m {
+		c.node = n
+		c.offset += n.to - n.from
+	}
+
 	return true
 }
 
