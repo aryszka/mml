@@ -32,8 +32,8 @@ func (d *charDefinition) nodeName() string {
 	return d.name
 }
 
-func (d *charDefinition) member(name string) (bool, error) {
-	return name == d.name, nil
+func (d *charDefinition) member(n string, excluded []string) (bool, error) {
+	return !stringsContain(excluded, d.name) && n == d.name, nil
 }
 
 func (d *charDefinition) generator(_ Trace, init string, excluded []string) (generator, error) {
@@ -75,9 +75,8 @@ func (p *charParser) parse(c *context) {
 	if t, ok := c.token(); ok && t == p.value {
 		p.trace.Info("success", c.offset, t)
 		c.success(newNode(p.name, Alias, c.offset, c.offset+1))
-		c.offset += 1
 	} else {
 		p.trace.Info("fail", c.offset)
-		c.fail(p.name)
+		c.fail(p.name, c.offset, nil)
 	}
 }

@@ -45,8 +45,11 @@ func newClassDefinition(r *registry, name string, not bool, chars []rune, ranges
 	}
 }
 
-func (d *classDefinition) nodeName() string                 { return d.name }
-func (d *classDefinition) member(name string) (bool, error) { return name == d.name, nil }
+func (d *classDefinition) nodeName() string { return d.name }
+
+func (d *classDefinition) member(n string, excluded []string) (bool, error) {
+	return !stringsContain(excluded, d.name) && n == d.name, nil
+}
 
 func (d *classDefinition) generator(_ Trace, init string, excluded []string) (generator, error) {
 	if g, ok := d.registry.generator(d.name, init, excluded); ok {
@@ -109,9 +112,8 @@ func (p *classParser) parse(c *context) {
 	if t, ok := c.token(); ok && (p.anything || p.match(t)) {
 		p.trace.Info("success", c.offset, t)
 		c.success(newNode(p.name, Alias, c.offset, c.offset+1))
-		c.offset += 1
 	} else {
 		p.trace.Info("fail", c.offset)
-		c.fail(p.name)
+		c.fail(p.name, c.offset, nil)
 	}
 }

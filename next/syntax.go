@@ -81,8 +81,8 @@ func (s *Syntax) Sequence(name string, ct CommitType, items ...string) error {
 	return s.register(newSequence(s.registry, name, ct, items))
 }
 
-func (s *Syntax) Choice(string, CommitType, ...string) error {
-	panic(ErrNotImplemented)
+func (s *Syntax) Choice(name string, ct CommitType, items ...string) error {
+	return s.register(newChoice(s.registry, name, ct, items))
 }
 
 func (s *Syntax) Init() error {

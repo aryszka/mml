@@ -24,7 +24,6 @@ type repetitionParser struct {
 	initial      generator
 	rest         generator
 	initIsMember bool
-	itemParser   parser
 }
 
 func newRepetition(r *registry, name string, ct CommitType, item string) *repetitionDefinition {
@@ -76,7 +75,7 @@ func (d *repetitionDefinition) generator(t Trace, init string, excluded []string
 
 	var initIsMember bool
 	if init != "" {
-		if m, err := item.member(init); err != nil {
+		if m, err := item.member(init, nil); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
@@ -90,8 +89,8 @@ func (d *repetitionDefinition) generator(t Trace, init string, excluded []string
 	return g, nil
 }
 
-func (d *repetitionDefinition) member(n string) (bool, error) {
-	return n == d.name, nil
+func (d *repetitionDefinition) member(n string, excluded []string) (bool, error) {
+	return !stringsContain(excluded, d.name) && n == d.name, nil
 }
 
 func (g *repetitionGenerator) nodeName() string { return g.name }
@@ -123,21 +122,19 @@ func (g *repetitionGenerator) parser(t Trace, init *Node) parser {
 
 func (p *repetitionParser) nodeName() string { return p.name }
 
-func (p *repetitionParser) nextParser() (bool, bool) {
+func (p *repetitionParser) nextParser() (parser, bool, bool) {
 	switch {
 	case useInitial(p.node, p.init) && p.initial.valid():
-		p.itemParser = p.initial.parser(p.trace, p.init)
-		return false, true
+		return p.initial.parser(p.trace, p.init), false, true
 
 	case !useInitial(p.node, p.init) && p.rest.valid():
-		p.itemParser = p.rest.parser(p.trace, p.init)
-		return false, true
+		return p.rest.parser(p.trace, p.init), false, true
 
 	case useInitial(p.node, p.init) && p.initIsMember:
-		return true, true
+		return nil, true, true
 
 	default:
-		return false, false
+		return nil, false, false
 	}
 }
 
@@ -148,11 +145,10 @@ func (p *repetitionParser) parse(c *context) {
 		return
 	}
 
-	p.node.from = c.offset
-	p.node.to = p.node.from
-
+	c.initRange(p.node, p.init)
 	for {
-		if member, ok := p.nextParser(); !ok {
+		itemParser, member, ok := p.nextParser()
+		if !ok {
 			c.success(p.node)
 			return
 		} else if member {
@@ -160,7 +156,7 @@ func (p *repetitionParser) parse(c *context) {
 			continue
 		}
 
-		p.itemParser.parse(c)
+		itemParser.parse(c)
 		if c.valid {
 			p.node.appendNode(c.node)
 			continue

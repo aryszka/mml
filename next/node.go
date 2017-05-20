@@ -44,7 +44,7 @@ func (n *Node) startsWith(p *Node) bool {
 }
 
 func (n *Node) appendRange(from, to int) {
-	if n.from < 0 {
+	if n.from == 0 && n.to == 0 {
 		n.from = from
 	}
 
@@ -61,11 +61,21 @@ func (n *Node) appendNode(p *Node) {
 	n.appendRange(p.from, p.to)
 }
 
+func (n *Node) clear() {
+	n.from = 0
+	n.to = 0
+	n.Nodes = nil
+}
+
 func (n *Node) applyTokens(t []rune) {
 	n.tokens = t
 	for _, ni := range n.Nodes {
 		ni.applyTokens(t)
 	}
+}
+
+func (n *Node) len() int {
+	return n.to - n.from
 }
 
 func (n *Node) String() string {

@@ -62,7 +62,7 @@ func (d *optionalDefinition) generator(t Trace, init string, excluded []string) 
 
 	var initIsMember bool
 	if init != "" {
-		if m, err := optional.member(init); err != nil {
+		if m, err := optional.member(init, nil); err != nil {
 			return nil, err
 		} else {
 			initIsMember = m
@@ -79,17 +79,21 @@ func (d *optionalDefinition) generator(t Trace, init string, excluded []string) 
 	return g, nil
 }
 
-func (d *optionalDefinition) member(n string) (bool, error) {
-	optional, err := d.registry.findDefinition(d.optional)
-	if err != nil {
-		return false, err
+func (d *optionalDefinition) member(n string, excluded []string) (bool, error) {
+	if stringsContain(excluded, d.name) {
+		return false, nil
 	}
 
 	if n == d.name {
 		return true, nil
 	}
 
-	return optional.member(n)
+	optional, err := d.registry.findDefinition(d.optional)
+	if err != nil {
+		return false, err
+	}
+
+	return optional.member(n, append(excluded, d.name))
 }
 
 func (g *optionalGenerator) nodeName() string { return g.name }
@@ -101,7 +105,7 @@ func (g *optionalGenerator) validate(Trace, []string) error {
 	}
 
 	if g.optional != nil && !g.optional.valid() {
-		g.optional = nil
+		g.isValid = false
 	}
 
 	return nil
@@ -127,9 +131,7 @@ func (p *optionalParser) parse(c *context) {
 		return
 	}
 
-	p.node.from = c.offset
-	p.node.to = p.node.from
-
+	c.initRange(p.node, p.init)
 	if p.optional == nil || !p.optional.valid() {
 		c.success(p.node)
 		return

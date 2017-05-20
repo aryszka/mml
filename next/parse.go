@@ -8,7 +8,7 @@ import (
 
 type definition interface {
 	nodeName() string
-	member(string) (bool, error)
+	member(string, []string) (bool, error)
 	generator(Trace, string, []string) (generator, error)
 
 	// TODO: try to do this during validation of the generators
@@ -109,12 +109,25 @@ func (c *context) token() (rune, bool) {
 func (c *context) success(n *Node) {
 	c.valid = true
 	c.node = n
+	c.offset = n.to
 	c.cache.set(n.from, n.Name, n)
 }
 
-func (c *context) fail(name string) {
+func (c *context) fail(name string, offset int, init *Node) {
+	if init == nil {
+		c.offset = offset
+	} else {
+		c.offset = init.to
+	}
+
 	c.valid = false
-	c.cache.set(c.offset, name, nil)
+
+	if init != nil {
+		offset = init.from
+	}
+
+	// TODO: test if it can succeed with a different init node
+	c.cache.set(offset, name, nil)
 }
 
 func (c *context) fillFromCache(name string, init *Node) bool {
@@ -164,6 +177,15 @@ func (c *context) finalize() error {
 	}
 
 	return c.readErr
+}
+
+func (c *context) initRange(n, init *Node) {
+	n.from = c.offset
+	if init != nil {
+		n.from = init.from
+	}
+
+	n.to = n.from
 }
 
 func parse(p parser, c *context) (*Node, error) {
