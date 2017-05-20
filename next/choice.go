@@ -119,9 +119,24 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 func (g *choiceGenerator) nodeName() string { return g.name }
 func (g *choiceGenerator) valid() bool      { return g.isValid }
 
-func (g *choiceGenerator) validate(Trace, []string) error {
+func (g *choiceGenerator) validate(t Trace, excluded []generator) error {
+	t = t.Extend(g.name)
+
 	if !g.isValid {
 		return nil
+	}
+
+	if generatorsContain(excluded, g) {
+		return nil
+	}
+
+	excluded = append(excluded, g)
+	for i := 0; i < len(g.generators); i++ {
+		for j := 0; j < len(g.generators[i]); j++ {
+			if err := g.generators[i][j].validate(t, excluded); err != nil {
+				return err
+			}
+		}
 	}
 
 	if !g.initIsMember && !g.generators[0][0].valid() {
@@ -182,12 +197,14 @@ func (p *choiceParser) nextParser() (parser, bool, bool) {
 
 func (p *choiceParser) appendNode(n *Node) {
 	p.node.clear()
-	p.node.appendNode(p.init)
+	p.node.appendNode(n)
 	p.stepInit()
 	p.valid = true
 }
 
 func (p *choiceParser) parse(c *context) {
+	p.trace.Info("parsing", c.offset)
+
 	if c.fillFromCache(p.name, p.init) {
 		return
 	}

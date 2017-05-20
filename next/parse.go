@@ -18,7 +18,7 @@ type definition interface {
 type generator interface {
 	nodeName() string
 	valid() bool
-	validate(Trace, []string) error
+	validate(Trace, []generator) error
 	parser(Trace, *Node) parser
 }
 
@@ -51,6 +51,16 @@ var (
 func stringsContain(ss []string, s string) bool {
 	for _, si := range ss {
 		if si == s {
+			return true
+		}
+	}
+
+	return false
+}
+
+func generatorsContain(gs []generator, g generator) bool {
+	for _, gi := range gs {
+		if gi == g {
 			return true
 		}
 	}

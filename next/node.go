@@ -1,5 +1,7 @@
 package next
 
+import "fmt"
+
 type CommitType int
 
 const (
@@ -83,5 +85,5 @@ func (n *Node) String() string {
 		return n.Name + "incomplete:"
 	}
 
-	return n.Name + ":" + string(n.tokens[n.from:n.to])
+	return fmt.Sprintf("%s:%d:%d:%s", n.Name, n.from, n.to, string(n.tokens[n.from:n.to]))
 }

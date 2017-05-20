@@ -69,9 +69,9 @@ func (d *classDefinition) generator(_ Trace, init string, excluded []string) (ge
 	return g, nil
 }
 
-func (g *classGenerator) nodeName() string               { return g.name }
-func (g *classGenerator) valid() bool                    { return g.isValid }
-func (g *classGenerator) validate(Trace, []string) error { return nil }
+func (g *classGenerator) nodeName() string                  { return g.name }
+func (g *classGenerator) valid() bool                       { return g.isValid }
+func (g *classGenerator) validate(Trace, []generator) error { return nil }
 
 func (g *classGenerator) parser(t Trace, _ *Node) parser {
 	return &classParser{
@@ -87,30 +87,35 @@ func (g *classGenerator) parser(t Trace, _ *Node) parser {
 func (p *classParser) nodeName() string { return p.name }
 
 func (p *classParser) match(t rune) bool {
+	p.trace.Debug("matching", p.not, string(t))
 	for _, ci := range p.chars {
 		if ci == t {
-			return true
+			p.trace.Debug("char", string(ci))
+			return !p.not
 		}
 	}
 
 	for _, ri := range p.ranges {
 		if t >= ri[0] && t <= ri[1] {
-			return true
+			p.trace.Debug("range", string(ri[0]), string(ri[1]))
+			return !p.not
 		}
 	}
 
-	return false
+	p.trace.Debug("none", p.not)
+	return p.not
 }
 
 func (p *classParser) parse(c *context) {
-	p.trace.Info("parsing")
+	p.trace.Info("parsing", c.offset)
 
 	if c.fillFromCache(p.name, nil) {
+		p.trace.Info("found in cache")
 		return
 	}
 
 	if t, ok := c.token(); ok && (p.anything || p.match(t)) {
-		p.trace.Info("success", c.offset, t)
+		p.trace.Info("success", c.offset, string([]rune{t}))
 		c.success(newNode(p.name, Alias, c.offset, c.offset+1))
 	} else {
 		p.trace.Info("fail", c.offset)

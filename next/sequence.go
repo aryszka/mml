@@ -117,13 +117,25 @@ func (g *sequenceGenerator) valid() bool      { return g.isValid }
 
 // TODO: for the sake of the generated code, better not to keep the invalid generators
 
-func (g *sequenceGenerator) validate(Trace, []string) error {
+func (g *sequenceGenerator) validate(t Trace, excluded []generator) error {
+	t = t.Extend(g.name)
+
 	if !g.isValid {
 		return nil
 	}
 
+	if generatorsContain(excluded, g) {
+		return nil
+	}
+
+	excluded = append(excluded, g)
+
 	var i int
 	for i = 0; i < len(g.initial); i++ {
+		if err := g.initial[i].validate(t, excluded); err != nil {
+			return err
+		}
+
 		if g.initial[i].valid() {
 			continue
 		}
@@ -137,6 +149,10 @@ func (g *sequenceGenerator) validate(Trace, []string) error {
 	}
 
 	for j := 1; j < len(g.rest); j++ {
+		if err := g.rest[j].validate(t, excluded); err != nil {
+			return err
+		}
+
 		if g.rest[j].valid() {
 			continue
 		}
@@ -187,21 +203,24 @@ func (p *sequenceParser) nextParser() (parser, bool, bool) {
 }
 
 func (p *sequenceParser) parse(c *context) {
-	p.trace.Info("parsing")
+	p.trace.Info("parsing", c.offset)
 
 	if c.fillFromCache(p.name, p.init) {
+		p.trace.Info("found in cache")
 		return
 	}
 
 	c.initRange(p.node, p.init)
 	for {
 		if len(p.initial) == 0 {
+			p.trace.Info("success")
 			c.success(p.node)
 			return
 		}
 
 		itemParser, member, ok := p.nextParser()
 		if !ok {
+			p.trace.Info("fail")
 			c.fail(p.name, p.node.from, p.init)
 			return
 		} else if member {
@@ -215,6 +234,7 @@ func (p *sequenceParser) parse(c *context) {
 			continue
 		}
 
+		p.trace.Info("fail")
 		c.fail(p.name, p.node.from, p.init)
 		return
 	}

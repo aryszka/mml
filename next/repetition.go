@@ -96,9 +96,25 @@ func (d *repetitionDefinition) member(n string, excluded []string) (bool, error)
 func (g *repetitionGenerator) nodeName() string { return g.name }
 func (g *repetitionGenerator) valid() bool      { return g.isValid }
 
-func (g *repetitionGenerator) validate(Trace, []string) error {
+func (g *repetitionGenerator) validate(t Trace, excluded []generator) error {
+	t = t.Extend(g.name)
+
 	if !g.isValid {
 		return nil
+	}
+
+	if generatorsContain(excluded, g) {
+		return nil
+	}
+
+	excluded = append(excluded, g)
+
+	if err := g.initial.validate(t, excluded); err != nil {
+		return err
+	}
+
+	if err := g.rest.validate(t, excluded); err != nil {
+		return err
 	}
 
 	if !g.initial.valid() {
@@ -139,7 +155,7 @@ func (p *repetitionParser) nextParser() (parser, bool, bool) {
 }
 
 func (p *repetitionParser) parse(c *context) {
-	p.trace.Info("parsing")
+	p.trace.Info("parsing", c.offset)
 
 	if c.fillFromCache(p.name, p.init) {
 		return

@@ -51,9 +51,9 @@ func (d *charDefinition) generator(_ Trace, init string, excluded []string) (gen
 	return g, nil
 }
 
-func (g *charGenerator) nodeName() string               { return g.name }
-func (g *charGenerator) valid() bool                    { return g.isValid }
-func (g *charGenerator) validate(Trace, []string) error { return nil }
+func (g *charGenerator) nodeName() string                  { return g.name }
+func (g *charGenerator) valid() bool                       { return g.isValid }
+func (g *charGenerator) validate(Trace, []generator) error { return nil }
 
 func (g *charGenerator) parser(t Trace, _ *Node) parser {
 	return &charParser{
@@ -66,9 +66,10 @@ func (g *charGenerator) parser(t Trace, _ *Node) parser {
 func (p *charParser) nodeName() string { return p.name }
 
 func (p *charParser) parse(c *context) {
-	p.trace.Info("parsing")
+	p.trace.Info("parsing", c.offset)
 
 	if c.fillFromCache(p.name, nil) {
+		p.trace.Info("found in cache")
 		return
 	}
 

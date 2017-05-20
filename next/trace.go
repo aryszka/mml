@@ -1,6 +1,9 @@
 package next
 
-import "log"
+import (
+	"fmt"
+	"os"
+)
 
 type TraceLevel int
 
@@ -66,7 +69,7 @@ func (t *trace) out(l TraceLevel, a ...interface{}) {
 		return
 	}
 
-	log.Println(append([]interface{}{l, t.path}, a...)...)
+	fmt.Fprintln(os.Stderr, append([]interface{}{l, t.path}, a...)...)
 }
 
 func (t *trace) Warn(a ...interface{})  { t.out(TraceWarn, a...) }

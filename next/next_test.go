@@ -16,7 +16,6 @@ type syntaxTest struct {
 
 func checkNode(left, right *Node) bool {
 	if (left == nil) != (right == nil) {
-		println("nil")
 		return false
 	}
 
@@ -25,33 +24,27 @@ func checkNode(left, right *Node) bool {
 	}
 
 	if left.Name != right.Name {
-		println("name", left.Name, ":", right.Name)
 		return false
 	}
 
 	if left.from != right.from {
-		println("from")
 		return false
 	}
 
 	if left.to != right.to {
-		println("to")
 		return false
 	}
 
-	println(left.Name, right.Name)
 	return checkNodes(left.Nodes, right.Nodes)
 }
 
 func checkNodes(left, right []*Node) bool {
 	if len(left) != len(right) {
-		println("length")
 		return false
 	}
 
 	for len(left) > 0 {
 		if !checkNode(left[0], right[0]) {
-			println("child")
 			return false
 		}
 
@@ -84,21 +77,29 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 					return
 				}
 
-				var err error
 				switch d[0] {
-				case "anything":
-					if len(d) < 2 {
-						t.Error("invalid syntax definition")
-						return
-					}
-
-					err = s.Terminal(d[1], Terminal{Anything: true})
-				case "chars":
+				case "chars", "class":
 					if len(d) < 3 {
 						t.Error("invalid syntax definition")
 						return
 					}
+				case "optional", "repetition":
+					if len(d) != 4 {
+						t.Error("invalid syntax definition")
+						return
+					}
+				case "sequence", "choice":
+					if len(d) < 4 {
+						t.Error("invalid syntax definition")
+						return
+					}
+				}
 
+				var err error
+				switch d[0] {
+				case "anything":
+					err = s.Terminal(d[1], Terminal{Anything: true})
+				case "chars":
 					ts := make([]Terminal, len(d)-2)
 					for i, di := range d[2:] {
 						ts[i] = Terminal{Chars: di}
@@ -106,11 +107,6 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 
 					err = s.Terminal(d[1], ts...)
 				case "class":
-					if len(d) < 3 {
-						t.Error("invalid syntax definition")
-						return
-					}
-
 					ts := make([]Terminal, len(d)-2)
 					for i, di := range d[2:] {
 						ts[i] = Terminal{Class: di}
@@ -118,29 +114,17 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 
 					err = s.Terminal(d[1], Terminal{Class: d[2]})
 				case "optional":
-					if len(d) < 3 {
-						t.Error("invalid syntax definition")
-						return
-					}
-
 					ct := stringToCommitType(d[2])
 					err = s.Optional(d[1], ct, d[3])
 				case "repetition":
-					if len(d) < 3 {
-						t.Error("invalid syntax definition")
-						return
-					}
-
 					ct := stringToCommitType(d[2])
 					err = s.Repetition(d[1], ct, d[3])
 				case "sequence":
-					if len(d) < 3 {
-						t.Error("invalid syntax definition")
-						return
-					}
-
 					ct := stringToCommitType(d[2])
 					err = s.Sequence(d[1], ct, d[3:]...)
+				case "choice":
+					ct := stringToCommitType(d[2])
+					err = s.Choice(d[1], ct, d[3:]...)
 				}
 
 				if err != nil {

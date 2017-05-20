@@ -99,9 +99,19 @@ func (d *optionalDefinition) member(n string, excluded []string) (bool, error) {
 func (g *optionalGenerator) nodeName() string { return g.name }
 func (g *optionalGenerator) valid() bool      { return g.isValid }
 
-func (g *optionalGenerator) validate(Trace, []string) error {
+func (g *optionalGenerator) validate(t Trace, excluded []generator) error {
+	t = t.Extend(g.name)
+
 	if !g.isValid {
 		return nil
+	}
+
+	if generatorsContain(excluded, g) {
+		return nil
+	}
+
+	if err := g.optional.validate(t, append(excluded, g)); err != nil {
+		return err
 	}
 
 	if g.optional != nil && !g.optional.valid() {
@@ -125,7 +135,7 @@ func (g *optionalGenerator) parser(t Trace, init *Node) parser {
 func (p *optionalParser) nodeName() string { return p.name }
 
 func (p *optionalParser) parse(c *context) {
-	p.trace.Info("parsing")
+	p.trace.Info("parsing", c.offset)
 
 	if c.fillFromCache(p.name, p.init) {
 		return
