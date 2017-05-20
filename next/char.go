@@ -6,6 +6,8 @@ type charDefinition struct {
 	registry *registry
 }
 
+// TODO: merge gen and parser
+
 type charGenerator struct {
 	name    string
 	value   rune
@@ -68,9 +70,9 @@ func (p *charParser) parse(c *context) {
 		return
 	}
 
-	if t, ok := c.nextToken(); ok && t == p.value {
-		offset := c.offset()
-		c.succeed(newNode(p.name, offset, offset+1))
+	if t, ok := c.token(); ok && t == p.value {
+		c.succeed(newNode(p.name, Alias, c.offset, c.offset+1))
+		c.offset += 1
 	} else {
 		c.fail(p.name)
 	}

@@ -6,15 +6,16 @@ type sequenceDefinition struct {
 	name     string
 	items    []string
 	registry *registry
+	commit   CommitType
 }
 
 type sequenceGenerator struct {
 	name         string
 	isValid      bool
-	init         string
 	initial      []generator
 	rest         []generator
 	initIsMember []bool
+	commit       CommitType
 }
 
 type sequenceParser struct {
@@ -36,11 +37,12 @@ func invalidSequenceItem(name, itemName string) error {
 	return fmt.Errorf("invalid sequence item %s/%s", name, itemName)
 }
 
-func newSequence(r *registry, name string, items []string) *sequenceDefinition {
+func newSequence(r *registry, name string, ct CommitType, items []string) *sequenceDefinition {
 	return &sequenceDefinition{
 		name:     name,
 		items:    items,
 		registry: r,
+		commit:   ct,
 	}
 }
 
@@ -66,7 +68,7 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 	g := &sequenceGenerator{
 		name:    d.name,
 		isValid: true,
-		init:    init,
+		commit:  d.commit,
 	}
 
 	d.registry.setGenerator(d.name, init, excluded, g)
@@ -150,7 +152,7 @@ func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 	return &sequenceParser{
 		name:         g.name,
 		trace:        t.Extend(g.name),
-		node:         &Node{Name: g.name, From: -1, To: -1},
+		node:         newNode(g.name, g.commit, 0, 0),
 		init:         init,
 		initial:      g.initial,
 		rest:         g.rest,
@@ -160,29 +162,16 @@ func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 
 func (p *sequenceParser) nodeName() string { return p.name }
 
-func (p *sequenceParser) useInitial() bool {
-	if len(p.node.Nodes) == 0 {
-		return true
-	}
-
-	if p.init == nil {
-		return false
-	}
-
-	return !p.node.startsWith(p.init)
-}
-
 func (p *sequenceParser) nextParser() (bool, bool) {
 	switch {
-	case p.useInitial() && p.initial[0].valid():
+	case useInitial(p.node, p.init) && p.initial[0].valid():
 		p.itemParser = p.initial[0].parser(p.trace, p.init)
 
-	case p.useInitial() && p.initIsMember[0]:
-		p.node.appendNode(p.init)
-		return true, false
-
-	case !p.useInitial() && p.rest[0].valid():
+	case !useInitial(p.node, p.init) && p.rest[0].valid():
 		p.itemParser = p.rest[0].parser(p.trace, nil)
+
+	case useInitial(p.node, p.init) && p.initIsMember[0]:
+		return true, true
 
 	default:
 		return false, false
@@ -194,16 +183,9 @@ func (p *sequenceParser) nextParser() (bool, bool) {
 	return false, true
 }
 
-func (p *sequenceParser) parsed() int {
-	parsed := p.node.To - p.node.From
-	if p.init != nil {
-		ri := p.init.To - p.init.From
-		if ri <= parsed {
-			parsed -= ri
-		}
-	}
-
-	return parsed
+func (p *sequenceParser) fail(c *context) {
+	c.offset = p.node.from
+	c.fail(p.name)
 }
 
 func (p *sequenceParser) parse(c *context) {
@@ -211,9 +193,8 @@ func (p *sequenceParser) parse(c *context) {
 		return
 	}
 
-	// TODO: this offset is a mess like this
-	p.node.From = c.offset() + 1
-	p.node.To = p.node.From
+	p.node.from = c.offset
+	p.node.to = p.node.from
 
 	for {
 		if len(p.initial) == 0 {
@@ -221,10 +202,11 @@ func (p *sequenceParser) parse(c *context) {
 			return
 		}
 
-		if next, ok := p.nextParser(); !ok {
-			c.failAt(p.name, p.node.From)
+		if member, ok := p.nextParser(); !ok {
+			p.fail(c)
 			return
-		} else if next {
+		} else if member {
+			p.node.appendNode(p.init)
 			continue
 		}
 
@@ -234,7 +216,7 @@ func (p *sequenceParser) parse(c *context) {
 			continue
 		}
 
-		c.failAt(p.name, p.node.From)
+		p.fail(c)
 		return
 	}
 }

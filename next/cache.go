@@ -40,7 +40,6 @@ func (c *cache) get(offset int, name string) (*Node, bool, bool) {
 }
 
 func (c *cache) set(offset int, name string, n *Node) {
-	println(len(c.tokens), offset)
 	if len(c.tokens) <= offset {
 		if cap(c.tokens) > offset {
 			c.tokens = c.tokens[:offset+1]
@@ -52,7 +51,6 @@ func (c *cache) set(offset int, name string, n *Node) {
 		}
 	}
 
-	println(len(c.tokens), offset)
 	tc := c.tokens[offset]
 	if tc == nil {
 		tc = &tokenCache{}

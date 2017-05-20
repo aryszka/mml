@@ -16,6 +16,7 @@ type syntaxTest struct {
 
 func checkNode(left, right *Node) bool {
 	if (left == nil) != (right == nil) {
+		println("nil")
 		return false
 	}
 
@@ -24,27 +25,33 @@ func checkNode(left, right *Node) bool {
 	}
 
 	if left.Name != right.Name {
+		println("name", left.Name, ":", right.Name)
 		return false
 	}
 
-	if left.From != right.From {
+	if left.from != right.from {
+		println("from")
 		return false
 	}
 
-	if left.To != right.To {
+	if left.to != right.to {
+		println("to")
 		return false
 	}
 
+	println(left.Name, right.Name)
 	return checkNodes(left.Nodes, right.Nodes)
 }
 
 func checkNodes(left, right []*Node) bool {
 	if len(left) != len(right) {
+		println("length")
 		return false
 	}
 
 	for len(left) > 0 {
 		if !checkNode(left[0], right[0]) {
+			println("child")
 			return false
 		}
 
@@ -52,6 +59,15 @@ func checkNodes(left, right []*Node) bool {
 	}
 
 	return true
+}
+
+func stringToCommitType(s string) CommitType {
+	switch s {
+	case "alias":
+		return Alias
+	default:
+		return None
+	}
 }
 
 func testSyntax(t *testing.T, st []syntaxTest) {
@@ -83,8 +99,22 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 					}
 
 					err = s.Terminal(d[1], Terminal{Class: d[2]})
+				case "repetition":
+					if len(d) < 3 {
+						t.Error("invalid syntax definition")
+						return
+					}
+
+					ct := stringToCommitType(d[2])
+					err = s.Repetition(d[1], ct, d[3])
 				case "sequence":
-					err = s.Sequence(d[1], d[2:]...)
+					if len(d) < 3 {
+						t.Error("invalid syntax definition")
+						return
+					}
+
+					ct := stringToCommitType(d[2])
+					err = s.Sequence(d[1], ct, d[3:]...)
 				}
 
 				if err != nil {
@@ -103,7 +133,7 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 			t.Log("parse time", time.Now().Sub(start))
 
 			if ti.fail && err == nil {
-				t.Error("failed to fail")
+				t.Error("failed to fail", n)
 				return
 			} else if !ti.fail && err != nil {
 				t.Error(err)

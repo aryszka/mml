@@ -1,18 +1,27 @@
 package next
 
+type CommitType int
+
+const (
+	None  CommitType = 0
+	Alias CommitType = 1 << iota
+)
+
 type Node struct {
 	Name   string
 	Nodes  []*Node
-	From   int
-	To     int
+	from   int
+	to     int
 	tokens []rune
+	commit CommitType
 }
 
-func newNode(name string, from, to int) *Node {
+func newNode(name string, ct CommitType, from, to int) *Node {
 	return &Node{
-		Name: name,
-		From: from,
-		To:   to,
+		Name:   name,
+		from:   from,
+		to:     to,
+		commit: ct,
 	}
 }
 
@@ -26,7 +35,7 @@ func (n *Node) startsWith(p *Node) bool {
 			return true
 		}
 
-		if ni.To != n.From {
+		if ni.to != n.from {
 			return false
 		}
 	}
@@ -35,16 +44,21 @@ func (n *Node) startsWith(p *Node) bool {
 }
 
 func (n *Node) appendRange(from, to int) {
-	if n.From < 0 {
-		n.From = from
+	if n.from < 0 {
+		n.from = from
 	}
 
-	n.To = to
+	n.to = to
 }
 
 func (n *Node) appendNode(p *Node) {
-	n.Nodes = append(n.Nodes, p)
-	n.appendRange(p.From, p.To)
+	if p.commit&Alias != 0 {
+		n.Nodes = append(n.Nodes, p.Nodes...)
+	} else {
+		n.Nodes = append(n.Nodes, p)
+	}
+
+	n.appendRange(p.from, p.to)
 }
 
 func (n *Node) applyTokens(t []rune) {
@@ -55,9 +69,9 @@ func (n *Node) applyTokens(t []rune) {
 }
 
 func (n *Node) String() string {
-	if n.From >= len(n.tokens) || n.To > len(n.tokens) {
+	if n.from >= len(n.tokens) || n.to > len(n.tokens) {
 		return n.Name + "incomplete:"
 	}
 
-	return n.Name + ":" + string(n.tokens[n.From:n.To])
+	return n.Name + ":" + string(n.tokens[n.from:n.to])
 }

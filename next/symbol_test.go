@@ -4,26 +4,22 @@ import "testing"
 
 func TestSymbol(t *testing.T) {
 	testSyntax(t, []syntaxTest{{
-		msg:    "word",
-		syntax: [][]string{{"chars", "foo-word", "foo"}},
-		text:   "foo",
+		msg: "word ignored",
+		syntax: [][]string{
+			{"chars", "foo-word-chars", "foo"},
+		},
+		text: "foo",
+	}, {
+		msg: "word",
+		syntax: [][]string{
+			{"chars", "foo-word-chars", "foo"},
+			{"sequence", "foo-word", "none", "foo-word-chars"},
+		},
+		text: "foo",
 		node: &Node{
 			Name: "foo-word",
-			From: 0,
-			To:   3,
-			Nodes: []*Node{{
-				Name: "foo-word:0",
-				From: 0,
-				To:   1,
-			}, {
-				Name: "foo-word:1",
-				From: 1,
-				To:   2,
-			}, {
-				Name: "foo-word:2",
-				From: 2,
-				To:   3,
-			}},
+			from: 0,
+			to:   3,
 		},
 	}, {
 		msg:    "word, no match",
@@ -31,23 +27,44 @@ func TestSymbol(t *testing.T) {
 		text:   "bar",
 		fail:   true,
 	}, {
-		msg:    "letter",
+		msg:    "word, no match, last",
+		syntax: [][]string{{"chars", "bar-word", "bar"}},
+		text:   "baz",
+		fail:   true,
+	}, {
+		msg:    "char class, ignored",
 		syntax: [][]string{{"class", "a", "a-z"}},
 		text:   "a",
+	}, {
+		msg: "char class",
+		syntax: [][]string{
+			{"class", "lowercase-chars", "a-z"},
+			{"sequence", "lowercase", "none", "lowercase-chars"},
+		},
+		text: "a",
 		node: &Node{
-			Name: "a",
-			From: 0,
-			To:   1,
-			Nodes: []*Node{{
-				Name: "a:0",
-				From: 0,
-				To:   1,
-			}},
+			Name: "lowercase",
+			from: 0,
+			to:   1,
 		},
 	}, {
-		msg:    "letter, fail",
+		msg:    "char class, fail",
 		syntax: [][]string{{"class", "a", "a-z"}},
 		text:   "A",
 		fail:   true,
+	}, {
+		msg: "symbol",
+		syntax: [][]string{
+			{"class", "letter", "a-z"},
+			{"class", "symbol-char", "a-zA-Z0-9_"},
+			{"repetition", "symbol-chars", "alias", "symbol-char"},
+			{"sequence", "symbol", "none", "letter", "symbol-chars"},
+		},
+		text: "fooBar",
+		node: &Node{
+			Name: "symbol",
+			from: 0,
+			to:   6,
+		},
 	}})
 }

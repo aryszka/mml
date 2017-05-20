@@ -22,7 +22,6 @@ var (
 	ErrSyntaxInitialized = errors.New("syntax already initialized")
 	ErrNoDefinitions     = errors.New("syntax contains no definitions")
 	ErrInvalidSyntax     = errors.New("invalid syntax")
-	ErrInvalidInput      = errors.New("invalid input")
 )
 
 func NewSyntax(o Options) *Syntax {
@@ -67,22 +66,22 @@ func (s *Syntax) Terminal(name string, t ...Terminal) error {
 		names[i] = d.nodeName()
 	}
 
-	return s.register(newSequence(s.registry, name, names))
+	return s.register(newSequence(s.registry, name, Alias, names))
 }
 
-func (s *Syntax) Optional(string, string) error {
+func (s *Syntax) Optional(string, CommitType, string) error {
 	panic(ErrNotImplemented)
 }
 
-func (s *Syntax) Repetition(string, string) error {
-	panic(ErrNotImplemented)
+func (s *Syntax) Repetition(name string, ct CommitType, item string) error {
+	return s.register(newRepetition(s.registry, name, ct, item))
 }
 
-func (s *Syntax) Sequence(name string, items ...string) error {
-	return s.register(newSequence(s.registry, name, items))
+func (s *Syntax) Sequence(name string, ct CommitType, items ...string) error {
+	return s.register(newSequence(s.registry, name, ct, items))
 }
 
-func (s *Syntax) Choice(string, ...string) error {
+func (s *Syntax) Choice(string, CommitType, ...string) error {
 	panic(ErrNotImplemented)
 }
 
@@ -133,15 +132,5 @@ func (s *Syntax) Parse(r io.Reader) (*Node, error) {
 
 	c := newContext(bufio.NewReader(r))
 	p := s.root.parser(s.trace, nil)
-	p.parse(c)
-	if c.readErr != nil {
-		return nil, c.readErr
-	}
-
-	if !c.valid {
-		return nil, ErrInvalidInput
-	}
-
-	c.node.applyTokens(c.tokens)
-	return c.node, nil
+	return parse(p, c)
 }

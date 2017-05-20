@@ -91,9 +91,9 @@ func (p *classParser) parse(c *context) {
 		return
 	}
 
-	if t, ok := c.nextToken(); ok && p.match(t) {
-		offset := c.offset()
-		c.succeed(newNode(p.name, offset, offset+1))
+	if t, ok := c.token(); ok && p.match(t) {
+		c.succeed(newNode(p.name, Alias, c.offset, c.offset+1))
+		c.offset += 1
 	} else {
 		c.fail(p.name)
 	}
