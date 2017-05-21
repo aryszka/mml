@@ -54,12 +54,7 @@ func (n *Node) appendRange(from, to int) {
 }
 
 func (n *Node) appendNode(p *Node) {
-	if p.commit&Alias != 0 {
-		n.Nodes = append(n.Nodes, p.Nodes...)
-	} else {
-		n.Nodes = append(n.Nodes, p)
-	}
-
+	n.Nodes = append(n.Nodes, p)
 	n.appendRange(p.from, p.to)
 }
 
@@ -67,6 +62,20 @@ func (n *Node) clear() {
 	n.from = 0
 	n.to = 0
 	n.Nodes = nil
+}
+
+func (n *Node) commitChildren() {
+	var nodes []*Node
+	for _, ni := range n.Nodes {
+		ni.commitChildren()
+		if ni.commit&Alias != 0 {
+			nodes = append(nodes, ni.Nodes...)
+		} else {
+			nodes = append(nodes, ni)
+		}
+	}
+
+	n.Nodes = nodes
 }
 
 func (n *Node) applyTokens(t []rune) {

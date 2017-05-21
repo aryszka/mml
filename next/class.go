@@ -87,22 +87,18 @@ func (g *classGenerator) parser(t Trace, _ *Node) parser {
 func (p *classParser) nodeName() string { return p.name }
 
 func (p *classParser) match(t rune) bool {
-	p.trace.Debug("matching", p.not, string(t))
 	for _, ci := range p.chars {
 		if ci == t {
-			p.trace.Debug("char", string(ci))
 			return !p.not
 		}
 	}
 
 	for _, ri := range p.ranges {
 		if t >= ri[0] && t <= ri[1] {
-			p.trace.Debug("range", string(ri[0]), string(ri[1]))
 			return !p.not
 		}
 	}
 
-	p.trace.Debug("none", p.not)
 	return p.not
 }
 

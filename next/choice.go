@@ -206,6 +206,7 @@ func (p *choiceParser) parse(c *context) {
 	p.trace.Info("parsing", c.offset)
 
 	if c.fillFromCache(p.name, p.init) {
+		p.trace.Info("found in cache, valid:", c.valid)
 		return
 	}
 
@@ -214,10 +215,12 @@ func (p *choiceParser) parse(c *context) {
 		elementParser, member, ok := p.nextParser()
 		if !ok {
 			if p.valid {
+				p.trace.Info("success")
 				c.success(p.node)
 				return
 			}
 
+			p.trace.Info("fail")
 			c.fail(p.name, p.node.from, p.init)
 			return
 		}

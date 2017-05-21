@@ -54,15 +54,6 @@ func checkNodes(left, right []*Node) bool {
 	return true
 }
 
-func stringToCommitType(s string) CommitType {
-	switch s {
-	case "alias":
-		return Alias
-	default:
-		return None
-	}
-}
-
 func testSyntax(t *testing.T, st []syntaxTest) {
 	// traceLevel := TraceDebug
 	traceLevel := TraceOff

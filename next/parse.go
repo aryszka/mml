@@ -117,6 +117,7 @@ func (c *context) token() (rune, bool) {
 }
 
 func (c *context) success(n *Node) {
+	n.commitChildren()
 	c.valid = true
 	c.node = n
 	c.offset = n.to

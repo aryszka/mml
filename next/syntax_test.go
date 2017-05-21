@@ -2,6 +2,10 @@ package next
 
 import "testing"
 
+func TestBoot(t *testing.T) {
+	boot()
+}
+
 func TestOptional(t *testing.T) {
 	testSyntax(t, []syntaxTest{{
 		msg: "fake rsc check, executes in time due to hungriness",
