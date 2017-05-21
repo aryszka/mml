@@ -35,7 +35,7 @@ Syntax for parsing itself.
 // 
 // copmlex:alias = optional
 //               | repetition
-// 	         | sequence;
+//               | sequence;
 // 
 // expression = primitive
 //            | complex

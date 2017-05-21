@@ -95,7 +95,37 @@ var definitions = [][]string{{
 }, {
 	"sequence", "symbol", "none", "symbol-char", "symbol-chars",
 }, {
-	"choice", "primitive", "alias", "symbol",
+	"chars", "any-char", ".",
+}, {
+	"chars", "open-square", "[",
+}, {
+	"chars", "close-square", "]",
+}, {
+	"chars", "not", "^",
+}, {
+	"chars", "dash", "-",
+}, {
+	"optional", "optional-not", "alias", "not",
+}, {
+	"class", "not-class-control", "^\\[\\]\\^\\-",
+}, {
+	"chars", "escape", "\\\\",
+}, {
+	"sequence", "escaped-class-char", "alias", "escape", "any-char",
+}, {
+	"choice", "class-char", "alias", "not-class-control", "escaped-class-char",
+}, {
+	"sequence", "char-range", "alias", "class-char", "dash", "class-char",
+}, {
+	"choice", "char-or-range", "alias", "class-char", "char-range",
+}, {
+	"repetition", "chars-or-ranges", "alias", "char-or-range",
+}, {
+	"sequence", "char-class", "none", "open-square", "optional-not", "chars-or-ranges", "close-square",
+}, {
+	"choice", "terminal", "none", "any-char", "char-class",
+}, {
+	"choice", "primitive", "alias", "symbol", "terminal",
 }, {
 	"choice", "expression", "none", "primitive",
 }, {
@@ -154,7 +184,9 @@ var definitions = [][]string{{
 }}
 
 func defineSyntax() (*Syntax, error) {
-	s := NewSyntax(Options{Trace: NewTrace(TraceOff)})
+	l := TraceOff
+	// l = TraceDebug
+	s := NewSyntax(Options{Trace: NewTrace(l)})
 	if err := define(s, definitions); err != nil {
 		return nil, err
 	}

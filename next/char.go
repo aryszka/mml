@@ -32,8 +32,8 @@ func (d *charDefinition) nodeName() string {
 	return d.name
 }
 
-func (d *charDefinition) member(n string, excluded []string) (bool, error) {
-	return !stringsContain(excluded, d.name) && n == d.name, nil
+func (d *charDefinition) member(string, []string) (bool, error) {
+	return false, nil
 }
 
 func (d *charDefinition) generator(_ Trace, init string, excluded []string) (generator, error) {

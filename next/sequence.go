@@ -48,7 +48,20 @@ func newSequence(r *registry, name string, ct CommitType, items []string) *seque
 func (d *sequenceDefinition) nodeName() string { return d.name }
 
 func (d *sequenceDefinition) member(n string, excluded []string) (bool, error) {
-	return !stringsContain(excluded, d.name) && n == d.name, nil
+	if n == d.items[0] {
+		return true, nil
+	}
+
+	if stringsContain(excluded, d.items[0]) {
+		return false, nil
+	}
+
+	first, err := d.registry.findDefinition(d.items[0])
+	if err != nil {
+		return false, err
+	}
+
+	return first.member(n, append(excluded, d.name))
 }
 
 func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) (generator, error) {
@@ -203,15 +216,15 @@ func (p *sequenceParser) nextParser() (parser, bool, bool) {
 }
 
 func (p *sequenceParser) parse(c *context) {
-	p.trace.Info("parsing", c.offset)
-
 	if c.fillFromCache(p.name, p.init) {
-		p.trace.Info("found in cache")
+		p.trace.Info("found in cache", c.offset)
 		return
 	}
 
 	c.initRange(p.node, p.init)
 	for {
+		p.trace.Info("parsing", c.offset)
+
 		if len(p.initial) == 0 {
 			p.trace.Info("success")
 			c.success(p.node)

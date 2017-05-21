@@ -39,22 +39,21 @@ func newChoice(r *registry, name string, ct CommitType, elements []string) *choi
 func (d *choiceDefinition) nodeName() string { return d.name }
 
 func (d *choiceDefinition) member(n string, excluded []string) (bool, error) {
-	if stringsContain(excluded, d.name) {
-		return false, nil
-	}
+	for _, element := range d.elements {
+		if n == element {
+			return true, nil
+		}
 
-	if n == d.name {
-		return true, nil
-	}
+		if stringsContain(excluded, element) {
+			continue
+		}
 
-	defs, err := d.registry.findDefinitions(d.elements)
-	if err != nil {
-		return false, err
-	}
+		ed, err := d.registry.findDefinition(element)
+		if err != nil {
+			return false, err
+		}
 
-	excluded = append(excluded, d.name)
-	for _, di := range defs {
-		if m, err := di.member(n, excluded); m || err != nil {
+		if m, err := ed.member(n, append(excluded, d.name)); m || err != nil {
 			return m, err
 		}
 	}
@@ -170,27 +169,34 @@ func (p *choiceParser) stepParser() {
 
 func (p *choiceParser) nextParser() (parser, bool, bool) {
 	if p.initIndex == len(p.generators) {
+		p.trace.Debug("no more parser sets")
 		return nil, false, false
 	}
 
+	// TODO: shouldn't it be tried first with a member parser, and only then consider it on its own?
 	if p.initIndex == 0 && p.initIsMember {
+		p.trace.Debug("take init as is")
 		return nil, true, true
 	}
 
 	for {
 		if p.parserIndex == len(p.generators[p.initIndex]) {
+			p.trace.Debug("no more parsers", p.initIndex, p.parserIndex)
 			return nil, false, false
 		}
 
+		// TODO: for char or range this should be valid:
 		if p.generators[p.initIndex][p.parserIndex].valid() {
 			var init *Node
 			if len(p.node.Nodes) > 0 {
 				init = p.node.Nodes[0]
 			}
 
+			p.trace.Debug("created parser", p.generators[p.initIndex][p.parserIndex].nodeName())
 			return p.generators[p.initIndex][p.parserIndex].parser(p.trace, init), false, true
 		}
 
+		p.trace.Debug("parser not valid", p.initIndex, p.parserIndex)
 		p.stepParser()
 	}
 }
@@ -203,8 +209,6 @@ func (p *choiceParser) appendNode(n *Node) {
 }
 
 func (p *choiceParser) parse(c *context) {
-	p.trace.Info("parsing", c.offset)
-
 	if c.fillFromCache(p.name, p.init) {
 		p.trace.Info("found in cache, valid:", c.valid)
 		return
@@ -212,6 +216,11 @@ func (p *choiceParser) parse(c *context) {
 
 	c.initRange(p.node, p.init)
 	for {
+		p.trace.Info("parsing", c.offset, p.initIndex, p.parserIndex)
+		if p.init != nil {
+			p.trace.Debug("has init", p.init.Name)
+		}
+
 		elementParser, member, ok := p.nextParser()
 		if !ok {
 			if p.valid {

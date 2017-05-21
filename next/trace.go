@@ -64,12 +64,16 @@ func (t *trace) Extend(name string) Trace {
 	}
 }
 
+func pad(a interface{}, l int) string {
+	return fmt.Sprintf(fmt.Sprintf("%%-%ds", l), a)
+}
+
 func (t *trace) out(l TraceLevel, a ...interface{}) {
 	if l > t.level {
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, append([]interface{}{l, t.path}, a...)...)
+	fmt.Fprintln(os.Stderr, append([]interface{}{pad(l, 5), t.path}, a...)...)
 }
 
 func (t *trace) Warn(a ...interface{})  { t.out(TraceWarn, a...) }

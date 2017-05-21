@@ -80,12 +80,8 @@ func (d *optionalDefinition) generator(t Trace, init string, excluded []string) 
 }
 
 func (d *optionalDefinition) member(n string, excluded []string) (bool, error) {
-	if stringsContain(excluded, d.name) {
+	if stringsContain(excluded, d.optional) {
 		return false, nil
-	}
-
-	if n == d.name {
-		return true, nil
 	}
 
 	optional, err := d.registry.findDefinition(d.optional)

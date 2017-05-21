@@ -47,8 +47,8 @@ func newClassDefinition(r *registry, name string, not bool, chars []rune, ranges
 
 func (d *classDefinition) nodeName() string { return d.name }
 
-func (d *classDefinition) member(n string, excluded []string) (bool, error) {
-	return !stringsContain(excluded, d.name) && n == d.name, nil
+func (d *classDefinition) member(string, []string) (bool, error) {
+	return false, nil
 }
 
 func (d *classDefinition) generator(_ Trace, init string, excluded []string) (generator, error) {

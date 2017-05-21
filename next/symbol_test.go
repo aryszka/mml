@@ -76,6 +76,17 @@ func TestSymbolSyntax(t *testing.T) {
 	for _, ti := range []syntaxTest{{
 		msg:  "simple",
 		text: "foo = bar",
+	}, {
+		msg:  "with flags",
+		text: "foo:alias = bar",
+	}, {
+		msg:  "with invalid flag",
+		text: "foo:bar = baz",
+		fail: true,
+	}, {
+		msg:  "with invalid char",
+		text: "f[o]o = bar",
+		fail: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax()
@@ -85,9 +96,10 @@ func TestSymbolSyntax(t *testing.T) {
 			}
 
 			_, err = s.Parse(bytes.NewBufferString(ti.text))
-			if err != nil {
+			if ti.fail && err == nil {
+				t.Error("failed to fail")
+			} else if !ti.fail && err != nil {
 				t.Error(err)
-				return
 			}
 		})
 	}

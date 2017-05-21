@@ -90,7 +90,20 @@ func (d *repetitionDefinition) generator(t Trace, init string, excluded []string
 }
 
 func (d *repetitionDefinition) member(n string, excluded []string) (bool, error) {
-	return !stringsContain(excluded, d.name) && n == d.name, nil
+	if n == d.item {
+		return true, nil
+	}
+
+	if stringsContain(excluded, d.item) {
+		return false, nil
+	}
+
+	item, err := d.registry.findDefinition(d.item)
+	if err != nil {
+		return false, err
+	}
+
+	return item.member(n, append(excluded, d.name))
 }
 
 func (g *repetitionGenerator) nodeName() string { return g.name }
@@ -155,14 +168,15 @@ func (p *repetitionParser) nextParser() (parser, bool, bool) {
 }
 
 func (p *repetitionParser) parse(c *context) {
-	p.trace.Info("parsing", c.offset)
-
 	if c.fillFromCache(p.name, p.init) {
+		p.trace.Info("found in cache", c.offset)
 		return
 	}
 
 	c.initRange(p.node, p.init)
 	for {
+		p.trace.Info("parsing", c.offset)
+
 		itemParser, member, ok := p.nextParser()
 		if !ok {
 			c.success(p.node)

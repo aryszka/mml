@@ -28,9 +28,9 @@ func newNode(name string, ct CommitType, from, to int) *Node {
 }
 
 func (n *Node) startsWith(p *Node) bool {
-	if n == p {
-		return true
-	}
+	// if n == p {
+	// 	return true
+	// }
 
 	for _, ni := range n.Nodes {
 		if ni.startsWith(p) {
@@ -65,6 +65,8 @@ func (n *Node) clear() {
 }
 
 func (n *Node) commit() {
+	return
+
 	var nodes []*Node
 	for _, ni := range n.Nodes {
 		ni.commit()

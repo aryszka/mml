@@ -183,7 +183,11 @@ func (c *context) finalize() error {
 		return nil
 	}
 
-	if c.read() {
+	if c.offset < c.readOffset || c.read() {
+		if c.readErr != nil {
+			return c.readErr
+		}
+
 		return ErrUnexpectedCharacter
 	}
 
