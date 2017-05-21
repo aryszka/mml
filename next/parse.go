@@ -117,7 +117,7 @@ func (c *context) token() (rune, bool) {
 }
 
 func (c *context) success(n *Node) {
-	n.commitChildren()
+	n.commit()
 	c.valid = true
 	c.node = n
 	c.offset = n.to
@@ -213,7 +213,7 @@ func parse(p parser, c *context) (*Node, error) {
 		return nil, ErrInvalidInput
 	}
 
-	if c.node.commit&Alias != 0 {
+	if c.node.commitType&Alias != 0 {
 		return nil, nil
 	}
 

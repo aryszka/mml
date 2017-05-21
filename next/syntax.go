@@ -56,7 +56,11 @@ func (s *Syntax) Terminal(name string, t ...Terminal) error {
 		return ErrNoDefinitions
 	}
 
-	defs := terminalDefinitions(s.registry, name, t)
+	defs, err := terminalDefinitions(s.registry, name, t)
+	if err != nil {
+		return err
+	}
+
 	names := make([]string, len(defs))
 	for i, d := range defs {
 		if err := s.registry.register(d); err != nil {

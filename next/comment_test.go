@@ -11,6 +11,26 @@ func TestComment(t *testing.T) {
 	}, {
 		msg:  "simple comment",
 		text: "// some comment",
+	}, {
+		msg:  "block comment",
+		text: "/* foo bar */",
+	}, {
+		msg: "multiple line comments",
+		text: `
+			// foo
+			// bar
+		`,
+	}, {
+		msg: "mixed comments",
+		text: `
+			/* foo */
+			// bar
+			// baz
+
+			// qux
+			/* quux
+			*/
+		`,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax()

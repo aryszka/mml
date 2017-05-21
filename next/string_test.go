@@ -3,11 +3,11 @@ package next
 import "testing"
 
 var stringSyntax = [][]string{{
-	"chars", "quote", "\"",
+	"chars", "quote", "\\\"",
 }, {
-	"class", "not-escaped", "^\\\"",
+	"class", "not-escaped", "^\\\\\\\"",
 }, {
-	"chars", "escape", "\\",
+	"chars", "escape", "\\\\",
 }, {
 	"anything", "anything",
 }, {

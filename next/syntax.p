@@ -10,7 +10,7 @@ Syntax for parsing itself.
 // comment-atom:alias  = line-comment | block-comment;
 // comment             = comment-atom (ws* "\n"? ws* comment-atom)*;
 // 
-// any-char = ".";
+// any-char:alias = ".";
 // 
 // char-sequence = "\"" ([^\\\"] | "\\" .) "\"";
 // 
@@ -20,8 +20,8 @@ Syntax for parsing itself.
 // 
 // terminal = any-char | char-sequence | char-class;
 // 
-// name-char:alias = [^\\ \t\b\f\r\v\b/.\"\[\]\^?*|():=;];
-// name            = name-char name-char*;
+// symbol-char:alias = [^\\ \t\b\f\r\v\b/.\"\[\]\^?*|():=;];
+// symbol            = symbol-char symbol-char*;
 // 
 // optional    = primitive wsc "?";
 // repetition  = primitive wsc "*";
@@ -30,7 +30,7 @@ Syntax for parsing itself.
 // group:alias = "(" wsc* expression wsc* ")";
 // 
 // primitive:alias = terminal
-//                 | name
+//                 | symbol
 //                 | group;
 // 
 // copmlex:alias = optional
@@ -42,6 +42,7 @@ Syntax for parsing itself.
 //            | choice;
 // 
 // flag       = "alias" | "root";
-// definition = name (":" flag)* wsc* "=" wsc* expression;
+// definition = symbol (":" flag)* wsc* "=" wsc* expression;
 // 
-// document:root = (wsc | ";")* definition (wsc* sep (wsc | sep)* definition)* (wsc | ";")*;
+// definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*
+// document:root = (wsc | ";")* definitions? (wsc | ";")*;

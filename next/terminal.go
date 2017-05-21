@@ -1,6 +1,9 @@
 package next
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Terminal struct {
 	Chars    string
@@ -8,60 +11,165 @@ type Terminal struct {
 	Anything bool
 }
 
+var ErrInvalidTerminal = errors.New("invalid terminal")
+
+func unescapeChar(c rune) rune {
+	switch c {
+	case 'n':
+		return '\n'
+	case 't':
+		return '\t'
+	case 'b':
+		return '\b'
+	case 'f':
+		return '\f'
+	case 'r':
+		return '\r'
+	case 'v':
+		return '\v'
+	default:
+		return c
+	}
+}
+
+func runesContain(rs []rune, r rune) bool {
+	for _, ri := range rs {
+		if ri == r {
+			return true
+		}
+	}
+
+	return false
+}
+
+func unescape(escape rune, banned []rune, chars []rune) ([]rune, error) {
+	var (
+		unescaped []rune
+		escaped   bool
+	)
+
+	for _, ci := range chars {
+		if escaped {
+			unescaped = append(unescaped, unescapeChar(ci))
+			escaped = false
+			continue
+		}
+
+		switch {
+		case ci == escape:
+			escaped = true
+		case runesContain(banned, ci):
+			return nil, ErrInvalidTerminal
+		default:
+			unescaped = append(unescaped, ci)
+		}
+	}
+
+	if escaped {
+		return nil, ErrInvalidTerminal
+	}
+
+	return unescaped, nil
+}
+
 func makeAnyCharDefinition(r *registry, name string, indexOffset int) []definition {
 	name = fmt.Sprintf("%s:%d", name, indexOffset)
 	return []definition{newAnyCharDefinition(r, name)}
 }
 
-func makeCharDefinitions(r *registry, name string, indexOffset int, chars string) []definition {
-	c := []rune(chars)
+func makeCharDefinitions(r *registry, name string, indexOffset int, chars string) ([]definition, error) {
+	c, err := unescape('\\', []rune{'"', '\\'}, []rune(chars))
+	if err != nil {
+		return nil, err
+	}
 
 	defs := make([]definition, len(c))
 	for i, ci := range c {
 		defs[i] = newCharDefinition(r, fmt.Sprintf("%s:%d", name, indexOffset+i), ci)
 	}
 
-	return defs
+	return defs, nil
 }
 
-func makeClassDefinition(r *registry, name string, index int, class string) definition {
-	name = fmt.Sprintf("%s:%d", name, index)
-	c := []rune(class)
-
-	var not bool
+func parseCharClass(c []rune) (not bool, chars []rune, ranges [][]rune, err error) {
 	if c[0] == '^' {
 		not = true
 		c = c[1:]
 	}
 
-	var (
-		chars  []rune
-		ranges [][]rune
-	)
+	for {
+		if len(c) == 0 {
+			return
+		}
 
-	for len(c) > 0 {
-		if len(c) >= 3 && c[1] == '-' {
-			ranges, c = append(ranges, []rune{c[0], c[2]}), c[3:]
+		var c0 rune
+		c0, c = c[0], c[1:]
+		switch c0 {
+		case '[', ']', '^', '-':
+			err = ErrInvalidTerminal
+			return
+		}
+
+		if c0 == '\\' {
+			if len(c) == 0 {
+				err = ErrInvalidTerminal
+				return
+			}
+
+			c0, c = unescapeChar(c[0]), c[1:]
+		}
+
+		if len(c) < 2 || c[0] != '-' {
+			chars = append(chars, c0)
 			continue
 		}
 
-		chars, c = append(chars, c[0]), c[1:]
-	}
+		var c1 rune
+		c1, c = c[1], c[2:]
+		if c1 == '\\' {
+			if len(c) == 0 {
+				err = ErrInvalidTerminal
+				return
+			}
 
-	return newClassDefinition(r, name, not, chars, ranges)
+			c1, c = unescapeChar(c[0]), c[1:]
+		}
+
+		ranges = append(ranges, []rune{c0, c1})
+	}
 }
 
-func terminalDefinitions(r *registry, name string, t []Terminal) []definition {
+func makeClassDefinition(r *registry, name string, index int, class string) (definition, error) {
+	not, chars, ranges, err := parseCharClass([]rune(class))
+	if err != nil {
+		return nil, err
+	}
+
+	name = fmt.Sprintf("%s:%d", name, index)
+	return newClassDefinition(r, name, not, chars, ranges), nil
+}
+
+func terminalDefinitions(r *registry, name string, t []Terminal) ([]definition, error) {
 	var defs []definition
 	for i, ti := range t {
 		if ti.Anything {
 			defs = append(defs, makeAnyCharDefinition(r, name, i)...)
 		} else if ti.Chars != "" {
-			defs = append(defs, makeCharDefinitions(r, name, i, ti.Chars)...)
+			di, err := makeCharDefinitions(r, name, i, ti.Chars)
+			if err != nil {
+				return nil, err
+			}
+
+			defs = append(defs, di...)
 		} else {
-			defs = append(defs, makeClassDefinition(r, name, i, ti.Class))
+			di, err := makeClassDefinition(r, name, i, ti.Class)
+			if err != nil {
+				return nil, err
+			}
+
+			defs = append(defs, di)
 		}
 	}
 
-	return defs
+	return defs, nil
 }

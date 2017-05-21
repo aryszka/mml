@@ -10,20 +10,20 @@ const (
 )
 
 type Node struct {
-	Name   string
-	Nodes  []*Node
-	from   int
-	to     int
-	tokens []rune
-	commit CommitType
+	Name       string
+	Nodes      []*Node
+	from       int
+	to         int
+	tokens     []rune
+	commitType CommitType
 }
 
 func newNode(name string, ct CommitType, from, to int) *Node {
 	return &Node{
-		Name:   name,
-		from:   from,
-		to:     to,
-		commit: ct,
+		Name:       name,
+		from:       from,
+		to:         to,
+		commitType: ct,
 	}
 }
 
@@ -64,11 +64,11 @@ func (n *Node) clear() {
 	n.Nodes = nil
 }
 
-func (n *Node) commitChildren() {
+func (n *Node) commit() {
 	var nodes []*Node
 	for _, ni := range n.Nodes {
-		ni.commitChildren()
-		if ni.commit&Alias != 0 {
+		ni.commit()
+		if ni.commitType&Alias != 0 {
 			nodes = append(nodes, ni.Nodes...)
 		} else {
 			nodes = append(nodes, ni)

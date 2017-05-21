@@ -9,17 +9,17 @@ import (
 var definitions = [][]string{{
 	"chars", "space", " ",
 }, {
-	"chars", "tab", "\t",
+	"chars", "tab", "\\t",
 }, {
-	"chars", "nl", "\n",
+	"chars", "nl", "\\n",
 }, {
-	"chars", "backspace", "\b",
+	"chars", "backspace", "\\b",
 }, {
-	"chars", "formfeed", "\f",
+	"chars", "formfeed", "\\f",
 }, {
-	"chars", "carryreturn", "\r",
+	"chars", "carryreturn", "\\r",
 }, {
-	"chars", "verticaltab", "\v",
+	"chars", "verticaltab", "\\v",
 }, {
 	"choice",
 	"ws",
@@ -44,7 +44,7 @@ var definitions = [][]string{{
 }, {
 	"chars", "double-slash", "//",
 }, {
-	"class", "not-nl", "^\n",
+	"class", "not-nl", "^\\n",
 }, {
 	"sequence", "not-block-close", "alias", "star", "not-slash",
 }, {
@@ -89,6 +89,32 @@ var definitions = [][]string{{
 }, {
 	"repetition", "wscs", "alias", "wsc",
 }, {
+	"class", "symbol-char", "^\\\\ \\t\\b\\f\\r\\v\\b/.\\\"\\[\\]\\^?*|():=;",
+}, {
+	"repetition", "symbol-chars", "alias", "symbol-char",
+}, {
+	"sequence", "symbol", "none", "symbol-char", "symbol-chars",
+}, {
+	"choice", "primitive", "alias", "symbol",
+}, {
+	"choice", "expression", "none", "primitive",
+}, {
+	"chars", "alias-word", "alias",
+}, {
+	"chars", "root-word", "root",
+}, {
+	"choice", "flag-word", "alias", "alias-word", "root-word",
+}, {
+	"chars", "colon", ":",
+}, {
+	"sequence", "flag", "alias", "colon", "flag-word",
+}, {
+	"repetition", "flags", "alias", "flag",
+}, {
+	"chars", "equal", "=",
+}, {
+	"sequence", "definition", "none", "symbol", "flags", "wscs", "equal", "wscs", "expression",
+}, {
 	"chars", "semicolon", ";",
 }, {
 	"choice", "wsc-or-semicolon", "alias", "wsc", "semicolon",
@@ -96,8 +122,34 @@ var definitions = [][]string{{
 	"repetition", "wsc-or-semicolons", "alias", "wsc-or-semicolon",
 }, {
 	"sequence",
+	"subsequent-definition",
+	"alias",
+	"wscs",
+	"semicolon",
+	"wsc-or-semicolons",
+	"definition",
+}, {
+	"repetition",
+	"subsequent-definitions",
+	"alias",
+	"subsequent-definition",
+}, {
+	"sequence",
+	"definitions",
+	"alias",
+	"definition",
+	"subsequent-definitions",
+}, {
+	"optional",
+	"opt-definitions",
+	"alias",
+	"definitions",
+}, {
+	"sequence",
 	"document",
 	"none",
+	"wsc-or-semicolons",
+	"opt-definitions",
 	"wsc-or-semicolons",
 }}
 
