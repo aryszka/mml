@@ -12,6 +12,15 @@ func TestTerminal(t *testing.T) {
 	}, {
 		msg:  "class",
 		text: "digit = [0-9]",
+	}, {
+		msg:  "class, with multiple ranges",
+		text: "digit = [0-9a-z]",
+	}, {
+		msg:  "class, with multiple ranges and chars",
+		text: "digit = [0-9a-z_]",
+	}, {
+		msg:  "class, with multiple ranges, chars and escaped chars",
+		text: "digit = [0-9a-z_\\-]",
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax()

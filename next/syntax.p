@@ -8,7 +8,7 @@ comment               = comment-segment (ws* "\n"? ws* comment-segment)*;
 
 any-char = ".";
 
-class-char:alias = [^\[\]\^\-] | "\\" .;
+class-char:alias = [^\\\[\]\^\-] | "\\" .;
 char-range:alias = class-char "-" class-char;
 char-class       = "[" "^"? (class-char | char-range)* "]";
 

@@ -58,6 +58,9 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 		return nil, false, err
 	}
 
+	// TODO: seems like getting a parser when it shouldn't
+	// - see terminal tests
+
 	excluded = append(excluded, d.name)
 	generators := make([][]generator, len(d.elements)+2)
 	for i, it := range append([]string{init}, append(d.elements, d.name)...) {
@@ -127,7 +130,7 @@ func (p *choiceParser) parse(c *context) {
 
 		if elementIndex == len(p.generators[initIndex]) {
 			if matchIndex >= 0 {
-				initIndex, elementIndex, matchIndex = matchIndex, 0, -1
+				initIndex, elementIndex, matchIndex = matchIndex+1, 0, -1
 			} else if match && initIndex < len(p.generators)-1 {
 				initIndex, elementIndex, matchIndex = len(p.generators)-1, 0, -1
 			} else if match {

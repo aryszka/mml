@@ -95,6 +95,8 @@ var definitions = [][]string{{
 }, {
 	"sequence", "symbol", "none", "symbol-chars",
 }, {
+	"anything", "anything",
+}, {
 	"chars", "any-char", ".",
 }, {
 	"chars", "open-square", "[",
@@ -107,11 +109,11 @@ var definitions = [][]string{{
 }, {
 	"quantifier", "optional-not", "alias", "not", "0", "1",
 }, {
-	"class", "not-class-control", "^\\[\\]\\^\\-",
+	"class", "not-class-control", "^\\\\\\[\\]\\^\\-",
 }, {
 	"chars", "escape", "\\\\",
 }, {
-	"sequence", "escaped-class-char", "alias", "escape", "any-char",
+	"sequence", "escaped-class-char", "alias", "escape", "anything",
 }, {
 	"choice", "class-char", "alias", "not-class-control", "escaped-class-char",
 }, {
@@ -125,9 +127,7 @@ var definitions = [][]string{{
 }, {
 	"choice", "terminal", "none", "any-char", "char-class",
 }, {
-	"choice", "primitive", "alias", "symbol", "terminal",
-}, {
-	"choice", "expression", "none", "primitive",
+	"choice", "expression", "none", "symbol", "terminal",
 }, {
 	"chars", "alias-word", "alias",
 }, {
