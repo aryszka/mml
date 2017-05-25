@@ -15,7 +15,7 @@ var stringSyntax = [][]string{{
 }, {
 	"choice", "string-char", "alias", "escaped", "not-escaped",
 }, {
-	"repetition", "string-body", "alias", "string-char",
+	"quantifier", "string-body", "alias", "string-char", "0", "-1",
 }, {
 	"sequence", "string", "none", "quote", "string-body", "quote",
 }}

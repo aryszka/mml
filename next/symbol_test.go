@@ -60,7 +60,7 @@ func TestSymbol(t *testing.T) {
 		syntax: [][]string{
 			{"class", "letter", "a-z"},
 			{"class", "symbol-char", "a-zA-Z0-9_"},
-			{"repetition", "symbol-chars", "alias", "symbol-char"},
+			{"quantifier", "symbol-chars", "alias", "symbol-char", "0", "-1"},
 			{"sequence", "symbol", "none", "letter", "symbol-chars"},
 		},
 		text: "fooBar",
