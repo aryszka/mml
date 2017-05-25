@@ -153,6 +153,12 @@ func (p *choiceParser) parse(c *context) {
 			init = p.node.Nodes[0]
 		}
 
+		if init == nil {
+			c.offset = p.node.from
+		} else {
+			c.offset = init.to
+		}
+
 		p.generators[initIndex][elementIndex].parser(p.trace, init).parse(c)
 
 		if c.match && (len(p.node.Nodes) == 0 || c.node.len() > p.node.len()) {

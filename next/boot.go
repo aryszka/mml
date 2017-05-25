@@ -189,7 +189,7 @@ var definitions = [][]string{{
 
 func defineSyntax() (*Syntax, error) {
 	l := TraceOff
-	l = TraceDebug
+	// l = TraceDebug
 	s := NewSyntax(Options{Trace: NewTrace(l)})
 	if err := define(s, definitions); err != nil {
 		return nil, err
