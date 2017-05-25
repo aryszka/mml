@@ -50,7 +50,7 @@ var definitions = [][]string{{
 }, {
 	"choice", "block-comment-char", "alias", "not-block-close", "not-star",
 }, {
-	"repetition", "block-comment-body", "alias", "block-comment-char",
+	"quantifier", "block-comment-body", "alias", "block-comment-char", "0", "-1",
 }, {
 	"sequence",
 	"block-comment",
@@ -59,41 +59,41 @@ var definitions = [][]string{{
 	"block-comment-body",
 	"close-block-comment",
 }, {
-	"repetition", "not-nls", "alias", "not-nl",
+	"quantifier", "not-nls", "alias", "not-nl", "0", "-1",
 }, {
 	"sequence", "line-comment", "alias", "double-slash", "not-nls",
 }, {
-	"choice", "comment-atom", "alias", "block-comment", "line-comment",
+	"choice", "comment-segment", "alias", "block-comment", "line-comment",
 }, {
-	"repetition", "wss", "alias", "ws",
+	"quantifier", "wss", "alias", "ws", "0", "-1",
 }, {
-	"optional", "optional-nl", "alias", "nl",
+	"quantifier", "optional-nl", "alias", "nl", "0", "1",
 }, {
 	"sequence",
-	"continue-comment-atom",
+	"continue-comment-segment",
 	"alias",
 	"ws",
 	"optional-nl",
 	"ws",
-	"comment-atom",
+	"comment-segment",
 }, {
-	"repetition", "continue-comment", "alias", "continue-comment-atom",
+	"quantifier", "continue-comment", "alias", "continue-comment-segment", "0", "-1",
 }, {
 	"sequence",
 	"comment",
 	"none",
-	"comment-atom",
+	"comment-segment",
 	"continue-comment",
 }, {
 	"choice", "wsc", "alias", "ws", "comment",
 }, {
-	"repetition", "wscs", "alias", "wsc",
+	"quantifier", "wscs", "alias", "wsc", "0", "-1",
 }, {
 	"class", "symbol-char", "^\\\\ \\t\\b\\f\\r\\v\\b/.\\\"\\[\\]\\^?*|():=;",
 }, {
-	"repetition", "symbol-chars", "alias", "symbol-char",
+	"quantifier", "symbol-chars", "alias", "symbol-char", "1", "-1",
 }, {
-	"sequence", "symbol", "none", "symbol-char", "symbol-chars",
+	"sequence", "symbol", "none", "symbol-chars",
 }, {
 	"chars", "any-char", ".",
 }, {
@@ -105,7 +105,7 @@ var definitions = [][]string{{
 }, {
 	"chars", "dash", "-",
 }, {
-	"optional", "optional-not", "alias", "not",
+	"quantifier", "optional-not", "alias", "not", "0", "1",
 }, {
 	"class", "not-class-control", "^\\[\\]\\^\\-",
 }, {
@@ -119,7 +119,7 @@ var definitions = [][]string{{
 }, {
 	"choice", "char-or-range", "alias", "class-char", "char-range",
 }, {
-	"repetition", "chars-or-ranges", "alias", "char-or-range",
+	"quantifier", "chars-or-ranges", "alias", "char-or-range", "0", "-1",
 }, {
 	"sequence", "char-class", "none", "open-square", "optional-not", "chars-or-ranges", "close-square",
 }, {
@@ -139,7 +139,7 @@ var definitions = [][]string{{
 }, {
 	"sequence", "flag", "alias", "colon", "flag-word",
 }, {
-	"repetition", "flags", "alias", "flag",
+	"quantifier", "flags", "alias", "flag", "0", "-1",
 }, {
 	"chars", "equal", "=",
 }, {
@@ -149,7 +149,7 @@ var definitions = [][]string{{
 }, {
 	"choice", "wsc-or-semicolon", "alias", "wsc", "semicolon",
 }, {
-	"repetition", "wsc-or-semicolons", "alias", "wsc-or-semicolon",
+	"quantifier", "wsc-or-semicolons", "alias", "wsc-or-semicolon", "0", "-1",
 }, {
 	"sequence",
 	"subsequent-definition",
@@ -159,10 +159,12 @@ var definitions = [][]string{{
 	"wsc-or-semicolons",
 	"definition",
 }, {
-	"repetition",
+	"quantifier",
 	"subsequent-definitions",
 	"alias",
 	"subsequent-definition",
+	"0",
+	"-1",
 }, {
 	"sequence",
 	"definitions",
@@ -170,14 +172,16 @@ var definitions = [][]string{{
 	"definition",
 	"subsequent-definitions",
 }, {
-	"optional",
+	"quantifier",
 	"opt-definitions",
 	"alias",
 	"definitions",
+	"0",
+	"1",
 }, {
 	"sequence",
 	"document",
-	"none",
+	"root",
 	"wsc-or-semicolons",
 	"opt-definitions",
 	"wsc-or-semicolons",
@@ -185,7 +189,7 @@ var definitions = [][]string{{
 
 func defineSyntax() (*Syntax, error) {
 	l := TraceOff
-	// l = TraceDebug
+	l = TraceDebug
 	s := NewSyntax(Options{Trace: NewTrace(l)})
 	if err := define(s, definitions); err != nil {
 		return nil, err

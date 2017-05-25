@@ -31,8 +31,6 @@ type optionalParser struct {
 	result       *parserResult
 }
 
-// TODO: the empty is a bad idea, everything should have its own node
-
 func optionalContainingSelf(nodeType string) error {
 	return fmt.Errorf("optional containing self: %s", nodeType)
 }
@@ -89,8 +87,6 @@ func (d *optionalDefinition) member(t nodeType) (bool, error) {
 
 	return optional.member(t)
 }
-
-// TODO: for the test "optional expression as expression, empty input", introduce the 'nothing' parser?
 
 func (d *optionalDefinition) generator(t trace, init nodeType, excluded typeList) (generator, error) {
 	t = t.extend(d.name)

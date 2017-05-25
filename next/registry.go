@@ -8,7 +8,9 @@ import (
 type registry struct {
 	definitions map[string]definition
 	root        definition
-	generators  map[string]generator
+	idSeed      int
+	genIDs      map[string]int
+	generators  map[int]generator
 }
 
 func duplicateDefinition(name string) error {
@@ -22,7 +24,8 @@ func unspecifiedParser(name string) error {
 func newRegistry() *registry {
 	return &registry{
 		definitions: make(map[string]definition),
-		generators:  make(map[string]generator),
+		genIDs:      make(map[string]int),
+		generators:  make(map[int]generator),
 	}
 }
 
@@ -63,11 +66,23 @@ func generatorKey(name, init string, excluded []string) string {
 	return strings.Join(append([]string{name, init}, excluded...), "_")
 }
 
-func (r *registry) generator(name, init string, excluded []string) (generator, bool) {
-	g, ok := r.generators[generatorKey(name, init, excluded)]
+func (r *registry) genID(name, init string, excluded []string) int {
+	key := generatorKey(name, init, excluded)
+	if id, ok := r.genIDs[key]; ok {
+		return id
+	}
+
+	id := r.idSeed
+	r.idSeed++
+	r.genIDs[key] = id
+	return id
+}
+
+func (r *registry) generator(id int) (generator, bool) {
+	g, ok := r.generators[id]
 	return g, ok
 }
 
-func (r *registry) setGenerator(name, init string, excluded []string, g generator) {
-	r.generators[generatorKey(name, init, excluded)] = g
+func (r *registry) setGenerator(id int, g generator) {
+	r.generators[id] = g
 }

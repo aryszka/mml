@@ -1,6 +1,9 @@
 package next
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 var errInvalidDefinition = errors.New("invalid syntax definition")
 
@@ -24,8 +27,8 @@ func define(s *Syntax, defs [][]string) error {
 			if len(d) < 3 {
 				return errInvalidDefinition
 			}
-		case "optional", "repetition":
-			if len(d) != 4 {
+		case "quantifier":
+			if len(d) != 6 {
 				return errInvalidDefinition
 			}
 		case "sequence", "choice":
@@ -52,12 +55,17 @@ func define(s *Syntax, defs [][]string) error {
 			}
 
 			err = s.Terminal(d[1], Terminal{Class: d[2]})
-		case "optional":
+		case "quantifier":
 			ct := stringToCommitType(d[2])
-			err = s.Optional(d[1], ct, d[3])
-		case "repetition":
-			ct := stringToCommitType(d[2])
-			err = s.Repetition(d[1], ct, d[3])
+
+			var min, max int
+			min, err = strconv.Atoi(d[4])
+			if err == nil {
+				max, err = strconv.Atoi(d[5])
+				if err == nil {
+					err = s.Quantifier(d[1], ct, d[3], min, max)
+				}
+			}
 		case "sequence":
 			ct := stringToCommitType(d[2])
 			err = s.Sequence(d[1], ct, d[3:]...)

@@ -6,9 +6,9 @@ import (
 )
 
 type Terminal struct {
-	Chars    string
-	Class    string
 	Anything bool
+	Class    string
+	Chars    string
 }
 
 var ErrInvalidTerminal = errors.New("invalid terminal")
@@ -74,7 +74,7 @@ func unescape(escape rune, banned []rune, chars []rune) ([]rune, error) {
 
 func makeAnyCharDefinition(r *registry, name string, indexOffset int) []definition {
 	name = fmt.Sprintf("%s:%d", name, indexOffset)
-	return []definition{newAnyCharDefinition(r, name)}
+	return []definition{newChar(r, name, true, false, nil, nil)}
 }
 
 func makeCharDefinitions(r *registry, name string, indexOffset int, chars string) ([]definition, error) {
@@ -85,7 +85,14 @@ func makeCharDefinitions(r *registry, name string, indexOffset int, chars string
 
 	defs := make([]definition, len(c))
 	for i, ci := range c {
-		defs[i] = newCharDefinition(r, fmt.Sprintf("%s:%d", name, indexOffset+i), ci)
+		defs[i] = newChar(
+			r,
+			fmt.Sprintf("%s:%d", name, indexOffset+i),
+			false,
+			false,
+			[]rune{ci},
+			nil,
+		)
 	}
 
 	return defs, nil
@@ -146,7 +153,7 @@ func makeClassDefinition(r *registry, name string, index int, class string) (def
 	}
 
 	name = fmt.Sprintf("%s:%d", name, index)
-	return newClassDefinition(r, name, not, chars, ranges), nil
+	return newChar(r, name, false, not, chars, ranges), nil
 }
 
 func terminalDefinitions(r *registry, name string, t []Terminal) ([]definition, error) {

@@ -9,6 +9,7 @@ type choiceDefinition struct {
 
 type choiceGenerator struct {
 	name         string
+	id           int
 	isValid      bool
 	commit       CommitType
 	generators   [][]generator
@@ -17,7 +18,9 @@ type choiceGenerator struct {
 
 type choiceParser struct {
 	name         string
+	genID        int
 	trace        Trace
+	commit       CommitType
 	init         *Node
 	node         *Node
 	generators   [][]generator
@@ -38,213 +41,140 @@ func newChoice(r *registry, name string, ct CommitType, elements []string) *choi
 
 func (d *choiceDefinition) nodeName() string { return d.name }
 
-func (d *choiceDefinition) member(n string, excluded []string) (bool, error) {
-	for _, element := range d.elements {
-		if n == element {
-			return true, nil
-		}
-
-		if stringsContain(excluded, element) {
-			continue
-		}
-
-		ed, err := d.registry.findDefinition(element)
-		if err != nil {
-			return false, err
-		}
-
-		if m, err := ed.member(n, append(excluded, d.name)); m || err != nil {
-			return m, err
-		}
-	}
-
-	return false, nil
-}
-
-func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (generator, error) {
+func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (generator, bool, error) {
 	t = t.Extend(d.name)
 
-	if g, ok := d.registry.generator(d.name, init, excluded); ok {
-		return g, nil
+	if stringsContain(excluded, d.name) {
+		return nil, false, nil
 	}
 
-	g := &choiceGenerator{
-		name:    d.name,
-		isValid: true,
-		commit:  d.commit,
+	id := d.registry.genID(d.name, init, excluded)
+	if g, ok := d.registry.generator(id); ok {
+		return g, true, nil
 	}
-
-	d.registry.setGenerator(d.name, init, excluded, g)
 
 	elements, err := d.registry.findDefinitions(d.elements)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	generators := make([][]generator, len(elements)+1)
-	for i, it := range append([]string{init}, d.elements...) {
+	excluded = append(excluded, d.name)
+	generators := make([][]generator, len(d.elements)+2)
+	for i, it := range append([]string{init}, append(d.elements, d.name)...) {
 		g := make([]generator, len(elements))
 		for j, e := range elements {
-			ge, err := e.generator(t, it, excluded)
+			ge, ok, err := e.generator(t, it, excluded)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 
-			g[j] = ge
+			if ok {
+				g[j] = ge
+			}
 		}
 
 		generators[i] = g
 	}
 
-	var initIsMember bool
-	if init != "" {
-		if m, err := d.member(init, nil); err != nil {
-			return nil, err
-		} else {
-			initIsMember = m
-		}
+	if generators[0][0] == nil {
+		return nil, false, nil
 	}
 
-	if !initIsMember && (len(generators[0]) == 0 || !generators[0][0].valid()) {
-		g.isValid = false
-		return g, nil
+	g := &choiceGenerator{
+		name:       d.name,
+		id:         id,
+		isValid:    true,
+		commit:     d.commit,
+		generators: generators,
 	}
 
-	g.generators = generators
-	g.initIsMember = initIsMember
-	return g, nil
+	d.registry.setGenerator(id, g)
+	return g, true, nil
 }
 
 func (g *choiceGenerator) nodeName() string { return g.name }
-func (g *choiceGenerator) valid() bool      { return g.isValid }
-
-func (g *choiceGenerator) validate(t Trace, excluded []generator) error {
-	t = t.Extend(g.name)
-
-	if !g.isValid {
-		return nil
-	}
-
-	if generatorsContain(excluded, g) {
-		return nil
-	}
-
-	excluded = append(excluded, g)
-	for i := 0; i < len(g.generators); i++ {
-		for j := 0; j < len(g.generators[i]); j++ {
-			if err := g.generators[i][j].validate(t, excluded); err != nil {
-				return err
-			}
-		}
-	}
-
-	if !g.initIsMember && !g.generators[0][0].valid() {
-		g.isValid = false
-	}
-
-	return nil
-}
 
 func (g *choiceGenerator) parser(t Trace, init *Node) parser {
 	return &choiceParser{
-		name:         g.name,
-		trace:        t.Extend(g.name),
-		init:         init,
-		node:         newNode(g.name, g.commit, 0, 0),
-		generators:   g.generators,
-		initIsMember: g.initIsMember,
+		name:       g.name,
+		genID:      g.id,
+		trace:      t.Extend(g.name),
+		commit:     g.commit,
+		init:       init,
+		node:       newNode(g.name, g.commit, 0, 0),
+		generators: g.generators,
 	}
 }
 
 func (p *choiceParser) nodeName() string { return p.name }
 
-func (p *choiceParser) stepInit() {
-	p.initIndex = p.parserIndex + 1
-	p.parserIndex = 0
-}
-
-func (p *choiceParser) stepParser() {
-	p.parserIndex++
-}
-
-func (p *choiceParser) nextParser() (parser, bool, bool) {
-	if p.initIndex == len(p.generators) {
-		p.trace.Debug("no more parser sets")
-		return nil, false, false
-	}
-
-	// TODO: shouldn't it be tried first with a member parser, and only then consider it on its own?
-	if p.initIndex == 0 && p.initIsMember {
-		p.trace.Debug("take init as is")
-		return nil, true, true
-	}
-
-	for {
-		if p.parserIndex == len(p.generators[p.initIndex]) {
-			p.trace.Debug("no more parsers", p.initIndex, p.parserIndex)
-			return nil, false, false
-		}
-
-		// TODO: for char or range this should be valid:
-		if p.generators[p.initIndex][p.parserIndex].valid() {
-			var init *Node
-			if len(p.node.Nodes) > 0 {
-				init = p.node.Nodes[0]
-			}
-
-			p.trace.Debug("created parser", p.generators[p.initIndex][p.parserIndex].nodeName())
-			return p.generators[p.initIndex][p.parserIndex].parser(p.trace, init), false, true
-		}
-
-		p.trace.Debug("parser not valid", p.initIndex, p.parserIndex)
-		p.stepParser()
-	}
-}
-
-func (p *choiceParser) appendNode(n *Node) {
-	p.node.clear()
-	p.node.appendNode(n)
-	p.stepInit()
-	p.valid = true
-}
-
 func (p *choiceParser) parse(c *context) {
-	if c.fillFromCache(p.name, p.init) {
-		p.trace.Info("found in cache, valid:", c.valid)
+	if c.fillFromCache(p.genID, p.init) {
+		p.trace.Info("found in cache", c.match)
 		return
 	}
 
-	c.initRange(p.node, p.init)
-	for {
-		p.trace.Info("parsing", c.offset, p.initIndex, p.parserIndex)
-		if p.init != nil {
-			p.trace.Debug("has init", p.init.Name)
-		}
+	c.initNode(p.node, p.init)
+	matchIndex := -1
+	var (
+		initIndex    int
+		elementIndex int
+		match        bool
+	)
 
-		elementParser, member, ok := p.nextParser()
-		if !ok {
-			if p.valid {
+	for {
+		p.trace.Info("parsing", c.offset)
+
+		if elementIndex == len(p.generators[initIndex]) {
+			if matchIndex >= 0 {
+				initIndex, elementIndex, matchIndex = matchIndex, 0, -1
+			} else if match && initIndex < len(p.generators)-1 {
+				initIndex, elementIndex, matchIndex = len(p.generators)-1, 0, -1
+			} else if match {
 				p.trace.Info("success")
-				c.success(p.node)
+				c.success(p.genID, p.node)
+				return
+			} else {
+				p.trace.Info("fail")
+				c.fail(p.genID, p.node.from)
 				return
 			}
-
-			p.trace.Info("fail")
-			c.fail(p.name, p.node.from, p.init)
-			return
 		}
 
-		if member {
-			p.appendNode(p.init)
+		if p.generators[initIndex][elementIndex] == nil {
+			elementIndex++
 			continue
 		}
 
-		elementParser.parse(c)
-		if c.valid && c.node.len() > p.node.len() {
-			p.appendNode(c.node)
-			continue
+		init := p.init
+		if initIndex > 0 && initIndex == len(p.generators)-1 {
+			init = p.node
+		} else if initIndex > 0 {
+			init = p.node.Nodes[0]
 		}
 
-		p.stepParser()
+		p.generators[initIndex][elementIndex].parser(p.trace, init).parse(c)
+
+		if c.match && (len(p.node.Nodes) == 0 || c.node.len() > p.node.len()) {
+			match = true
+			matchIndex = elementIndex
+
+			if initIndex == len(p.generators)-1 {
+				p.node = newNode(p.name, p.commit, 0, 0)
+			} else {
+				p.node.clear()
+			}
+
+			p.node.appendNode(c.node)
+		}
+
+		if !c.match && init != nil && init.Name == p.name && len(p.node.Nodes) == 0 {
+			match = true
+			matchIndex = elementIndex
+			p.node.appendNode(c.node)
+		}
+
+		elementIndex++
+		continue
 	}
 }

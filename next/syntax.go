@@ -73,12 +73,8 @@ func (s *Syntax) Terminal(name string, t ...Terminal) error {
 	return s.register(newSequence(s.registry, name, Alias, names))
 }
 
-func (s *Syntax) Optional(name string, ct CommitType, optional string) error {
-	return s.register(newOptional(s.registry, name, ct, optional))
-}
-
-func (s *Syntax) Repetition(name string, ct CommitType, item string) error {
-	return s.register(newRepetition(s.registry, name, ct, item))
+func (s *Syntax) Quantifier(name string, ct CommitType, item string, min, max int) error {
+	return s.register(newQuantifier(s.registry, name, ct, item, min, max))
 }
 
 func (s *Syntax) Sequence(name string, ct CommitType, items ...string) error {
@@ -99,16 +95,12 @@ func (s *Syntax) Init() error {
 		return ErrNoDefinitions
 	}
 
-	root, err := rootDef.generator(s.trace, "", nil)
+	root, ok, err := rootDef.generator(s.trace, "", nil)
 	if err != nil {
 		return err
 	}
 
-	if err := root.validate(s.trace, nil); err != nil {
-		return err
-	}
-
-	if !root.valid() {
+	if !ok {
 		return ErrInvalidSyntax
 	}
 

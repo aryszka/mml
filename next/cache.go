@@ -1,20 +1,20 @@
 package next
 
 type cacheItem struct {
-	name string
+	id   int
 	node *Node
 }
 
 type tokenCache struct {
 	match   []*cacheItem // TODO: potential optimization can be to use a balanced binary tree
-	noMatch []string
+	noMatch []int
 }
 
 type cache struct {
 	tokens []*tokenCache // TODO: try with pointers, too
 }
 
-func (c *cache) get(offset int, name string) (*Node, bool, bool) {
+func (c *cache) get(offset, id int) (*Node, bool, bool) {
 	if len(c.tokens) <= offset {
 		return nil, false, false
 	}
@@ -25,13 +25,13 @@ func (c *cache) get(offset int, name string) (*Node, bool, bool) {
 	}
 
 	for _, i := range tc.noMatch {
-		if i == name {
+		if i == id {
 			return nil, false, true
 		}
 	}
 
 	for _, i := range tc.match {
-		if i.name == name {
+		if i.id == id {
 			return i.node, true, true
 		}
 	}
@@ -39,7 +39,7 @@ func (c *cache) get(offset int, name string) (*Node, bool, bool) {
 	return nil, false, false
 }
 
-func (c *cache) set(offset int, name string, n *Node) {
+func (c *cache) set(offset, id int, n *Node) {
 	if len(c.tokens) <= offset {
 		if cap(c.tokens) > offset {
 			c.tokens = c.tokens[:offset+1]
@@ -59,30 +59,30 @@ func (c *cache) set(offset int, name string, n *Node) {
 
 	if n == nil {
 		for _, i := range tc.match {
-			if i.name == name {
+			if i.id == id {
 				return
 			}
 		}
 
 		for _, i := range tc.noMatch {
-			if i == name {
+			if i == id {
 				return
 			}
 		}
 
-		tc.noMatch = append(tc.noMatch, name)
+		tc.noMatch = append(tc.noMatch, id)
 		return
 	}
 
 	for _, i := range tc.match {
-		if i.name == name {
+		if i.id == id {
 			i.node = n
 			return
 		}
 	}
 
 	tc.match = append(tc.match, &cacheItem{
-		name: name,
+		id:   id,
 		node: n,
 	})
 }

@@ -11,6 +11,7 @@ type sequenceDefinition struct {
 
 type sequenceGenerator struct {
 	name         string
+	id           int
 	isValid      bool
 	initial      []generator
 	rest         []generator
@@ -20,12 +21,14 @@ type sequenceGenerator struct {
 
 type sequenceParser struct {
 	name         string
+	genID        int
 	trace        Trace
 	init         *Node
 	initial      []generator
 	rest         []generator
 	initIsMember []bool
 	node         *Node
+	initConsumed bool
 }
 
 func sequenceWithoutItems(name string) error {
@@ -47,208 +50,142 @@ func newSequence(r *registry, name string, ct CommitType, items []string) *seque
 
 func (d *sequenceDefinition) nodeName() string { return d.name }
 
-func (d *sequenceDefinition) member(n string, excluded []string) (bool, error) {
-	if n == d.items[0] {
-		return true, nil
-	}
-
-	if stringsContain(excluded, d.items[0]) {
-		return false, nil
-	}
-
-	first, err := d.registry.findDefinition(d.items[0])
-	if err != nil {
-		return false, err
-	}
-
-	return first.member(n, append(excluded, d.name))
-}
-
-func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) (generator, error) {
+func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) (generator, bool, error) {
 	t = t.Extend(d.name)
 
-	if g, ok := d.registry.generator(d.name, init, excluded); ok {
-		return g, nil
+	if stringsContain(excluded, d.name) {
+		return nil, false, nil
 	}
 
+	id := d.registry.genID(d.name, init, excluded)
+	if g, ok := d.registry.generator(id); ok {
+		return g, true, nil
+	}
+
+	// TODO: standardize where these checks happen
 	if len(d.items) == 0 {
-		return nil, sequenceWithoutItems(d.name)
+		return nil, false, sequenceWithoutItems(d.name)
 	}
 
 	items, err := d.registry.findDefinitions(d.items)
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+
+	initial := make([]generator, len(items))
+	rest := make([]generator, len(items))
+	excluded = append(excluded, d.name)
+	for i, item := range items {
+		g, ok, err := item.generator(t, init, excluded)
+		if !ok && i == 0 || err != nil {
+			return nil, false, err
+		}
+
+		if ok {
+			initial[i] = g
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		g, ok, err = item.generator(t, "", nil)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if !ok {
+			return nil, false, invalidSequenceItem(d.name, item.nodeName())
+		}
+
+		rest[i] = g
 	}
 
 	g := &sequenceGenerator{
 		name:    d.name,
-		isValid: true,
+		id:      id,
 		commit:  d.commit,
+		initial: initial,
+		rest:    rest,
 	}
 
-	d.registry.setGenerator(d.name, init, excluded, g)
-	if stringsContain(excluded, d.name) {
-		g.isValid = false
-		return g, nil
-	}
-
-	excluded = append(excluded, d.name)
-	g.initial = make([]generator, len(items))
-	g.rest = make([]generator, len(items))
-	g.initIsMember = make([]bool, len(items))
-	for i, item := range items {
-		gi, err := item.generator(t, init, excluded)
-		if err != nil {
-			return nil, err
-		}
-
-		g.initial[i] = gi
-
-		gi, err = item.generator(t, "", nil)
-		if err != nil {
-			return nil, err
-		}
-
-		if !gi.valid() {
-			return nil, invalidSequenceItem(d.name, item.nodeName())
-		}
-
-		m, err := item.member(init, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		g.rest[i] = gi
-		g.initIsMember[i] = m
-	}
-
-	return g, nil
+	d.registry.setGenerator(id, g)
+	return g, true, nil
 }
 
 func (g *sequenceGenerator) nodeName() string { return g.name }
-func (g *sequenceGenerator) valid() bool      { return g.isValid }
-
-// TODO: for the sake of the generated code, better not to keep the invalid generators
-
-func (g *sequenceGenerator) validate(t Trace, excluded []generator) error {
-	t = t.Extend(g.name)
-
-	if !g.isValid {
-		return nil
-	}
-
-	if generatorsContain(excluded, g) {
-		return nil
-	}
-
-	excluded = append(excluded, g)
-
-	var i int
-	for i = 0; i < len(g.initial); i++ {
-		if err := g.initial[i].validate(t, excluded); err != nil {
-			return err
-		}
-
-		if g.initial[i].valid() {
-			continue
-		}
-
-		if i == 0 {
-			g.isValid = false
-			return nil
-		}
-
-		break
-	}
-
-	for j := 1; j < len(g.rest); j++ {
-		if err := g.rest[j].validate(t, excluded); err != nil {
-			return err
-		}
-
-		if g.rest[j].valid() {
-			continue
-		}
-
-		if j >= i {
-			g.isValid = false
-			return nil
-		}
-	}
-
-	return nil
-}
 
 func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 	return &sequenceParser{
-		name:         g.name,
-		trace:        t.Extend(g.name),
-		node:         newNode(g.name, g.commit, 0, 0),
-		init:         init,
-		initial:      g.initial,
-		rest:         g.rest,
-		initIsMember: g.initIsMember,
+		name:    g.name,
+		genID:   g.id,
+		trace:   t.Extend(g.name),
+		node:    newNode(g.name, g.commit, 0, 0),
+		init:    init,
+		initial: g.initial,
+		rest:    g.rest,
 	}
 }
 
 func (p *sequenceParser) nodeName() string { return p.name }
 
-func (p *sequenceParser) nextParser() (parser, bool, bool) {
-	var itemParser parser
-	switch {
-	case useInitial(p.node, p.init) && p.initial[0].valid():
-		itemParser = p.initial[0].parser(p.trace, p.init)
-
-	case !useInitial(p.node, p.init) && p.rest[0].valid():
-		itemParser = p.rest[0].parser(p.trace, nil)
-
-	case useInitial(p.node, p.init) && p.initIsMember[0]:
-		return nil, true, true
-
-	default:
-		return nil, false, false
+func (p *sequenceParser) nextParser() (parser, bool) {
+	var gen generator
+	if p.initConsumed {
+		gen = p.rest[0]
+	} else {
+		gen = p.initial[0]
 	}
 
-	p.initial = p.initial[1:]
-	p.rest = p.rest[1:]
-	p.initIsMember = p.initIsMember[1:]
-	return itemParser, false, true
+	p.initial, p.rest = p.initial[1:], p.rest[1:]
+	if gen == nil {
+		return nil, false
+	}
+
+	return gen.parser(p.trace, nil), true
 }
 
 func (p *sequenceParser) parse(c *context) {
-	if c.fillFromCache(p.name, p.init) {
-		p.trace.Info("found in cache", c.offset)
+	if c.fillFromCache(p.genID, p.init) {
+		p.trace.Info("found in cache", c.match)
 		return
 	}
 
-	c.initRange(p.node, p.init)
+	c.initNode(p.node, p.init)
 	for {
 		p.trace.Info("parsing", c.offset)
 
 		if len(p.initial) == 0 {
 			p.trace.Info("success")
-			c.success(p.node)
+			c.success(p.genID, p.node)
 			return
 		}
 
-		itemParser, member, ok := p.nextParser()
+		itemParser, ok := p.nextParser()
 		if !ok {
-			p.trace.Info("fail")
-			c.fail(p.name, p.node.from, p.init)
+			p.trace.Info("fail, no parser")
+			c.fail(p.genID, p.node.from)
 			return
-		} else if member {
-			p.node.appendNode(p.init)
-			continue
 		}
 
 		itemParser.parse(c)
-		if c.valid {
+		if c.match {
 			p.node.appendNode(c.node)
+			if len(c.node.Nodes) > 0 {
+				p.initConsumed = true
+			}
+
 			continue
 		}
 
-		p.trace.Info("fail")
-		c.fail(p.name, p.node.from, p.init)
+		if p.init != nil && !p.initConsumed {
+			p.node.appendNode(p.init)
+			p.initConsumed = true
+			continue
+		}
+
+		p.trace.Info("fail, no match")
+		c.fail(p.genID, p.node.from)
 		return
 	}
 }

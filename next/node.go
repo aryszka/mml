@@ -28,10 +28,6 @@ func newNode(name string, ct CommitType, from, to int) *Node {
 }
 
 func (n *Node) startsWith(p *Node) bool {
-	// if n == p {
-	// 	return true
-	// }
-
 	for _, ni := range n.Nodes {
 		if ni.startsWith(p) {
 			return true

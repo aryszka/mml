@@ -3,22 +3,18 @@ package next
 import (
 	"errors"
 	"io"
+	"log"
+	"time"
 	"unicode"
 )
 
 type definition interface {
 	nodeName() string
-	member(string, []string) (bool, error)
-	generator(Trace, string, []string) (generator, error)
-
-	// TODO: try to do this during validation of the generators
-	// terminates([]string) bool
+	generator(Trace, string, []string) (generator, bool, error)
 }
 
 type generator interface {
 	nodeName() string
-	valid() bool
-	validate(Trace, []generator) error
 	parser(Trace, *Node) parser
 }
 
@@ -29,16 +25,17 @@ type parser interface {
 
 type context struct {
 	// it is valid to hack it and provide a non unicode reader
+	// potential optimization: 8-bit tokens flag
 	reader io.RuneReader
 
 	readOffset int
+	match      bool
 	offset     int
 	tokens     []rune
 	readErr    error
 	eof        bool
 
 	cache *cache
-	valid bool
 	node  *Node
 }
 
@@ -116,38 +113,26 @@ func (c *context) token() (rune, bool) {
 	return c.tokens[c.offset], true
 }
 
-func (c *context) success(n *Node) {
-	n.commit()
-	c.valid = true
+func (c *context) success(genID int, n *Node) {
+	c.match = true
 	c.node = n
 	c.offset = n.to
-	c.cache.set(n.from, n.Name, n)
+	c.cache.set(n.from, genID, n)
 }
 
-func (c *context) fail(name string, offset int, init *Node) {
-	if init == nil {
-		c.offset = offset
-	} else {
-		c.offset = init.to
-	}
-
-	c.valid = false
-
-	if init != nil {
-		offset = init.from
-	}
-
-	// TODO: test if it can succeed with a different init node
-	c.cache.set(offset, name, nil)
+func (c *context) fail(genID, offset int) {
+	c.match = false
+	c.offset = offset
+	c.cache.set(offset, genID, nil)
 }
 
-func (c *context) fillFromCache(name string, init *Node) bool {
+func (c *context) fillFromCache(genID int, init *Node) bool {
 	offset := c.offset
 	if init != nil {
 		offset = init.from
 	}
 
-	n, m, ok := c.cache.get(offset, name)
+	n, m, ok := c.cache.get(offset, genID)
 	if !ok {
 		return false
 	}
@@ -156,26 +141,13 @@ func (c *context) fillFromCache(name string, init *Node) bool {
 		return false
 	}
 
-	c.valid = m
+	c.match = m
 	if m {
 		c.node = n
 		c.offset += n.to - n.from
 	}
 
 	return true
-}
-
-func useInitial(n, init *Node) bool {
-	// TODO: this may need to be changed into node length
-	if len(n.Nodes) == 0 {
-		return true
-	}
-
-	if init == nil {
-		return false
-	}
-
-	return !n.startsWith(init)
 }
 
 func (c *context) finalize() error {
@@ -194,7 +166,7 @@ func (c *context) finalize() error {
 	return c.readErr
 }
 
-func (c *context) initRange(n, init *Node) {
+func (c *context) initNode(n, init *Node) {
 	n.from = c.offset
 	if init != nil {
 		n.from = init.from
@@ -204,7 +176,10 @@ func (c *context) initRange(n, init *Node) {
 }
 
 func parse(p parser, c *context) (*Node, error) {
+	start := time.Now()
 	p.parse(c)
+	log.Println("parse time", time.Now().Sub(start))
+
 	if c.readErr != nil {
 		return nil, c.readErr
 	}
@@ -213,7 +188,7 @@ func parse(p parser, c *context) (*Node, error) {
 		return nil, err
 	}
 
-	if !c.valid {
+	if !c.match {
 		return nil, ErrInvalidInput
 	}
 

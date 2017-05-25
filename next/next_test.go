@@ -3,7 +3,6 @@ package next
 import (
 	"bytes"
 	"testing"
-	"time"
 )
 
 type syntaxTest struct {
@@ -61,77 +60,14 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 	for _, ti := range st {
 		t.Run(ti.msg, func(t *testing.T) {
 			s := NewSyntax(Options{Trace: NewTrace(traceLevel)})
-
-			for _, d := range ti.syntax {
-				if len(d) < 2 {
-					t.Error("invalid syntax definition")
-					return
-				}
-
-				switch d[0] {
-				case "chars", "class":
-					if len(d) < 3 {
-						t.Error("invalid syntax definition")
-						return
-					}
-				case "optional", "repetition":
-					if len(d) != 4 {
-						t.Error("invalid syntax definition")
-						return
-					}
-				case "sequence", "choice":
-					if len(d) < 4 {
-						t.Error("invalid syntax definition")
-						return
-					}
-				}
-
-				var err error
-				switch d[0] {
-				case "anything":
-					err = s.Terminal(d[1], Terminal{Anything: true})
-				case "chars":
-					ts := make([]Terminal, len(d)-2)
-					for i, di := range d[2:] {
-						ts[i] = Terminal{Chars: di}
-					}
-
-					err = s.Terminal(d[1], ts...)
-				case "class":
-					ts := make([]Terminal, len(d)-2)
-					for i, di := range d[2:] {
-						ts[i] = Terminal{Class: di}
-					}
-
-					err = s.Terminal(d[1], Terminal{Class: d[2]})
-				case "optional":
-					ct := stringToCommitType(d[2])
-					err = s.Optional(d[1], ct, d[3])
-				case "repetition":
-					ct := stringToCommitType(d[2])
-					err = s.Repetition(d[1], ct, d[3])
-				case "sequence":
-					ct := stringToCommitType(d[2])
-					err = s.Sequence(d[1], ct, d[3:]...)
-				case "choice":
-					ct := stringToCommitType(d[2])
-					err = s.Choice(d[1], ct, d[3:]...)
-				}
-
-				if err != nil {
-					t.Error(err)
-					return
-				}
-			}
+			define(s, ti.syntax)
 
 			if err := s.Init(); err != nil {
 				t.Error(err)
 				return
 			}
 
-			start := time.Now()
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
-			t.Log("parse time", time.Now().Sub(start))
 
 			if ti.fail && err == nil {
 				t.Error("failed to fail", n)
