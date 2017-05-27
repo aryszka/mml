@@ -113,9 +113,9 @@ var definitions = [][]string{{
 }, {
 	"chars", "escape", "\\\\",
 }, {
-	"sequence", "escaped-class-char", "alias", "escape", "anything",
+	"sequence", "escaped-char", "alias", "escape", "anything",
 }, {
-	"choice", "class-char", "alias", "not-class-control", "escaped-class-char",
+	"choice", "class-char", "alias", "not-class-control", "escaped-char",
 }, {
 	"sequence", "char-range", "alias", "class-char", "dash", "class-char",
 }, {
@@ -124,10 +124,18 @@ var definitions = [][]string{{
 	"quantifier", "chars-or-ranges", "alias", "char-or-range", "0", "-1",
 }, {
 	"sequence", "char-class", "none", "open-square", "optional-not", "chars-or-ranges", "close-square",
-	// }, {
-	// 	"sequence", "char-sequence", "none", "double-quote", "char-sequence-chars", "double-quote",
 }, {
-	"choice", "terminal", "none", "any-char", "char-class",
+	"chars", "double-quote", "\\\"",
+}, {
+	"class", "not-char-sequence-control", "^\\\\\\\"",
+}, {
+	"choice", "char-sequence-char", "alias", "not-char-sequence-control", "escaped-char",
+}, {
+	"quantifier", "char-sequence-chars", "alias", "char-sequence-char", "0", "-1",
+}, {
+	"sequence", "char-sequence", "none", "double-quote", "char-sequence-chars", "double-quote",
+}, {
+	"choice", "terminal", "none", "any-char", "char-class", "char-sequence",
 }, {
 	"choice", "expression", "none", "symbol", "terminal",
 }, {
