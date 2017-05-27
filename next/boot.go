@@ -124,6 +124,8 @@ var definitions = [][]string{{
 	"quantifier", "chars-or-ranges", "alias", "char-or-range", "0", "-1",
 }, {
 	"sequence", "char-class", "none", "open-square", "optional-not", "chars-or-ranges", "close-square",
+	// }, {
+	// 	"sequence", "char-sequence", "none", "double-quote", "char-sequence-chars", "double-quote",
 }, {
 	"choice", "terminal", "none", "any-char", "char-class",
 }, {

@@ -13,6 +13,7 @@ type choiceGenerator struct {
 	isValid      bool
 	commit       CommitType
 	generators   [][]generator
+	elementNames [][]string
 	initIsMember bool
 }
 
@@ -24,6 +25,7 @@ type choiceParser struct {
 	init         *Node
 	node         *Node
 	generators   [][]generator
+	elementNames [][]string
 	initIsMember bool
 	initIndex    int
 	parserIndex  int
@@ -58,14 +60,16 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 		return nil, false, err
 	}
 
-	// TODO: seems like getting a parser when it shouldn't
-	// - see terminal tests
-
 	excluded = append(excluded, d.name)
+	elementNames := make([][]string, len(d.elements)+2)
 	generators := make([][]generator, len(d.elements)+2)
 	for i, it := range append([]string{init}, append(d.elements, d.name)...) {
+		n := make([]string, len(elements))
 		g := make([]generator, len(elements))
+
 		for j, e := range elements {
+			n[j] = e.nodeName()
+
 			ge, ok, err := e.generator(t, it, excluded)
 			if err != nil {
 				return nil, false, err
@@ -76,6 +80,7 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 			}
 		}
 
+		elementNames[i] = n
 		generators[i] = g
 	}
 
@@ -84,11 +89,12 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 	}
 
 	g := &choiceGenerator{
-		name:       d.name,
-		id:         id,
-		isValid:    true,
-		commit:     d.commit,
-		generators: generators,
+		name:         d.name,
+		id:           id,
+		isValid:      true,
+		commit:       d.commit,
+		generators:   generators,
+		elementNames: elementNames,
 	}
 
 	d.registry.setGenerator(id, g)
@@ -99,17 +105,28 @@ func (g *choiceGenerator) nodeName() string { return g.name }
 
 func (g *choiceGenerator) parser(t Trace, init *Node) parser {
 	return &choiceParser{
-		name:       g.name,
-		genID:      g.id,
-		trace:      t.Extend(g.name),
-		commit:     g.commit,
-		init:       init,
-		node:       newNode(g.name, g.commit, 0, 0),
-		generators: g.generators,
+		name:         g.name,
+		genID:        g.id,
+		trace:        t.Extend(g.name),
+		commit:       g.commit,
+		init:         init,
+		node:         newNode(g.name, g.commit, 0, 0),
+		generators:   g.generators,
+		elementNames: g.elementNames,
 	}
 }
 
 func (p *choiceParser) nodeName() string { return p.name }
+
+func (p *choiceParser) appendNode(n *Node, initIndex int) {
+	if initIndex == len(p.generators)-1 {
+		p.node = newNode(p.name, p.commit, 0, 0)
+	} else {
+		p.node.clear()
+	}
+
+	p.node.appendNode(n)
+}
 
 func (p *choiceParser) parse(c *context) {
 	if c.fillFromCache(p.genID, p.init) {
@@ -144,11 +161,6 @@ func (p *choiceParser) parse(c *context) {
 			}
 		}
 
-		if p.generators[initIndex][elementIndex] == nil {
-			elementIndex++
-			continue
-		}
-
 		init := p.init
 		if initIndex > 0 && initIndex == len(p.generators)-1 {
 			init = p.node
@@ -156,31 +168,45 @@ func (p *choiceParser) parse(c *context) {
 			init = p.node.Nodes[0]
 		}
 
-		if init == nil {
-			c.offset = p.node.from
-		} else {
-			c.offset = init.to
+		var elementParser parser
+		if p.generators[initIndex][elementIndex] != nil {
+			elementParser = p.generators[initIndex][elementIndex].parser(p.trace, init)
 		}
 
-		p.generators[initIndex][elementIndex].parser(p.trace, init).parse(c)
-
-		if c.match && (len(p.node.Nodes) == 0 || c.node.len() > p.node.len()) {
-			match = true
-			matchIndex = elementIndex
-
-			if initIndex == len(p.generators)-1 {
-				p.node = newNode(p.name, p.commit, 0, 0)
+		if elementParser != nil {
+			if init == nil {
+				c.offset = p.node.from
 			} else {
-				p.node.clear()
+				c.offset = init.to
 			}
 
-			p.node.appendNode(c.node)
+			elementParser.parse(c)
+			if c.match && c.node.len() > p.node.len() {
+				match = true
+				matchIndex = elementIndex
+				p.appendNode(c.node, initIndex)
+
+				elementIndex++
+				continue
+			}
 		}
 
-		if !c.match && init != nil && init.Name == p.name && len(p.node.Nodes) == 0 {
+		if init != nil &&
+			p.node.len() == 0 &&
+			init.Name == p.elementNames[initIndex][elementIndex] {
+
 			match = true
 			matchIndex = elementIndex
-			p.node.appendNode(c.node)
+			p.appendNode(init, initIndex)
+
+			elementIndex++
+			continue
+		}
+
+		if elementParser != nil && c.match && len(p.node.Nodes) == 0 {
+			match = true
+			matchIndex = elementIndex
+			p.appendNode(c.node, initIndex)
 		}
 
 		elementIndex++
