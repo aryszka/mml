@@ -10,27 +10,30 @@ type quantifierDefinition struct {
 }
 
 type quantifierGenerator struct {
-	name    string
-	id      int
-	item    string
-	min     int
-	max     int
-	commit  CommitType
-	initial generator
-	rest    generator
+	name     string
+	id       int
+	item     string
+	min      int
+	max      int
+	commit   CommitType
+	first    generator
+	restInit generator
+	itemName string
+	rest     generator
 }
 
 type quantifierParser struct {
-	name         string
-	genID        int
-	trace        Trace
-	min          int
-	max          int
-	initial      generator
-	rest         generator
-	node         *Node
-	init         *Node
-	initConsumed bool
+	name     string
+	genID    int
+	trace    Trace
+	min      int
+	max      int
+	first    generator
+	restInit generator
+	rest     generator
+	node     *Node
+	itemName string
+	init     *Node
 }
 
 func newQuantifier(r *registry, name string, ct CommitType, item string, min, max int) *quantifierDefinition {
@@ -63,24 +66,38 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 		return nil, false, err
 	}
 
-	initial, ok, err := item.generator(t, init, append(excluded, d.name))
+	excluded = append(excluded, d.name)
+	first, ok, err := item.generator(t, init, excluded)
 	if !ok || err != nil {
 		return nil, false, err
 	}
 
-	rest, ok, err := item.generator(t, "", []string{d.name})
-	if !ok || err != nil {
+	excluded = []string{d.name}
+
+	restInit, ok, err := item.generator(t, init, excluded)
+	if err != nil {
 		return nil, false, err
+	} else if !ok {
+		restInit = nil
+	}
+
+	rest, ok, err := item.generator(t, "", excluded)
+	if err != nil {
+		return nil, false, err
+	} else if !ok {
+		rest = nil
 	}
 
 	g := &quantifierGenerator{
-		name:    d.name,
-		id:      id,
-		min:     d.min,
-		max:     d.max,
-		commit:  d.commit,
-		initial: initial,
-		rest:    rest,
+		name:     d.name,
+		id:       id,
+		min:      d.min,
+		max:      d.max,
+		commit:   d.commit,
+		first:    first,
+		restInit: restInit,
+		rest:     rest,
+		itemName: item.nodeName(),
 	}
 
 	d.registry.setGenerator(id, g)
@@ -91,36 +108,21 @@ func (g *quantifierGenerator) nodeName() string { return g.name }
 
 func (g *quantifierGenerator) parser(t Trace, init *Node) parser {
 	return &quantifierParser{
-		name:    g.name,
-		genID:   g.id,
-		trace:   t.Extend(g.name),
-		min:     g.min,
-		max:     g.max,
-		node:    newNode(g.name, g.commit, 0, 0),
-		init:    init,
-		initial: g.initial,
-		rest:    g.rest,
+		name:     g.name,
+		genID:    g.id,
+		trace:    t.Extend(g.name),
+		min:      g.min,
+		max:      g.max,
+		node:     newNode(g.name, g.commit, 0, 0),
+		init:     init,
+		first:    g.first,
+		restInit: g.restInit,
+		rest:     g.rest,
+		itemName: g.itemName,
 	}
 }
 
 func (p *quantifierParser) nodeName() string { return p.name }
-
-func (p *quantifierParser) nextParser() (parser parser, member bool) {
-	useInitial := len(p.node.Nodes) == 0 || (p.init != nil && !p.initConsumed)
-	switch {
-	case useInitial:
-		parser = p.initial.parser(p.trace, p.init)
-
-	case useInitial && p.init.Name == p.name:
-		// this should happen if the initial parser failed
-		member = true
-
-	default:
-		parser = p.rest.parser(p.trace, p.init)
-	}
-
-	return
-}
 
 func (p *quantifierParser) parse(c *context) {
 	if c.fillFromCache(p.genID, p.init) {
@@ -139,35 +141,39 @@ func (p *quantifierParser) parse(c *context) {
 		}
 
 		var itemParser parser
-		if p.init == nil || p.initConsumed {
-			itemParser = p.rest.parser(p.trace, p.init)
-		} else {
-			itemParser = p.initial.parser(p.trace, nil)
+		if len(p.node.Nodes) == 0 && p.first != nil {
+			itemParser = p.first.parser(p.trace, p.init)
+		} else if p.node.len() == 0 && p.restInit != nil {
+			itemParser = p.restInit.parser(p.trace, p.init)
+		} else if p.rest != nil {
+			itemParser = p.rest.parser(p.trace, nil)
 		}
 
-		itemParser.parse(c)
-		if c.match {
-			p.node.appendNode(c.node)
-			if len(c.node.Nodes) > 0 {
-				p.initConsumed = true
+		if itemParser != nil {
+			itemParser.parse(c)
+			if c.match && c.node.len() > 0 {
+				p.node.appendNode(c.node)
+				continue
 			}
+		}
 
+		if p.init != nil && p.node.len() == 0 && p.init.Name == p.itemName {
+			p.node.appendNode(p.init)
 			continue
 		}
 
-		if p.init != nil && !p.initConsumed {
-			p.node.appendNode(p.init)
-			p.initConsumed = true
+		if itemParser != nil && c.match && len(p.node.Nodes) < p.min {
+			p.node.appendNode(c.node)
 			continue
 		}
 
 		if len(p.node.Nodes) < p.min {
-			p.trace.Info("fail")
+			p.trace.Info("fail, short")
 			c.fail(p.genID, c.node.from)
 			return
 		}
 
-		p.trace.Info("success, item invalid")
+		p.trace.Info("success, next item invalid")
 		c.success(p.genID, p.node)
 		return
 	}

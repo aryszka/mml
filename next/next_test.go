@@ -54,8 +54,8 @@ func checkNodes(left, right []*Node) bool {
 }
 
 func testSyntax(t *testing.T, st []syntaxTest) {
-	// traceLevel := TraceDebug
 	traceLevel := TraceOff
+	// traceLevel = TraceDebug
 
 	for _, ti := range st {
 		t.Run(ti.msg, func(t *testing.T) {

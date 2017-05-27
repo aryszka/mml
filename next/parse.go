@@ -117,6 +117,8 @@ func (c *context) success(genID int, n *Node) {
 	c.match = true
 	c.node = n
 	c.offset = n.to
+
+	// TODO: maybe the cache needs a different id with the init only
 	c.cache.set(n.from, genID, n)
 }
 

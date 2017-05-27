@@ -10,25 +10,26 @@ type sequenceDefinition struct {
 }
 
 type sequenceGenerator struct {
-	name         string
-	id           int
-	isValid      bool
-	initial      []generator
-	rest         []generator
-	initIsMember []bool
-	commit       CommitType
+	name      string
+	id        int
+	isValid   bool
+	first     generator
+	restInit  []generator
+	rest      []generator
+	restNames []string
+	commit    CommitType
 }
 
 type sequenceParser struct {
-	name         string
-	genID        int
-	trace        Trace
-	init         *Node
-	initial      []generator
-	rest         []generator
-	initIsMember []bool
-	node         *Node
-	initConsumed bool
+	name      string
+	genID     int
+	trace     Trace
+	init      *Node
+	first     generator
+	restInit  []generator
+	rest      []generator
+	restNames []string
+	node      *Node
 }
 
 func sequenceWithoutItems(name string) error {
@@ -72,21 +73,26 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 		return nil, false, err
 	}
 
-	initial := make([]generator, len(items))
+	first, ok, err := items[0].generator(t, init, append(excluded, d.name))
+	if !ok || err != nil {
+		return nil, false, err
+	}
+
+	items = items[1:]
+
+	restNames := make([]string, len(items))
+	restInit := make([]generator, len(items))
 	rest := make([]generator, len(items))
-	excluded = append(excluded, d.name)
 	for i, item := range items {
-		g, ok, err := item.generator(t, init, excluded)
-		if !ok && i == 0 || err != nil {
+		restNames[i] = item.nodeName()
+
+		g, ok, err := item.generator(t, init, nil)
+		if err != nil {
 			return nil, false, err
 		}
 
 		if ok {
-			initial[i] = g
-		}
-
-		if i == 0 {
-			continue
+			restInit[i] = g
 		}
 
 		g, ok, err = item.generator(t, "", nil)
@@ -102,11 +108,13 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 	}
 
 	g := &sequenceGenerator{
-		name:    d.name,
-		id:      id,
-		commit:  d.commit,
-		initial: initial,
-		rest:    rest,
+		name:      d.name,
+		id:        id,
+		commit:    d.commit,
+		first:     first,
+		restInit:  restInit,
+		rest:      rest,
+		restNames: restNames,
 	}
 
 	d.registry.setGenerator(id, g)
@@ -117,32 +125,44 @@ func (g *sequenceGenerator) nodeName() string { return g.name }
 
 func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 	return &sequenceParser{
-		name:    g.name,
-		genID:   g.id,
-		trace:   t.Extend(g.name),
-		node:    newNode(g.name, g.commit, 0, 0),
-		init:    init,
-		initial: g.initial,
-		rest:    g.rest,
+		name:      g.name,
+		genID:     g.id,
+		trace:     t.Extend(g.name),
+		node:      newNode(g.name, g.commit, 0, 0),
+		init:      init,
+		first:     g.first,
+		restInit:  g.restInit,
+		rest:      g.rest,
+		restNames: g.restNames,
 	}
 }
 
 func (p *sequenceParser) nodeName() string { return p.name }
 
-func (p *sequenceParser) nextParser() (parser, bool) {
-	var gen generator
-	if p.initConsumed {
-		gen = p.rest[0]
+func (p *sequenceParser) nextParser() parser {
+	if len(p.node.Nodes) == 0 {
+		return p.first.parser(p.trace, p.init)
+	}
+
+	var (
+		rest generator
+		init *Node
+	)
+
+	if p.node.len() == 0 {
+		rest = p.restInit[0]
+		init = p.init
 	} else {
-		gen = p.initial[0]
+		rest = p.rest[0]
 	}
 
-	p.initial, p.rest = p.initial[1:], p.rest[1:]
-	if gen == nil {
-		return nil, false
+	p.restInit, p.rest = p.restInit[1:], p.rest[1:]
+
+	if rest == nil {
+		return nil
 	}
 
-	return gen.parser(p.trace, nil), true
+	return rest.parser(p.trace, init)
 }
 
 func (p *sequenceParser) parse(c *context) {
@@ -153,34 +173,33 @@ func (p *sequenceParser) parse(c *context) {
 
 	c.initNode(p.node, p.init)
 	for {
-		p.trace.Info("parsing", c.offset)
+		p.trace.Info("parsing sequence", c.offset)
 
-		if len(p.initial) == 0 {
+		if len(p.node.Nodes) > 0 && len(p.rest) == 0 {
 			p.trace.Info("success")
 			c.success(p.genID, p.node)
 			return
 		}
 
-		itemParser, ok := p.nextParser()
-		if !ok {
-			p.trace.Info("fail, no parser")
-			c.fail(p.genID, p.node.from)
-			return
+		itemParser := p.nextParser()
+		if itemParser != nil {
+			itemParser.parse(c)
+			if c.match && c.node.len() > 0 {
+				p.node.appendNode(c.node)
+				continue
+			}
 		}
 
-		itemParser.parse(c)
-		if c.match {
-			p.node.appendNode(c.node)
-			if len(c.node.Nodes) > 0 {
-				p.initConsumed = true
-			}
+		if p.init != nil && p.node.len() == 0 &&
+			(len(p.node.Nodes) == 0 && p.init.Name == p.first.nodeName() ||
+				len(p.node.Nodes) > 0 && p.init.Name == p.restNames[0]) {
 
+			p.node.appendNode(p.init)
 			continue
 		}
 
-		if p.init != nil && !p.initConsumed {
-			p.node.appendNode(p.init)
-			p.initConsumed = true
+		if itemParser != nil && c.match {
+			p.node.appendNode(c.node)
 			continue
 		}
 

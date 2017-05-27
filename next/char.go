@@ -106,7 +106,7 @@ func (p *charParser) match(t rune) bool {
 }
 
 func (p *charParser) parse(c *context) {
-	p.trace.Info("parsing", c.offset)
+	p.trace.Info("parsing char", c.offset)
 	if t, ok := c.token(); ok && p.match(t) {
 		p.trace.Info("success", c.offset, string([]rune{t}))
 		c.success(p.genID, newNode(p.name, Alias, c.offset, c.offset+1))

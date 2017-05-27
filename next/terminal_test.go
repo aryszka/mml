@@ -20,7 +20,10 @@ func TestTerminal(t *testing.T) {
 		text: "digit = [0-9a-z_]",
 	}, {
 		msg:  "class, with multiple ranges, chars and escaped chars",
-		text: "digit = [0-9a-z_\\-]",
+		text: "digit = [0-9a-z_\\-\\\\\\]]",
+	}, {
+		msg:  "char sequence",
+		text: "foo = \"foo\"",
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax()
