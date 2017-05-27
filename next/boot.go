@@ -89,12 +89,6 @@ var definitions = [][]string{{
 }, {
 	"quantifier", "wscs", "alias", "wsc", "0", "-1",
 }, {
-	"class", "symbol-char", "^\\\\ \\t\\b\\f\\r\\v\\b/.\\\"\\[\\]\\^?*|():=;",
-}, {
-	"quantifier", "symbol-chars", "alias", "symbol-char", "1", "-1",
-}, {
-	"sequence", "symbol", "none", "symbol-chars",
-}, {
 	"anything", "anything",
 }, {
 	"chars", "any-char", ".",
@@ -137,7 +131,62 @@ var definitions = [][]string{{
 }, {
 	"choice", "terminal", "none", "any-char", "char-class", "char-sequence",
 }, {
-	"choice", "expression", "none", "symbol", "terminal",
+	"class", "symbol-char", "^\\\\ \\t\\b\\f\\r\\v\\b/.\\\"\\[\\]\\^?*|():=;",
+}, {
+	"quantifier", "symbol-chars", "alias", "symbol-char", "1", "-1",
+}, {
+	"sequence", "symbol", "none", "symbol-chars",
+}, {
+	"chars", "open-paren", "(",
+}, {
+	"chars", "close-paren", ")",
+}, {
+	"sequence", "group", "alias", "open-paren", "wscs", "expression", "wscs", "close-paren",
+}, {
+	"chars", "open-brace", "{",
+}, {
+	"chars", "close-brace", "}",
+}, {
+	"class", "digit", "0-9",
+}, {
+	"quantifier", "digits", "alias", "digit", "1", "-1",
+}, {
+	"sequence", "count-quantifier", "none", "open-brace", "wscs", "digits", "wscs", "close-brace",
+}, {
+	"chars", "comma", ",",
+}, {
+	"sequence",
+	"range-quantifier",
+	"none",
+	"open-brace",
+	"wscs",
+	"digits",
+	"wscs",
+	"comma",
+	"wscs",
+	"digits",
+	"close-brace",
+}, {
+	"chars", "one-or-more", "+",
+}, {
+	"chars", "zero-or-more", "*",
+}, {
+	"chars", "zero-or-one", "?",
+}, {
+	"choice",
+	"quantity",
+	"alias",
+	"count-quantifier",
+	"range-quantifier",
+	"one-or-more",
+	"zero-or-more",
+	"zero-or-one",
+}, {
+	"choice", "quantifiable", "alias", "terminal", "symbol", "group",
+}, {
+	"sequence", "quantifier", "none", "quantifiable", "wscs", "quantity",
+}, {
+	"choice", "expression", "none", "terminal", "symbol", "group", "quantifier",
 }, {
 	"chars", "alias-word", "alias",
 }, {

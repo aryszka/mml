@@ -12,10 +12,12 @@ type sequenceDefinition struct {
 type sequenceGenerator struct {
 	name      string
 	id        int
+	isVoid    bool
 	isValid   bool
 	first     generator
 	restInit  []generator
 	rest      []generator
+	firstName string
 	restNames []string
 	commit    CommitType
 }
@@ -28,6 +30,7 @@ type sequenceParser struct {
 	first     generator
 	restInit  []generator
 	rest      []generator
+	firstName string
 	restNames []string
 	node      *Node
 }
@@ -73,6 +76,15 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 		return nil, false, err
 	}
 
+	g := &sequenceGenerator{
+		name:   d.name,
+		id:     id,
+		commit: d.commit,
+	}
+
+	d.registry.setGenerator(id, g)
+
+	firstName := d.items[0]
 	first, ok, err := items[0].generator(t, init, append(excluded, d.name))
 	if !ok || err != nil {
 		return nil, false, err
@@ -107,21 +119,63 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 		rest[i] = g
 	}
 
-	g := &sequenceGenerator{
-		name:      d.name,
-		id:        id,
-		commit:    d.commit,
-		first:     first,
-		restInit:  restInit,
-		rest:      rest,
-		restNames: restNames,
-	}
+	g.first = first
+	g.restInit = restInit
+	g.rest = rest
+	g.firstName = firstName
+	g.restNames = restNames
 
-	d.registry.setGenerator(id, g)
 	return g, true, nil
 }
 
 func (g *sequenceGenerator) nodeName() string { return g.name }
+func (g *sequenceGenerator) void() bool       { return g.isVoid }
+
+func (g *sequenceGenerator) finalize(t Trace, excluded []int) bool {
+	t = t.Extend(g.name)
+
+	if intsContain(excluded, g.id) || g.isVoid {
+		return false
+	}
+
+	excluded = append(excluded, g.id)
+	var treeChanged bool
+
+	if g.first == nil {
+		g.isVoid = true
+		treeChanged = true
+	} else {
+		treeChanged = g.first.finalize(t, excluded)
+		g.isVoid = g.first.void()
+	}
+
+	var restInitVoid bool
+	for i := range g.rest {
+		if g.restInit[i] == nil {
+			restInitVoid = true
+		} else {
+			treeChanged = treeChanged || g.restInit[i].finalize(t, excluded)
+			if g.restInit[i].void() {
+				g.restInit[i] = nil
+				restInitVoid = true
+			}
+		}
+
+		if g.rest[i] != nil {
+			treeChanged = treeChanged || g.rest[i].finalize(t, excluded)
+			if g.rest[i].void() {
+				g.rest[i] = nil
+			}
+		}
+
+		if restInitVoid && g.rest[i] == nil {
+			g.isVoid = true
+			treeChanged = true
+		}
+	}
+
+	return treeChanged
+}
 
 func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 	return &sequenceParser{
@@ -133,6 +187,7 @@ func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
 		first:     g.first,
 		restInit:  g.restInit,
 		rest:      g.rest,
+		firstName: g.firstName,
 		restNames: g.restNames,
 	}
 }
@@ -141,6 +196,10 @@ func (p *sequenceParser) nodeName() string { return p.name }
 
 func (p *sequenceParser) nextParser() parser {
 	if len(p.node.Nodes) == 0 {
+		if p.first == nil {
+			return nil
+		}
+
 		return p.first.parser(p.trace, p.init)
 	}
 
@@ -191,7 +250,7 @@ func (p *sequenceParser) parse(c *context) {
 		}
 
 		if p.init != nil && p.node.len() == 0 &&
-			(len(p.node.Nodes) == 0 && p.init.Name == p.first.nodeName() ||
+			(len(p.node.Nodes) == 0 && p.init.Name == p.firstName ||
 				len(p.node.Nodes) > 0 && p.init.Name == p.restNames[0]) {
 
 			p.node.appendNode(p.init)

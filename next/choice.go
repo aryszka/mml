@@ -10,7 +10,7 @@ type choiceDefinition struct {
 type choiceGenerator struct {
 	name         string
 	id           int
-	isValid      bool
+	isVoid       bool
 	commit       CommitType
 	generators   [][]generator
 	elementNames [][]string
@@ -60,6 +60,14 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 		return nil, false, err
 	}
 
+	g := &choiceGenerator{
+		name:   d.name,
+		id:     id,
+		commit: d.commit,
+	}
+
+	d.registry.setGenerator(id, g)
+
 	excluded = append(excluded, d.name)
 	elementNames := make([][]string, len(d.elements)+2)
 	generators := make([][]generator, len(d.elements)+2)
@@ -84,24 +92,46 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 		generators[i] = g
 	}
 
-	if generators[0][0] == nil {
-		return nil, false, nil
-	}
+	g.generators = generators
+	g.elementNames = elementNames
 
-	g := &choiceGenerator{
-		name:         d.name,
-		id:           id,
-		isValid:      true,
-		commit:       d.commit,
-		generators:   generators,
-		elementNames: elementNames,
-	}
-
-	d.registry.setGenerator(id, g)
 	return g, true, nil
 }
 
 func (g *choiceGenerator) nodeName() string { return g.name }
+func (g *choiceGenerator) void() bool       { return g.isVoid }
+
+func (g *choiceGenerator) finalize(t Trace, excluded []int) bool {
+	t = t.Extend(g.name)
+
+	if intsContain(excluded, g.id) || g.isVoid {
+		return false
+	}
+
+	excluded = append(excluded, g.id)
+	var treeChanged bool
+
+	for i := range g.generators {
+		var hasOne bool
+		for j := range g.generators[i] {
+			if g.generators[i][j] != nil {
+				treeChanged = treeChanged || g.generators[i][j].finalize(t, excluded)
+				if g.generators[i][j].void() {
+					g.generators[i][j] = nil
+				} else {
+					hasOne = true
+				}
+			}
+
+			if i == 0 && !hasOne {
+				g.isVoid = true
+				treeChanged = true
+			}
+		}
+	}
+
+	return treeChanged
+}
 
 func (g *choiceGenerator) parser(t Trace, init *Node) parser {
 	return &choiceParser{

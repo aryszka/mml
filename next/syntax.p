@@ -18,26 +18,26 @@ terminal = any-char | char-class | char-sequence;
 
 symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}+*?|();]+;
 
-count-quantifier = "{" wsc* [0-9]* wsc* "}";
-range-quantifier = "{" wsc* [0-9]* wsc* "," wsc* [0-9]* wsc* "}";
+group:alias = "(" wsc* expression wsc* ")";
+
+count-quantifier = "{" wsc* [0-9]+ wsc* "}";
+range-quantifier = "{" wsc* [0-9]+ wsc* "," wsc* [0-9]+ wsc* "}";
 one-or-more      = "+";
 zero-or-more     = "*";
 zero-or-one      = "?";
-quantifier       = count-quantifier
+quantity:alias   = count-quantifier
                  | range-quantifier
 		 | one-or-more
 		 | zero-or-more
 		 | zero-or-one;
 
-quantified = (terminal | symbol | group) wsc* quantifier;
+quantifier = (terminal | symbol | group) wsc* quantity;
 
 item     = terminal | symbol | group | quantified;
 sequence = item (wsc* item)*;
 
 element = terminal | symbol | group | quantified | sequence;
 choice  = element (wsc* "|" wsc* element);
-
-group = "(" wsc* expression wsc* ")";
 
 expression = terminal
            | symbol

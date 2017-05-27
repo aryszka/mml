@@ -15,6 +15,8 @@ type definition interface {
 
 type generator interface {
 	nodeName() string
+	void() bool
+	finalize(Trace, []int) bool // TODO: maybe this can be done only for the generator
 	parser(Trace, *Node) parser
 }
 
@@ -39,11 +41,28 @@ type context struct {
 	node  *Node
 }
 
+type voidParser struct {
+	name  string
+	genID int
+	trace Trace
+	init  *Node
+}
+
 var (
 	ErrInvalidCharacter    = errors.New("invalid character")
 	ErrUnexpectedCharacter = errors.New("unexpected character")
 	ErrInvalidInput        = errors.New("invalid input")
 )
+
+func intsContain(is []int, i int) bool {
+	for _, ii := range is {
+		if ii == i {
+			return true
+		}
+	}
+
+	return false
+}
 
 func stringsContain(ss []string, s string) bool {
 	for _, si := range ss {
@@ -139,7 +158,7 @@ func (c *context) fillFromCache(genID int, init *Node) bool {
 		return false
 	}
 
-	if init != nil && !n.startsWith(init) {
+	if m && init != nil && !n.startsWith(init) {
 		return false
 	}
 
@@ -175,6 +194,28 @@ func (c *context) initNode(n, init *Node) {
 	}
 
 	n.to = n.from
+}
+
+func newVoidParser(t Trace, name string, genID int, init *Node) *voidParser {
+	return &voidParser{
+		trace: t,
+		name:  name,
+		genID: genID,
+		init:  init,
+	}
+}
+
+func (p *voidParser) nodeName() string { return p.name }
+
+func (p *voidParser) parse(c *context) {
+	p.trace.Info("void")
+
+	offset := c.offset
+	if p.init != nil {
+		offset = p.init.from
+	}
+
+	c.fail(p.genID, offset)
 }
 
 func parse(p parser, c *context) (*Node, error) {

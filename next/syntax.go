@@ -116,6 +116,8 @@ func (s *Syntax) Generate(w io.Writer) error {
 		}
 	}
 
+	for !s.root.void() && s.root.finalize(s.trace, nil) {
+	}
 	panic(ErrNotImplemented)
 }
 

@@ -12,6 +12,7 @@ type quantifierDefinition struct {
 type quantifierGenerator struct {
 	name     string
 	id       int
+	isVoid   bool
 	item     string
 	min      int
 	max      int
@@ -66,19 +67,33 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 		return nil, false, err
 	}
 
+	g := &quantifierGenerator{
+		name:     d.name,
+		id:       id,
+		min:      d.min,
+		max:      d.max,
+		commit:   d.commit,
+		itemName: item.nodeName(),
+	}
+
+	d.registry.setGenerator(id, g)
+
 	excluded = append(excluded, d.name)
 	first, ok, err := item.generator(t, init, excluded)
 	if !ok || err != nil {
-		return nil, false, err
+		return g, false, err
 	}
 
 	excluded = []string{d.name}
 
-	restInit, ok, err := item.generator(t, init, excluded)
-	if err != nil {
-		return nil, false, err
-	} else if !ok {
-		restInit = nil
+	var restInit generator
+	if init != "" {
+		rig, ok, err := item.generator(t, init, excluded)
+		if err != nil {
+			return nil, false, err
+		} else if ok {
+			restInit = rig
+		}
 	}
 
 	rest, ok, err := item.generator(t, "", excluded)
@@ -88,23 +103,55 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 		rest = nil
 	}
 
-	g := &quantifierGenerator{
-		name:     d.name,
-		id:       id,
-		min:      d.min,
-		max:      d.max,
-		commit:   d.commit,
-		first:    first,
-		restInit: restInit,
-		rest:     rest,
-		itemName: item.nodeName(),
-	}
+	g.first = first
+	g.restInit = restInit
+	g.rest = rest
 
-	d.registry.setGenerator(id, g)
 	return g, true, nil
 }
 
 func (g *quantifierGenerator) nodeName() string { return g.name }
+func (g *quantifierGenerator) void() bool       { return g.isVoid }
+
+func (g *quantifierGenerator) finalize(t Trace, excluded []int) bool {
+	t.Extend(g.name)
+
+	if intsContain(excluded, g.id) || g.isVoid {
+		return false
+	}
+
+	excluded = append(excluded, g.id)
+	var treeChanged bool
+
+	if g.first == nil {
+		g.isVoid = true
+		treeChanged = true
+	} else {
+		treeChanged = treeChanged || g.first.finalize(t, excluded)
+		g.isVoid = g.first.void()
+	}
+
+	if g.restInit != nil {
+		treeChanged = treeChanged || g.restInit.finalize(t, excluded)
+		if g.restInit.void() {
+			g.restInit = nil
+		}
+	}
+
+	if g.rest != nil {
+		treeChanged = treeChanged || g.rest.finalize(t, excluded)
+		if g.rest.void() {
+			g.rest = nil
+		}
+	}
+
+	if g.min > 1 && g.restInit == nil && g.rest == nil {
+		g.isVoid = true
+		treeChanged = true
+	}
+
+	return treeChanged
+}
 
 func (g *quantifierGenerator) parser(t Trace, init *Node) parser {
 	return &quantifierParser{
@@ -143,9 +190,9 @@ func (p *quantifierParser) parse(c *context) {
 		var itemParser parser
 		if len(p.node.Nodes) == 0 && p.first != nil {
 			itemParser = p.first.parser(p.trace, p.init)
-		} else if p.node.len() == 0 && p.restInit != nil {
+		} else if p.restInit != nil && p.node.len() == 0 {
 			itemParser = p.restInit.parser(p.trace, p.init)
-		} else if p.rest != nil {
+		} else if p.rest != nil && len(p.node.Nodes) > 0 && (p.node.len() > 0 || p.restInit == nil) {
 			itemParser = p.rest.parser(p.trace, nil)
 		}
 

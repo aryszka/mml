@@ -72,6 +72,8 @@ func define(s *Syntax, defs [][]string) error {
 		case "choice":
 			ct := stringToCommitType(d[2])
 			err = s.Choice(d[1], ct, d[3:]...)
+		default:
+			err = errInvalidDefinition
 		}
 
 		if err != nil {

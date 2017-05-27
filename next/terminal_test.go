@@ -23,7 +23,7 @@ func TestTerminal(t *testing.T) {
 		text: "digit = [0-9a-z_\\-\\\\\\]]",
 	}, {
 		msg:  "char sequence",
-		text: "foo = \"foo\"",
+		text: "foo = \"foo \\\"bar\\\"\"",
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax()
