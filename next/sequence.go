@@ -86,8 +86,11 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 
 	firstName := d.items[0]
 	first, ok, err := items[0].generator(t, init, append(excluded, d.name))
-	if !ok || err != nil {
+	if err != nil {
 		return nil, false, err
+	} else if !ok {
+		g.isVoid = true
+		return g, false, err
 	}
 
 	items = items[1:]
@@ -131,50 +134,32 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 func (g *sequenceGenerator) nodeName() string { return g.name }
 func (g *sequenceGenerator) void() bool       { return g.isVoid }
 
-func (g *sequenceGenerator) finalize(t Trace, excluded []int) bool {
+func (g *sequenceGenerator) finalize(t Trace) {
 	t = t.Extend(g.name)
 
-	if intsContain(excluded, g.id) || g.isVoid {
-		return false
-	}
-
-	excluded = append(excluded, g.id)
-	var treeChanged bool
-
-	if g.first == nil {
+	if g.first == nil || g.first != nil && g.first.void() {
 		g.isVoid = true
-		treeChanged = true
-	} else {
-		treeChanged = g.first.finalize(t, excluded)
-		g.isVoid = g.first.void()
+		return
 	}
 
 	var restInitVoid bool
 	for i := range g.rest {
 		if g.restInit[i] == nil {
 			restInitVoid = true
-		} else {
-			treeChanged = treeChanged || g.restInit[i].finalize(t, excluded)
-			if g.restInit[i].void() {
-				g.restInit[i] = nil
-				restInitVoid = true
-			}
+		} else if g.restInit[i].void() {
+			g.restInit[i] = nil
+			restInitVoid = true
 		}
 
-		if g.rest[i] != nil {
-			treeChanged = treeChanged || g.rest[i].finalize(t, excluded)
-			if g.rest[i].void() {
-				g.rest[i] = nil
-			}
+		if g.rest[i] != nil && g.rest[i].void() {
+			g.rest[i] = nil
 		}
 
 		if restInitVoid && g.rest[i] == nil {
 			g.isVoid = true
-			treeChanged = true
+			return
 		}
 	}
-
-	return treeChanged
 }
 
 func (g *sequenceGenerator) parser(t Trace, init *Node) parser {
@@ -196,10 +181,6 @@ func (p *sequenceParser) nodeName() string { return p.name }
 
 func (p *sequenceParser) nextParser() parser {
 	if len(p.node.Nodes) == 0 {
-		if p.first == nil {
-			return nil
-		}
-
 		return p.first.parser(p.trace, p.init)
 	}
 

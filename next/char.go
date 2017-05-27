@@ -69,9 +69,9 @@ func (d *charDefinition) generator(_ Trace, init string, excluded []string) (gen
 	return g, true, nil
 }
 
-func (g *charGenerator) nodeName() string           { return g.name }
-func (g *charGenerator) void() bool                 { return false }
-func (g *charGenerator) finalize(Trace, []int) bool { return false }
+func (g *charGenerator) nodeName() string { return g.name }
+func (g *charGenerator) void() bool       { return false }
+func (g *charGenerator) finalize(Trace)   {}
 
 func (g *charGenerator) parser(t Trace, _ *Node) parser {
 	return &charParser{

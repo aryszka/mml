@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"time"
 )
 
 type Options struct {
@@ -104,6 +105,28 @@ func (s *Syntax) Init() error {
 		return ErrInvalidSyntax
 	}
 
+	start := time.Now()
+	for {
+		var foundVoid bool
+		for id, g := range s.registry.generators {
+			g.finalize(s.trace)
+			if g.void() {
+				delete(s.registry.generators, id)
+				foundVoid = true
+			}
+		}
+
+		if !foundVoid {
+			break
+		}
+	}
+
+	s.trace.Info("validation done", time.Since(start))
+
+	if root.void() {
+		return ErrInvalidSyntax
+	}
+
 	s.root = root
 	s.initialized = true
 	return nil
@@ -116,8 +139,6 @@ func (s *Syntax) Generate(w io.Writer) error {
 		}
 	}
 
-	for !s.root.void() && s.root.finalize(s.trace, nil) {
-	}
 	panic(ErrNotImplemented)
 }
 

@@ -101,36 +101,26 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 func (g *choiceGenerator) nodeName() string { return g.name }
 func (g *choiceGenerator) void() bool       { return g.isVoid }
 
-func (g *choiceGenerator) finalize(t Trace, excluded []int) bool {
+func (g *choiceGenerator) finalize(t Trace) {
 	t = t.Extend(g.name)
-
-	if intsContain(excluded, g.id) || g.isVoid {
-		return false
-	}
-
-	excluded = append(excluded, g.id)
-	var treeChanged bool
 
 	for i := range g.generators {
 		var hasOne bool
 		for j := range g.generators[i] {
 			if g.generators[i][j] != nil {
-				treeChanged = treeChanged || g.generators[i][j].finalize(t, excluded)
 				if g.generators[i][j].void() {
 					g.generators[i][j] = nil
 				} else {
 					hasOne = true
 				}
 			}
+		}
 
-			if i == 0 && !hasOne {
-				g.isVoid = true
-				treeChanged = true
-			}
+		if i == 0 && !hasOne {
+			g.isVoid = true
+			return
 		}
 	}
-
-	return treeChanged
 }
 
 func (g *choiceGenerator) parser(t Trace, init *Node) parser {

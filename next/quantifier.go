@@ -51,6 +51,8 @@ func newQuantifier(r *registry, name string, ct CommitType, item string, min, ma
 func (d *quantifierDefinition) nodeName() string { return d.name }
 
 func (d *quantifierDefinition) generator(t Trace, init string, excluded []string) (generator, bool, error) {
+	// TODO: maybe all validation from here should be moved to validate
+
 	t = t.Extend(d.name)
 
 	if stringsContain(excluded, d.name) {
@@ -80,8 +82,11 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 
 	excluded = append(excluded, d.name)
 	first, ok, err := item.generator(t, init, excluded)
-	if !ok || err != nil {
+	if err != nil {
 		return g, false, err
+	} else if !ok {
+		g.isVoid = true
+		return g, false, nil
 	}
 
 	excluded = []string{d.name}
@@ -113,44 +118,22 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 func (g *quantifierGenerator) nodeName() string { return g.name }
 func (g *quantifierGenerator) void() bool       { return g.isVoid }
 
-func (g *quantifierGenerator) finalize(t Trace, excluded []int) bool {
+func (g *quantifierGenerator) finalize(t Trace) {
 	t.Extend(g.name)
 
-	if intsContain(excluded, g.id) || g.isVoid {
-		return false
+	if g.first != nil && g.first.void() {
+		g.first = nil
 	}
 
-	excluded = append(excluded, g.id)
-	var treeChanged bool
-
-	if g.first == nil {
-		g.isVoid = true
-		treeChanged = true
-	} else {
-		treeChanged = treeChanged || g.first.finalize(t, excluded)
-		g.isVoid = g.first.void()
+	if g.restInit != nil && g.restInit.void() {
+		g.restInit = nil
 	}
 
-	if g.restInit != nil {
-		treeChanged = treeChanged || g.restInit.finalize(t, excluded)
-		if g.restInit.void() {
-			g.restInit = nil
-		}
+	if g.rest != nil && g.rest.void() {
+		g.rest = nil
 	}
 
-	if g.rest != nil {
-		treeChanged = treeChanged || g.rest.finalize(t, excluded)
-		if g.rest.void() {
-			g.rest = nil
-		}
-	}
-
-	if g.min > 1 && g.restInit == nil && g.rest == nil {
-		g.isVoid = true
-		treeChanged = true
-	}
-
-	return treeChanged
+	g.isVoid = g.first == nil || g.min > 1 && (g.restInit == nil && g.rest == nil)
 }
 
 func (g *quantifierGenerator) parser(t Trace, init *Node) parser {
@@ -188,7 +171,7 @@ func (p *quantifierParser) parse(c *context) {
 		}
 
 		var itemParser parser
-		if len(p.node.Nodes) == 0 && p.first != nil {
+		if len(p.node.Nodes) == 0 {
 			itemParser = p.first.parser(p.trace, p.init)
 		} else if p.restInit != nil && p.node.len() == 0 {
 			itemParser = p.restInit.parser(p.trace, p.init)
