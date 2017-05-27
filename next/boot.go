@@ -186,7 +186,22 @@ var definitions = [][]string{{
 }, {
 	"sequence", "quantifier", "none", "quantifiable", "wscs", "quantity",
 }, {
-	"choice", "expression", "none", "terminal", "symbol", "group", "quantifier",
+	"choice", "item", "none", "terminal", "symbol", "group", "quantifier",
+}, {
+	"sequence", "item-continue", "alias", "wscs", "item",
+}, {
+	"quantifier", "items-continue", "alias", "item-continue", "0", "-1",
+}, {
+	"sequence", "sequence", "none", "item", "items-continue",
+}, {
+	"choice",
+	"expression",
+	"none",
+	"terminal",
+	"symbol",
+	"group",
+	"quantifier",
+	"sequence",
 }, {
 	"chars", "alias-word", "alias",
 }, {
