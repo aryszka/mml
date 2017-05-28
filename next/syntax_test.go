@@ -44,6 +44,24 @@ func boot(t *testing.T) {
 	}
 
 	checkNode(t, nt, n)
+
+	stt, err := defineDocument(nt)
+	if err != nil {
+		log.Fatalln("document:", err)
+	}
+
+	if _, err := def.Seek(0, 0); err != nil {
+		log.Fatalln(err)
+	}
+
+	start = time.Now()
+	ntt, err := stt.Parse(def)
+	log.Println(time.Since(start))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	checkNode(t, ntt, nt)
 }
 
 func TestBoot(t *testing.T) {
