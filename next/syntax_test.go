@@ -3,7 +3,6 @@ package next
 import "testing"
 
 func TestBoot(t *testing.T) {
-	t.Skip()
 	boot()
 }
 

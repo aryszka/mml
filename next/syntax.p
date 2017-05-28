@@ -16,7 +16,7 @@ char-sequence:alias = "\"" ([^\\\"] | "\\" .)* "\"";
 
 terminal = (any-char | char-class | char-sequence)+;
 
-symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}^+*?|():=;]+;
+symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}\^+*?|():=;]+;
 
 group:alias = "(" wsc* expression wsc* ")";
 
@@ -28,9 +28,9 @@ zero-or-more     = "*";
 zero-or-one      = "?";
 quantity:alias   = count-quantifier
                  | range-quantifier
-		 | one-or-more
-		 | zero-or-more
-		 | zero-or-one;
+                 | one-or-more
+                 | zero-or-more
+                 | zero-or-one;
 
 quantifier = (terminal | symbol | group) wsc* quantity;
 
@@ -43,12 +43,12 @@ choice        = element (wsc* "|" wsc* element)+;
 expression:alias = terminal
                  | symbol
                  | group
-	         | quantifier
-	         | sequence
-	         | choice;
+                 | quantifier
+                 | sequence
+                 | choice;
 
 flag       = "alias" | "root";
 definition = symbol (":" flag)* wsc* "=" wsc* expression;
 
-definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*
+definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*;
 document:root     = (wsc | ";")* definitions? (wsc | ";")*;
