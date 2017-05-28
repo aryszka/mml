@@ -4,15 +4,20 @@ wsc:alias = ws | comment;
 block-comment:alias   = "/*" ("*" [^/] | [^*])* "*/";
 line-comment:alias    = "//" [^\n]*;
 comment-segment:alias = line-comment | block-comment;
-comment               = comment-segment (ws* "\n"? ws* comment-segment)*;
+ws-no-nl              = " " | "\t" | "\b" | "\f" | "\r" | "\v";
+comment               = comment-segment (ws-no-nl* "\n"? ws-no-nl* comment-segment)*;
 
-any-char = ".";
+any-char = "."; // equivalent to [^]
 
-class-char:alias = [^\\\[\]\^\-] | "\\" .;
-char-range:alias = class-char "-" class-char;
-char-class       = "[" "^"? (class-char | char-range)* "]";
+// caution: newline is accepted
+class-not  = "^";
+class-char = [^\\\[\]\^\-] | "\\" .;
+char-range = class-char "-" class-char;
+char-class = "[" class-not? (class-char | char-range)* "]";
 
-char-sequence = "\"" ([^\\\"] | "\\" .)* "\"";
+// caution: newline is accepted
+sequence-char = [^\\\"] | "\\" .;
+char-sequence = "\"" sequence-char* "\"";
 
 // TODO: this can be mixed up with sequence. Is it fine?
 terminal = (any-char | char-class | char-sequence)+;

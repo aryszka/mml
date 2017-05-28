@@ -68,12 +68,22 @@ var definitions = [][]string{{
 }, {
 	"quantifier", "optional-nl", "alias", "nl", "0", "1",
 }, {
+	"choice",
+	"ws-no-nl",
+	"alias",
+	"space",
+	"tab",
+	"backspace",
+	"formfeed",
+	"carryreturn",
+	"verticaltab",
+}, {
 	"sequence",
 	"continue-comment-segment",
 	"alias",
-	"ws",
+	"ws-no-nl",
 	"optional-nl",
-	"ws",
+	"ws-no-nl",
 	"comment-segment",
 }, {
 	"quantifier", "continue-comment", "alias", "continue-comment-segment", "0", "-1",
@@ -96,11 +106,11 @@ var definitions = [][]string{{
 }, {
 	"chars", "close-square", "alias", "]",
 }, {
-	"chars", "not", "alias", "^",
+	"chars", "class-not", "none", "^",
 }, {
 	"chars", "dash", "alias", "-",
 }, {
-	"quantifier", "optional-not", "alias", "not", "0", "1",
+	"quantifier", "optional-class-not", "alias", "class-not", "0", "1",
 }, {
 	"class", "not-class-control", "alias", "^\\\\\\[\\]\\^\\-",
 }, {
@@ -108,23 +118,23 @@ var definitions = [][]string{{
 }, {
 	"sequence", "escaped-char", "alias", "escape", "anything",
 }, {
-	"choice", "class-char", "alias", "not-class-control", "escaped-char",
+	"choice", "class-char", "none", "not-class-control", "escaped-char",
 }, {
-	"sequence", "char-range", "alias", "class-char", "dash", "class-char",
+	"sequence", "char-range", "none", "class-char", "dash", "class-char",
 }, {
 	"choice", "char-or-range", "alias", "class-char", "char-range",
 }, {
 	"quantifier", "chars-or-ranges", "alias", "char-or-range", "0", "-1",
 }, {
-	"sequence", "char-class", "none", "open-square", "optional-not", "chars-or-ranges", "close-square",
+	"sequence", "char-class", "none", "open-square", "optional-class-not", "chars-or-ranges", "close-square",
 }, {
 	"chars", "double-quote", "alias", "\\\"",
 }, {
 	"class", "not-char-sequence-control", "alias", "^\\\\\\\"",
 }, {
-	"choice", "char-sequence-char", "alias", "not-char-sequence-control", "escaped-char",
+	"choice", "sequence-char", "none", "not-char-sequence-control", "escaped-char",
 }, {
-	"quantifier", "char-sequence-chars", "alias", "char-sequence-char", "0", "-1",
+	"quantifier", "char-sequence-chars", "alias", "sequence-char", "0", "-1",
 }, {
 	"sequence", "char-sequence", "none", "double-quote", "char-sequence-chars", "double-quote",
 }, {
@@ -302,16 +312,20 @@ func flagsToCommitType(n []*Node) CommitType {
 	return ct
 }
 
+func childName(name string, childIndex int) string {
+	return fmt.Sprintf("%s:%d", name, childIndex)
+}
+
 func defineMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
 	var refs []string
 	for i, ni := range n {
-		namei := fmt.Sprintf("%s:%d", name, i)
+		nmi := childName(name, i)
 		switch ni.Name {
 		case "symbol":
 			refs = append(refs, ni.Text())
 		default:
-			refs = append(refs, namei)
-			if err := defineExpression(s, namei, Alias, ni); err != nil {
+			refs = append(refs, nmi)
+			if err := defineExpression(s, nmi, Alias, ni); err != nil {
 				return nil, err
 			}
 		}
@@ -320,23 +334,84 @@ func defineMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
 	return refs, nil
 }
 
-// TODO: it is parsed, use it
-func defineTerminal(s *Syntax, name string, ct CommitType, t *Node) error {
-	var td []Terminal
-	for _, ti := range t.Nodes {
-		switch ti.Name {
-		case "any-char":
-			td = append(td, Terminal{Anything: true})
-		case "char-class":
-			cls := ti.Text()
-			td = append(td, Terminal{Class: cls[1 : len(cls)-1]})
-		case "char-sequence":
-			cs := ti.Text()
-			td = append(td, Terminal{Chars: cs[1 : len(cs)-1]})
+func toRune(c string) rune {
+	return []rune(c)[0]
+}
+
+func singleChar(n *Node) rune {
+	s := n.Text()
+	if s[0] == '\\' {
+		return unescapeChar(toRune(s[1:]))
+	}
+
+	return toRune(s)
+}
+
+func defineClass(s *Syntax, name string, n []*Node) error {
+	var (
+		not    bool
+		chars  []rune
+		ranges [][]rune
+	)
+
+	if n[0].len() > 0 {
+		not = true
+	}
+
+	for _, c := range n[1:] {
+		switch c.Name {
+		case "class-char":
+			chars = append(chars, singleChar(c))
+		case "class-range":
+			ranges = append(ranges, []rune{singleChar(c.Nodes[0]), singleChar(c.Nodes[1])})
 		}
 	}
 
-	return s.Terminal(name, ct, td...)
+	return s.Class(name, not, chars, ranges)
+}
+
+func defineCharSequence(s *Syntax, name string, chars []*Node) ([]string, error) {
+	var refs []string
+	for i, c := range chars {
+		char := singleChar(c)
+		ref := childName(name, i)
+		if err := s.Char(ref, char); err != nil {
+			return nil, err
+		}
+
+		refs = append(refs, ref)
+	}
+
+	return refs, nil
+}
+
+func defineTerminalChars(s *Syntax, name string, c *Node) (refs []string, err error) {
+	switch c.Name {
+	case "any-char":
+		err = s.AnyChar(name)
+		refs = []string{name}
+	case "char-class":
+		err = defineClass(s, name, c.Nodes)
+		refs = []string{name}
+	case "char-sequence":
+		refs, err = defineCharSequence(s, name, c.Nodes)
+	}
+
+	return
+}
+
+func defineTerminal(s *Syntax, name string, ct CommitType, t *Node) error {
+	var refs []string
+	for i, c := range t.Nodes {
+		ref := childName(name, i)
+		if crefs, err := defineTerminalChars(s, ref, c); err != nil {
+			return err
+		} else {
+			refs = append(refs, crefs...)
+		}
+	}
+
+	return s.Sequence(name, ct, refs...)
 }
 
 func defineQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) error {

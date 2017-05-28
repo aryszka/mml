@@ -60,6 +60,18 @@ func (s *Syntax) register(d definition, ct CommitType) error {
 	return nil
 }
 
+func (s *Syntax) AnyChar(name string) error {
+	return s.register(newChar(s.registry, name, true, false, nil, nil), Alias)
+}
+
+func (s *Syntax) Char(name string, c rune) error {
+	return s.register(newChar(s.registry, name, false, false, []rune{c}, nil), Alias)
+}
+
+func (s *Syntax) Class(name string, not bool, chars []rune, ranges [][]rune) error {
+	return s.register(newChar(s.registry, name, false, not, chars, ranges), Alias)
+}
+
 func (s *Syntax) Terminal(name string, ct CommitType, t ...Terminal) error {
 	if len(t) == 0 {
 		return ErrNoDefinitions
