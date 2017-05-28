@@ -163,13 +163,13 @@ func (p *choiceParser) parse(c *context) {
 	)
 
 	for {
-		p.trace.Info("parsing", c.offset)
+		p.trace.Info("parsing", c.offset, initIndex, elementIndex)
 
 		if elementIndex == len(p.generators[initIndex]) {
-			if matchIndex >= 0 {
-				initIndex, elementIndex, matchIndex = matchIndex+1, 0, -1
-			} else if match && initIndex < len(p.generators)-1 {
+			if matchIndex >= 0 && initIndex < len(p.generators)-1 {
 				initIndex, elementIndex, matchIndex = len(p.generators)-1, 0, -1
+			} else if matchIndex >= 0 {
+				initIndex, elementIndex, matchIndex = matchIndex+1, 0, -1
 			} else if match {
 				p.trace.Info("success")
 				c.success(p.genID, p.node)
@@ -181,11 +181,13 @@ func (p *choiceParser) parse(c *context) {
 			}
 		}
 
-		init := p.init
-		if initIndex > 0 && initIndex == len(p.generators)-1 {
+		var init *Node
+		if initIndex == len(p.generators)-1 {
 			init = p.node
 		} else if initIndex > 0 {
 			init = p.node.Nodes[0]
+		} else {
+			init = p.init
 		}
 
 		var elementParser parser

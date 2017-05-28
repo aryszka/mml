@@ -6,15 +6,15 @@ line-comment:alias    = "//" [^\n]*;
 comment-segment:alias = line-comment | block-comment;
 comment               = comment-segment (ws* "\n"? ws* comment-segment)*;
 
-any-char = ".";
+any-char:alias = ".";
 
 class-char:alias = [^\\\[\]\^\-] | "\\" .;
 char-range:alias = class-char "-" class-char;
-char-class       = "[" "^"? (class-char | char-range)* "]";
+char-class:alias = "[" "^"? (class-char | char-range)* "]";
 
-char-sequence = "\"" ([^\\\"] | "\\" .) "\"";
+char-sequence:alias = "\"" ([^\\\"] | "\\" .)* "\"";
 
-terminal = any-char | char-class | char-sequence;
+terminal = (any-char | char-class | char-sequence)+;
 
 symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}+*?|();]+;
 
@@ -33,11 +33,11 @@ quantity:alias   = count-quantifier
 
 quantifier = (terminal | symbol | group) wsc* quantity;
 
-item     = terminal | symbol | group | quantified;
-sequence = item (wsc* item)*;
+item:alias = terminal | symbol | group | quantified;
+sequence   = item (wsc* item)*;
 
-element = terminal | symbol | group | quantified | sequence;
-choice  = element (wsc* "|" wsc* element);
+element:alias = terminal | symbol | group | quantified | sequence;
+choice        = element (wsc* "|" wsc* element);
 
 expression = terminal
            | symbol
@@ -50,4 +50,4 @@ flag       = "alias" | "root";
 definition = symbol (":" flag)* wsc* "=" wsc* expression;
 
 definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*
-document:root = (wsc | ";")* definitions? (wsc | ";")*;
+document:root     = (wsc | ";")* definitions? (wsc | ";")*;

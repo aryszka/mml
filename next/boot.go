@@ -129,7 +129,9 @@ var definitions = [][]string{{
 }, {
 	"sequence", "char-sequence", "none", "double-quote", "char-sequence-chars", "double-quote",
 }, {
-	"choice", "terminal", "none", "any-char", "char-class", "char-sequence",
+	"choice", "terminal-element", "alias", "any-char", "char-class", "char-sequence",
+}, {
+	"quantifier", "terminal", "none", "terminal-element", "1", "-1",
 }, {
 	"class", "symbol-char", "^\\\\ \\t\\b\\f\\r\\v\\b/.\\\"\\[\\]\\^?*|():=;",
 }, {
