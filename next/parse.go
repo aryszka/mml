@@ -16,7 +16,7 @@ type definition interface {
 type generator interface {
 	nodeName() string
 	void() bool
-	finalize(Trace) // TODO: maybe this can be done only for the generator
+	finalize(Trace)
 	parser(Trace, *Node) parser
 }
 

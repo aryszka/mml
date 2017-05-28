@@ -5,17 +5,13 @@ import (
 	"testing"
 )
 
-func TestGroup(t *testing.T) {
+func TestChoice(t *testing.T) {
 	for _, ti := range []syntaxTest{{
-		msg:  "empty group",
-		text: "a = ()",
-		fail: true,
+		msg:  "choice",
+		text: "a = a | b",
 	}, {
-		msg:  "group",
-		text: "a = (a*)",
-	}, {
-		msg:  "group in group",
-		text: "a = ((a* b c | d))",
+		msg:  "multiple",
+		text: "abcd = a | b c | d",
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			s, err := defineSyntax()

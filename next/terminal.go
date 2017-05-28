@@ -72,9 +72,9 @@ func unescape(escape rune, banned []rune, chars []rune) ([]rune, error) {
 	return unescaped, nil
 }
 
-func makeAnyCharDefinition(r *registry, name string, indexOffset int) []definition {
+func makeAnyCharDefinition(r *registry, name string, indexOffset int) definition {
 	name = fmt.Sprintf("%s:%d", name, indexOffset)
-	return []definition{newChar(r, name, true, false, nil, nil)}
+	return newChar(r, name, true, false, nil, nil)
 }
 
 func makeCharDefinitions(r *registry, name string, indexOffset int, chars string) ([]definition, error) {
@@ -160,7 +160,7 @@ func terminalDefinitions(r *registry, name string, t []Terminal) ([]definition, 
 	var defs []definition
 	for i, ti := range t {
 		if ti.Anything {
-			defs = append(defs, makeAnyCharDefinition(r, name, i)...)
+			defs = append(defs, makeAnyCharDefinition(r, name, i))
 		} else if ti.Chars != "" {
 			di, err := makeCharDefinitions(r, name, i, ti.Chars)
 			if err != nil {

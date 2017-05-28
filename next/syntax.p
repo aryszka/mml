@@ -33,16 +33,16 @@ quantity:alias   = count-quantifier
 
 quantifier = (terminal | symbol | group) wsc* quantity;
 
-item:alias = terminal | symbol | group | quantified;
+item:alias = terminal | symbol | group | quantifier;
 sequence   = item (wsc* item)*;
 
-element:alias = terminal | symbol | group | quantified | sequence;
-choice        = element (wsc* "|" wsc* element);
+element:alias = terminal | symbol | group | quantifier | sequence;
+choice        = element (wsc* "|" wsc* element)+;
 
 expression = terminal
            | symbol
            | group
-	   | quantified
+	   | quantifier
 	   | sequence
 	   | choice;
 

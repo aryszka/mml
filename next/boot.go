@@ -196,6 +196,16 @@ var definitions = [][]string{{
 }, {
 	"sequence", "sequence", "none", "item", "items-continue",
 }, {
+	"choice", "element", "alias", "terminal", "symbol", "group", "quantifier", "sequence",
+}, {
+	"chars", "pipe", "|",
+}, {
+	"sequence", "element-continue", "alias", "wscs", "pipe", "wscs", "element",
+}, {
+	"quantifier", "elements-continue", "alias", "element-continue", "1", "-1",
+}, {
+	"sequence", "choice", "none", "element", "elements-continue",
+}, {
 	"choice",
 	"expression",
 	"none",
@@ -204,6 +214,7 @@ var definitions = [][]string{{
 	"group",
 	"quantifier",
 	"sequence",
+	"choice",
 }, {
 	"chars", "alias-word", "alias",
 }, {
