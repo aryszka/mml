@@ -61,8 +61,6 @@ func (n *Node) clear() {
 }
 
 func (n *Node) commit() {
-	return
-
 	var nodes []*Node
 	for _, ni := range n.Nodes {
 		ni.commit()

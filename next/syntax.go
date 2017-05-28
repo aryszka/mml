@@ -52,7 +52,7 @@ func (s *Syntax) register(d definition) error {
 	return s.registry.register(d)
 }
 
-func (s *Syntax) Terminal(name string, t ...Terminal) error {
+func (s *Syntax) Terminal(name string, ct CommitType, t ...Terminal) error {
 	if len(t) == 0 {
 		return ErrNoDefinitions
 	}
@@ -71,7 +71,7 @@ func (s *Syntax) Terminal(name string, t ...Terminal) error {
 		names[i] = d.nodeName()
 	}
 
-	return s.register(newSequence(s.registry, name, Alias, names))
+	return s.register(newSequence(s.registry, name, ct, names))
 }
 
 func (s *Syntax) Quantifier(name string, ct CommitType, item string, min, max int) error {

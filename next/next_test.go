@@ -13,44 +13,48 @@ type syntaxTest struct {
 	fail   bool
 }
 
-func checkNode(left, right *Node) bool {
+func checkNode(t *testing.T, left, right *Node) {
 	if (left == nil) != (right == nil) {
-		return false
+		t.Error("nil reference doesn't match", left == nil, right == nil)
+		return
 	}
 
 	if left == nil {
-		return true
+		return
 	}
 
 	if left.Name != right.Name {
-		return false
+		t.Error("name doesn't match", left.Name, right.Name)
+		return
 	}
 
 	if left.from != right.from {
-		return false
+		t.Error("from doesn't match", left.Name, left.from, right.from)
+		return
 	}
 
 	if left.to != right.to {
-		return false
+		t.Error("to doesn't match", left.Name, left.to, right.to)
+		return
 	}
 
-	return checkNodes(left.Nodes, right.Nodes)
+	checkNodes(t, left.Name, left.Nodes, right.Nodes)
 }
 
-func checkNodes(left, right []*Node) bool {
+func checkNodes(t *testing.T, name string, left, right []*Node) {
 	if len(left) != len(right) {
-		return false
+		t.Error("length doesn't match", name, len(left), len(right))
+		return
 	}
 
 	for len(left) > 0 {
-		if !checkNode(left[0], right[0]) {
-			return false
+		checkNode(t, left[0], right[0])
+		if t.Failed() {
+			return
 		}
 
 		left, right = left[1:], right[1:]
 	}
-
-	return true
 }
 
 func testSyntax(t *testing.T, st []syntaxTest) {
@@ -79,9 +83,7 @@ func testSyntax(t *testing.T, st []syntaxTest) {
 				return
 			}
 
-			// if !checkNode(n, ti.node) {
-			// 	t.Error("node doesn't match", n)
-			// }
+			checkNode(t, n, ti.node)
 		})
 	}
 }

@@ -9,13 +9,13 @@ func TestSymbol(t *testing.T) {
 	testSyntax(t, []syntaxTest{{
 		msg: "word ignored",
 		syntax: [][]string{
-			{"chars", "foo-word-chars", "foo"},
+			{"chars", "foo-word-chars", "alias", "foo"},
 		},
 		text: "foo",
 	}, {
 		msg: "word",
 		syntax: [][]string{
-			{"chars", "foo-word-chars", "foo"},
+			{"chars", "foo-word-chars", "alias", "foo"},
 			{"sequence", "foo-word", "none", "foo-word-chars"},
 		},
 		text: "foo",
@@ -26,22 +26,22 @@ func TestSymbol(t *testing.T) {
 		},
 	}, {
 		msg:    "word, no match",
-		syntax: [][]string{{"chars", "foo-word", "foo"}},
+		syntax: [][]string{{"chars", "foo-word", "alias", "foo"}},
 		text:   "bar",
 		fail:   true,
 	}, {
 		msg:    "word, no match, last",
-		syntax: [][]string{{"chars", "bar-word", "bar"}},
+		syntax: [][]string{{"chars", "bar-word", "alias", "bar"}},
 		text:   "baz",
 		fail:   true,
 	}, {
 		msg:    "char class, ignored",
-		syntax: [][]string{{"class", "a", "a-z"}},
+		syntax: [][]string{{"class", "a", "alias", "a-z"}},
 		text:   "a",
 	}, {
 		msg: "char class",
 		syntax: [][]string{
-			{"class", "lowercase-chars", "a-z"},
+			{"class", "lowercase-chars", "alias", "a-z"},
 			{"sequence", "lowercase", "none", "lowercase-chars"},
 		},
 		text: "a",
@@ -52,14 +52,14 @@ func TestSymbol(t *testing.T) {
 		},
 	}, {
 		msg:    "char class, fail",
-		syntax: [][]string{{"class", "a", "a-z"}},
+		syntax: [][]string{{"class", "a", "alias", "a-z"}},
 		text:   "A",
 		fail:   true,
 	}, {
 		msg: "symbol",
 		syntax: [][]string{
-			{"class", "letter", "a-z"},
-			{"class", "symbol-char", "a-zA-Z0-9_"},
+			{"class", "letter", "alias", "a-z"},
+			{"class", "symbol-char", "alias", "a-zA-Z0-9_"},
 			{"quantifier", "symbol-chars", "alias", "symbol-char", "0", "-1"},
 			{"sequence", "symbol", "none", "letter", "symbol-chars"},
 		},

@@ -134,6 +134,7 @@ func (c *context) token() (rune, bool) {
 
 func (c *context) success(genID int, n *Node) {
 	c.match = true
+	n.commit()
 	c.node = n
 	c.offset = n.to
 

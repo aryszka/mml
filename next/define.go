@@ -18,13 +18,13 @@ func stringToCommitType(s string) CommitType {
 
 func define(s *Syntax, defs [][]string) error {
 	for _, d := range defs {
-		if len(d) < 2 {
+		if len(d) < 3 {
 			return errInvalidDefinition
 		}
 
 		switch d[0] {
 		case "chars", "class":
-			if len(d) < 3 {
+			if len(d) < 4 {
 				return errInvalidDefinition
 			}
 		case "quantifier":
@@ -40,21 +40,14 @@ func define(s *Syntax, defs [][]string) error {
 		var err error
 		switch d[0] {
 		case "anything":
-			err = s.Terminal(d[1], Terminal{Anything: true})
+			ct := stringToCommitType(d[2])
+			err = s.Terminal(d[1], ct, Terminal{Anything: true})
 		case "chars":
-			ts := make([]Terminal, len(d)-2)
-			for i, di := range d[2:] {
-				ts[i] = Terminal{Chars: di}
-			}
-
-			err = s.Terminal(d[1], ts...)
+			ct := stringToCommitType(d[2])
+			err = s.Terminal(d[1], ct, Terminal{Chars: d[3]})
 		case "class":
-			ts := make([]Terminal, len(d)-2)
-			for i, di := range d[2:] {
-				ts[i] = Terminal{Class: di}
-			}
-
-			err = s.Terminal(d[1], Terminal{Class: d[2]})
+			ct := stringToCommitType(d[2])
+			err = s.Terminal(d[1], ct, Terminal{Class: d[3]})
 		case "quantifier":
 			ct := stringToCommitType(d[2])
 

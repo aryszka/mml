@@ -11,9 +11,9 @@ func TestOptional(t *testing.T) {
 	testSyntax(t, []syntaxTest{{
 		msg: "fake rsc check, executes in time due to hungriness",
 		syntax: [][]string{{
-			"chars", "a", "a",
+			"chars", "a", "alias", "a",
 		}, {
-			"anything", "any-char",
+			"anything", "any-char", "alias",
 		}, {
 			"quantifier", "opt-a", "alias", "a", "0", "1",
 		}, {

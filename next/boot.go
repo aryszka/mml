@@ -7,19 +7,19 @@ import (
 )
 
 var definitions = [][]string{{
-	"chars", "space", " ",
+	"chars", "space", "alias", " ",
 }, {
-	"chars", "tab", "\\t",
+	"chars", "tab", "alias", "\\t",
 }, {
-	"chars", "nl", "\\n",
+	"chars", "nl", "alias", "\\n",
 }, {
-	"chars", "backspace", "\\b",
+	"chars", "backspace", "alias", "\\b",
 }, {
-	"chars", "formfeed", "\\f",
+	"chars", "formfeed", "alias", "\\f",
 }, {
-	"chars", "carryreturn", "\\r",
+	"chars", "carryreturn", "alias", "\\r",
 }, {
-	"chars", "verticaltab", "\\v",
+	"chars", "verticaltab", "alias", "\\v",
 }, {
 	"choice",
 	"ws",
@@ -32,19 +32,19 @@ var definitions = [][]string{{
 	"carryreturn",
 	"verticaltab",
 }, {
-	"chars", "open-block-comment", "/*",
+	"chars", "open-block-comment", "alias", "/*",
 }, {
-	"chars", "close-block-comment", "*/",
+	"chars", "close-block-comment", "alias", "*/",
 }, {
-	"chars", "star", "*",
+	"chars", "star", "alias", "*",
 }, {
-	"class", "not-slash", "^/",
+	"class", "not-slash", "alias", "^/",
 }, {
-	"class", "not-star", "^*",
+	"class", "not-star", "alias", "^*",
 }, {
-	"chars", "double-slash", "//",
+	"chars", "double-slash", "alias", "//",
 }, {
-	"class", "not-nl", "^\\n",
+	"class", "not-nl", "alias", "^\\n",
 }, {
 	"sequence", "not-block-close", "alias", "star", "not-slash",
 }, {
@@ -89,23 +89,23 @@ var definitions = [][]string{{
 }, {
 	"quantifier", "wscs", "alias", "wsc", "0", "-1",
 }, {
-	"anything", "anything",
+	"anything", "anything", "alias",
 }, {
-	"chars", "any-char", ".",
+	"chars", "any-char", "alias", ".",
 }, {
-	"chars", "open-square", "[",
+	"chars", "open-square", "alias", "[",
 }, {
-	"chars", "close-square", "]",
+	"chars", "close-square", "alias", "]",
 }, {
-	"chars", "not", "^",
+	"chars", "not", "alias", "^",
 }, {
-	"chars", "dash", "-",
+	"chars", "dash", "alias", "-",
 }, {
 	"quantifier", "optional-not", "alias", "not", "0", "1",
 }, {
-	"class", "not-class-control", "^\\\\\\[\\]\\^\\-",
+	"class", "not-class-control", "alias", "^\\\\\\[\\]\\^\\-",
 }, {
-	"chars", "escape", "\\\\",
+	"chars", "escape", "alias", "\\\\",
 }, {
 	"sequence", "escaped-char", "alias", "escape", "anything",
 }, {
@@ -119,9 +119,9 @@ var definitions = [][]string{{
 }, {
 	"sequence", "char-class", "none", "open-square", "optional-not", "chars-or-ranges", "close-square",
 }, {
-	"chars", "double-quote", "\\\"",
+	"chars", "double-quote", "alias", "\\\"",
 }, {
-	"class", "not-char-sequence-control", "^\\\\\\\"",
+	"class", "not-char-sequence-control", "alias", "^\\\\\\\"",
 }, {
 	"choice", "char-sequence-char", "alias", "not-char-sequence-control", "escaped-char",
 }, {
@@ -133,47 +133,47 @@ var definitions = [][]string{{
 }, {
 	"quantifier", "terminal", "none", "terminal-element", "1", "-1",
 }, {
-	"class", "symbol-char", "^\\\\ \\t\\b\\f\\r\\v\\b/.\\\"\\[\\]\\^?*|():=;",
+	"class", "symbol-char", "alias", "^\\\\ \\n\\t\\b\\f\\r\\v\\b/.\\[\\]\\\"{}\\^+*?|():=;",
 }, {
 	"quantifier", "symbol-chars", "alias", "symbol-char", "1", "-1",
 }, {
 	"sequence", "symbol", "none", "symbol-chars",
 }, {
-	"chars", "open-paren", "(",
+	"chars", "open-paren", "alias", "(",
 }, {
-	"chars", "close-paren", ")",
+	"chars", "close-paren", "alias", ")",
 }, {
 	"sequence", "group", "alias", "open-paren", "wscs", "expression", "wscs", "close-paren",
 }, {
-	"chars", "open-brace", "{",
+	"chars", "open-brace", "alias", "{",
 }, {
-	"chars", "close-brace", "}",
+	"chars", "close-brace", "alias", "}",
 }, {
-	"class", "digit", "0-9",
+	"class", "digit", "alias", "0-9",
 }, {
-	"quantifier", "digits", "alias", "digit", "1", "-1",
+	"quantifier", "count", "none", "digit", "1", "-1",
 }, {
-	"sequence", "count-quantifier", "none", "open-brace", "wscs", "digits", "wscs", "close-brace",
+	"sequence", "count-quantifier", "none", "open-brace", "wscs", "count", "wscs", "close-brace",
 }, {
-	"chars", "comma", ",",
+	"chars", "comma", "alias", ",",
 }, {
 	"sequence",
 	"range-quantifier",
 	"none",
 	"open-brace",
 	"wscs",
-	"digits",
+	"count",
 	"wscs",
 	"comma",
 	"wscs",
-	"digits",
+	"count",
 	"close-brace",
 }, {
-	"chars", "one-or-more", "+",
+	"chars", "one-or-more", "none", "+",
 }, {
-	"chars", "zero-or-more", "*",
+	"chars", "zero-or-more", "none", "*",
 }, {
-	"chars", "zero-or-one", "?",
+	"chars", "zero-or-one", "none", "?",
 }, {
 	"choice",
 	"quantity",
@@ -188,7 +188,7 @@ var definitions = [][]string{{
 }, {
 	"sequence", "quantifier", "none", "quantifiable", "wscs", "quantity",
 }, {
-	"choice", "item", "none", "terminal", "symbol", "group", "quantifier",
+	"choice", "item", "alias", "terminal", "symbol", "group", "quantifier",
 }, {
 	"sequence", "item-continue", "alias", "wscs", "item",
 }, {
@@ -198,7 +198,7 @@ var definitions = [][]string{{
 }, {
 	"choice", "element", "alias", "terminal", "symbol", "group", "quantifier", "sequence",
 }, {
-	"chars", "pipe", "|",
+	"chars", "pipe", "alias", "|",
 }, {
 	"sequence", "element-continue", "alias", "wscs", "pipe", "wscs", "element",
 }, {
@@ -208,7 +208,7 @@ var definitions = [][]string{{
 }, {
 	"choice",
 	"expression",
-	"none",
+	"alias",
 	"terminal",
 	"symbol",
 	"group",
@@ -216,23 +216,23 @@ var definitions = [][]string{{
 	"sequence",
 	"choice",
 }, {
-	"chars", "alias-word", "alias",
+	"chars", "alias-word", "none", "alias",
 }, {
-	"chars", "root-word", "root",
+	"chars", "root-word", "none", "root",
 }, {
 	"choice", "flag-word", "alias", "alias-word", "root-word",
 }, {
-	"chars", "colon", ":",
+	"chars", "colon", "alias", ":",
 }, {
 	"sequence", "flag", "alias", "colon", "flag-word",
 }, {
 	"quantifier", "flags", "alias", "flag", "0", "-1",
 }, {
-	"chars", "equal", "=",
+	"chars", "equal", "alias", "=",
 }, {
 	"sequence", "definition", "none", "symbol", "flags", "wscs", "equal", "wscs", "expression",
 }, {
-	"chars", "semicolon", ";",
+	"chars", "semicolon", "alias", ";",
 }, {
 	"choice", "wsc-or-semicolon", "alias", "wsc", "semicolon",
 }, {
