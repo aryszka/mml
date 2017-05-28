@@ -1,9 +1,53 @@
 package next
 
-import "testing"
+import (
+	"log"
+	"os"
+	"testing"
+	"time"
+)
+
+func boot(t *testing.T) {
+	s, err := defineSyntax()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	def, err := os.Open("syntax.p")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer def.Close()
+
+	start := time.Now()
+	n, err := s.Parse(def)
+	log.Println(time.Since(start))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	st, err := defineDocument(n)
+	if err != nil {
+		log.Fatalln("document:", err)
+	}
+
+	if _, err := def.Seek(0, 0); err != nil {
+		log.Fatalln(err)
+	}
+
+	start = time.Now()
+	nt, err := st.Parse(def)
+	log.Println(time.Since(start))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	checkNode(t, nt, n)
+}
 
 func TestBoot(t *testing.T) {
-	boot()
+	boot(t)
 }
 
 func TestOptional(t *testing.T) {

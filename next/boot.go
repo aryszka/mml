@@ -1,9 +1,8 @@
 package next
 
 import (
-	"log"
-	"os"
-	"time"
+	"fmt"
+	"strconv"
 )
 
 var definitions = [][]string{{
@@ -91,7 +90,7 @@ var definitions = [][]string{{
 }, {
 	"anything", "anything", "alias",
 }, {
-	"chars", "any-char", "alias", ".",
+	"chars", "any-char", "none", ".",
 }, {
 	"chars", "open-square", "alias", "[",
 }, {
@@ -216,11 +215,11 @@ var definitions = [][]string{{
 	"sequence",
 	"choice",
 }, {
-	"chars", "alias-word", "none", "alias",
+	"chars", "alias", "none", "alias",
 }, {
-	"chars", "root-word", "none", "root",
+	"chars", "root", "none", "root",
 }, {
-	"choice", "flag-word", "alias", "alias-word", "root-word",
+	"choice", "flag-word", "alias", "alias", "root",
 }, {
 	"chars", "colon", "alias", ":",
 }, {
@@ -289,21 +288,154 @@ func defineSyntax() (*Syntax, error) {
 	return s, nil
 }
 
-func boot() {
-	s, err := defineSyntax()
-	if err != nil {
-		log.Fatalln(err)
+func flagsToCommitType(n []*Node) CommitType {
+	var ct CommitType
+	for _, ni := range n {
+		switch ni.Name {
+		case "alias":
+			ct |= Alias
+		case "root":
+			ct |= Root
+		}
 	}
 
-	def, err := os.Open("syntax.p")
-	if err != nil {
-		log.Fatalln(err)
+	return ct
+}
+
+func defineMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
+	var refs []string
+	for i, ni := range n {
+		namei := fmt.Sprintf("%s:%d", name, i)
+		switch ni.Name {
+		case "symbol":
+			refs = append(refs, ni.Text())
+		default:
+			refs = append(refs, namei)
+			if err := defineExpression(s, namei, Alias, ni); err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	now := time.Now()
-	_, err = s.Parse(def)
-	log.Println(time.Since(now))
-	if err != nil {
-		log.Fatalln(err)
+	return refs, nil
+}
+
+// TODO: it is parsed, use it
+func defineTerminal(s *Syntax, name string, ct CommitType, t *Node) error {
+	var td []Terminal
+	for _, ti := range t.Nodes {
+		switch ti.Name {
+		case "any-char":
+			td = append(td, Terminal{Anything: true})
+		case "char-class":
+			cls := ti.Text()
+			td = append(td, Terminal{Class: cls[1 : len(cls)-1]})
+		case "char-sequence":
+			cs := ti.Text()
+			td = append(td, Terminal{Chars: cs[1 : len(cs)-1]})
+		}
 	}
+
+	return s.Terminal(name, ct, td...)
+}
+
+func defineQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) error {
+	refs, err := defineMembers(s, name, n)
+	if err != nil {
+		return err
+	}
+
+	var min, max int
+	switch q.Name {
+	case "count-quantifier":
+		min, err = strconv.Atoi(q.Nodes[0].Text())
+		if err != nil {
+			return err
+		}
+
+		max = min
+	case "range-quantifier":
+		min, err = strconv.Atoi(q.Nodes[0].Text())
+		if err != nil {
+			return err
+		}
+
+		max, err = strconv.Atoi(q.Nodes[1].Text())
+		if err != nil {
+			return err
+		}
+	case "one-or-more":
+		min, max = 1, -1
+	case "zero-or-more":
+		min, max = 0, -1
+	case "zero-or-one":
+		min, max = 0, 1
+	}
+
+	return s.Quantifier(name, ct, refs[0], min, max)
+}
+
+func defineSequence(s *Syntax, name string, ct CommitType, n ...*Node) error {
+	refs, err := defineMembers(s, name, n...)
+	if err != nil {
+		return err
+	}
+
+	return s.Sequence(name, ct, refs...)
+}
+
+func defineChoice(s *Syntax, name string, ct CommitType, n ...*Node) error {
+	refs, err := defineMembers(s, name, n...)
+	if err != nil {
+		return err
+	}
+
+	return s.Choice(name, ct, refs...)
+}
+
+func defineExpression(s *Syntax, name string, ct CommitType, expression *Node) error {
+	var err error
+	switch expression.Name {
+	case "terminal":
+		err = defineTerminal(s, name, ct, expression)
+	case "symbol":
+		err = defineSequence(s, name, ct, expression)
+	case "quantifier":
+		err = defineQuantifier(s, name, ct, expression.Nodes[0], expression.Nodes[1])
+	case "sequence":
+		err = defineSequence(s, name, ct, expression.Nodes...)
+	case "choice":
+		err = defineChoice(s, name, ct, expression.Nodes...)
+	}
+
+	return err
+}
+
+func documentDefinition(s *Syntax, n *Node) error {
+	return defineExpression(
+		s,
+		n.Nodes[0].Text(),
+		flagsToCommitType(n.Nodes[1:len(n.Nodes)-1]),
+		n.Nodes[len(n.Nodes)-1],
+	)
+}
+
+func defineDocument(n *Node) (*Syntax, error) {
+	if n.Name != "document" {
+		return nil, ErrInvalidSyntax
+	}
+
+	s := NewSyntax(Options{Trace: NewTrace(TraceOff)})
+	for _, ni := range n.Nodes {
+		switch ni.Name {
+		case "comment":
+			continue
+		case "definition":
+			if err := documentDefinition(s, ni); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return s, nil
 }

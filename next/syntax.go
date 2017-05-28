@@ -44,12 +44,20 @@ func (s *Syntax) ReadDefinition(r io.Reader) error {
 	panic(ErrNotImplemented)
 }
 
-func (s *Syntax) register(d definition) error {
+func (s *Syntax) register(d definition, ct CommitType) error {
 	if s.initialized {
 		return ErrSyntaxInitialized
 	}
 
-	return s.registry.register(d)
+	if err := s.registry.register(d); err != nil {
+		return err
+	}
+
+	if ct&Root != 0 {
+		return s.registry.setRoot(d.nodeName())
+	}
+
+	return nil
 }
 
 func (s *Syntax) Terminal(name string, ct CommitType, t ...Terminal) error {
@@ -71,19 +79,19 @@ func (s *Syntax) Terminal(name string, ct CommitType, t ...Terminal) error {
 		names[i] = d.nodeName()
 	}
 
-	return s.register(newSequence(s.registry, name, ct, names))
+	return s.register(newSequence(s.registry, name, ct, names), ct)
 }
 
 func (s *Syntax) Quantifier(name string, ct CommitType, item string, min, max int) error {
-	return s.register(newQuantifier(s.registry, name, ct, item, min, max))
+	return s.register(newQuantifier(s.registry, name, ct, item, min, max), ct)
 }
 
 func (s *Syntax) Sequence(name string, ct CommitType, items ...string) error {
-	return s.register(newSequence(s.registry, name, ct, items))
+	return s.register(newSequence(s.registry, name, ct, items), ct)
 }
 
 func (s *Syntax) Choice(name string, ct CommitType, items ...string) error {
-	return s.register(newChoice(s.registry, name, ct, items))
+	return s.register(newChoice(s.registry, name, ct, items), ct)
 }
 
 func (s *Syntax) Init() error {

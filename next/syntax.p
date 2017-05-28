@@ -6,14 +6,15 @@ line-comment:alias    = "//" [^\n]*;
 comment-segment:alias = line-comment | block-comment;
 comment               = comment-segment (ws* "\n"? ws* comment-segment)*;
 
-any-char:alias = ".";
+any-char = ".";
 
 class-char:alias = [^\\\[\]\^\-] | "\\" .;
 char-range:alias = class-char "-" class-char;
-char-class:alias = "[" "^"? (class-char | char-range)* "]";
+char-class       = "[" "^"? (class-char | char-range)* "]";
 
-char-sequence:alias = "\"" ([^\\\"] | "\\" .)* "\"";
+char-sequence = "\"" ([^\\\"] | "\\" .)* "\"";
 
+// TODO: this can be mixed up with sequence. Is it fine?
 terminal = (any-char | char-class | char-sequence)+;
 
 symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}\^+*?|():=;]+;
@@ -47,7 +48,9 @@ expression:alias = terminal
                  | sequence
                  | choice;
 
-flag       = "alias" | "root";
+alias      = "alias";
+root       = "root";
+flag:alias = alias | root;
 definition = symbol (":" flag)* wsc* "=" wsc* expression;
 
 definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*;

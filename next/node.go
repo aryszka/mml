@@ -7,6 +7,7 @@ type CommitType int
 const (
 	None  CommitType = 0
 	Alias CommitType = 1 << iota
+	Root
 )
 
 type Node struct {
@@ -91,4 +92,8 @@ func (n *Node) String() string {
 	}
 
 	return fmt.Sprintf("%s:%d:%d:%s", n.Name, n.from, n.to, string(n.tokens[n.from:n.to]))
+}
+
+func (n *Node) Text() string {
+	return string(n.tokens[n.from:n.to])
 }

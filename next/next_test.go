@@ -38,15 +38,15 @@ func checkNode(t *testing.T, left, right *Node) {
 		return
 	}
 
-	checkNodes(t, left.Name, left.Nodes, right.Nodes)
-}
-
-func checkNodes(t *testing.T, name string, left, right []*Node) {
-	if len(left) != len(right) {
-		t.Error("length doesn't match", name, len(left), len(right))
+	if len(left.Nodes) != len(right.Nodes) {
+		t.Error("length doesn't match", left.Name, len(left.Nodes), len(right.Nodes))
 		return
 	}
 
+	checkNodes(t, left.Nodes, right.Nodes)
+}
+
+func checkNodes(t *testing.T, left, right []*Node) {
 	for len(left) > 0 {
 		checkNode(t, left[0], right[0])
 		if t.Failed() {

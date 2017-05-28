@@ -8,6 +8,7 @@ import (
 type registry struct {
 	definitions map[string]definition
 	root        definition
+	rootSet     bool
 	idSeed      int
 	genIDs      map[string]int
 	generators  map[int]generator
@@ -36,7 +37,21 @@ func (r *registry) register(d definition) error {
 	}
 
 	r.definitions[n] = d
+	if !r.rootSet {
+		r.root = d
+	}
+
+	return nil
+}
+
+func (r *registry) setRoot(name string) error {
+	d, err := r.findDefinition(name)
+	if err != nil {
+		return err
+	}
+
 	r.root = d
+	r.rootSet = true
 	return nil
 }
 
