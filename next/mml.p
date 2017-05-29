@@ -82,20 +82,20 @@ argument:alias      = static-symbol;
 argument-list:alias = argument (list-sep argument)*;
 function-fact:alias = "(" (wscnl | ",")*
                       argument-list?
-		      (wscnl | ",")*
-		      spreac-symbol?
-		      (wscnl | ",")* ")" wscnl*
-		      expression;
+                      (wscnl | ",")*
+                      spreac-symbol?
+                      (wscnl | ",")* ")" wscnl*
+                      expression;
 function            = "fn" wscnl* function-fact;
 effect              = "fn" wscnl* "~" wscnl* function-fact;
 
 range-expression         = expression? wscnl* ":" wscnl* expression?; // not sure which one is which
 indexer-expression:alias = expression | range-expression;
-expression-indexer:alias = expression wsc* "[" wscnl* indexer-expression wscnl* "]";
-symbol-indexer           = expression wscnl* "." wscnl* symbol-expression;
+expression-indexer:alias = primary-expression wsc* "[" wscnl* indexer-expression wscnl* "]";
+symbol-indexer           = primary-expression wscnl* "." wscnl* symbol-expression; // TODO: test with a float on a new line
 indexer:alias            = expression-indexer | symbol-indexer;
 
-function-call = expression wsc* "(" wscnl* expression-list? wscnl* ")";
+function-application = primary-expression wsc* "(" wscnl* expression-list? wscnl* ")";
 
 tertiary-if = expression wscnl* "?" wscnl* expression wscnl* ":" wscnl* expression;
 
@@ -104,17 +104,18 @@ if = "if" wscnl* expression wscnl* block
      (wscnl* "else" wscnl* block)?;
 
 case-sep:alias = wsc* "\n" (wsc | "\n")*;
-default        = "default" wscnl* ":" wscnl* statements?;
-case           = "case" wscnl* expression wscnl* ":" statements?;
+default        = "default" wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
+case           = "case" wscnl* expression wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
 cases:alias    = case (case-sep case);
 switch         = "switch" wscnl* expression? wscnl* "{" wscnl*
-                 cases? case-sep default? case-sep cases?
+                 cases? (case-sep default)? (case-sep cases)?
                  wscnl* "}";
 
 int-type    = "int";
 float-type  = "float";
 string-type = "string";
 bool-type   = "bool";
+error-type  = "error";
 
 primitive-type:alias = int-type | float-type | string-type | bool-type | error-type;
 
@@ -122,11 +123,11 @@ collect-type-expression = (static-symbol wscnl*)? "..." wscnl* type-expression;
 item-types:alias        = type-expression (list-sep type-expression)*;
 list-type-fact:alias    = "[" (wscnl | ",")*
                           item-types?
-			  (wscnl | ",")*
-			  collect-type-expression?
-			  (wscnl | ",")*
-			  (":" wscnl* int (":" wscnl* int)?)?
-			  wscnl* "]";
+                          (wscnl | ",")*
+                          collect-type-expression?
+                          (wscnl | ",")*
+                          (":" wscnl* int (":" wscnl* int)?)?
+                          wscnl* "]";
 list-type               = list-type-fact;
 mutable-list-type       = "~" wscnl* list-type-fact;
 
@@ -138,9 +139,9 @@ mutable-struct-type    = "~" wscnl* struct-type-fact;
 
 function-type-fact:alias = "(" (wscnl | ",")*
                            item-types?
-			   (wscnl | ",")*
-			   collect-type-expression?
-			   (wscnl | ",")* ")" wscnl*
+                           (wscnl | ",")*
+                           collect-type-expression?
+                           (wscnl | ",")* ")" wscnl*
                            type-expression?;
 function-type            = "fn" wscnl* function-type-fact;
 effect-type              = "fn" wscnl* "~" wscnl* function-type-fact;
@@ -158,10 +159,10 @@ type-union = type-fact (wscnl* "|" wscnl* type-fact)*;
 type-expression = (static-symbol wscnl*)? (type-fact | type-union)
                 | static-symbol;
 
-pattern-case        = "case" wscnl* type-expression? wscnl* ":" statements?;
+pattern-case        = "case" wscnl* type-expression? wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
 pattern-cases:alias = pattern-case (case-sep pattern-case);
 match               = "match" wscnl* expression wscnl* "{" wscnl*
-                      pattern-cases? case-sep default? case-sep pattern-cases?
+                      pattern-cases? (case-sep default)? (case-sep pattern-cases)?
                       wscnl* "}";
 
 conditional = tertiary-if
@@ -169,13 +170,35 @@ conditional = tertiary-if
             | switch
             | match;
 
+receive-call             = "receive" wscnl* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
+receive-call-op          = "<-" wscnl* primary-expression;
+receive-expression:alias = receive-call | receive-call-op;
+receive-capture:alias    = static-symbol wscnl* receive-expression;
+receive-assignment       = "set" wscnl* receive-capture;
+receive-definition       = "let" wscnl* receive-capture;
+receive-statement        = receive-assignment | receive-definition;
+send-call:alias          = "send" wscnl* "(" (wscnl | ",")* expression list-sep expression (wscnl | ",")* ")";
+send-call-op:alias       = primary-expression wsc* "<-" wsc* expression;
+send                     = send-call | send-call-op;
+close                    = "close" wscnl* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
+communication            = receive-expression | receive-statement | send;
+select-case              = "case" wscnl* communication wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
+select-cases:alias       = select-case (case-sep select-case)*;
+select                   = "select" wscnl* "{"
+                           select-cases? (case-sep default)? (case-sep select-cases)?
+                           wscnl* "}";
+
+require-expression = "require" wscnl* string;
+
+block = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
+expression-group = "(" wscnl* expression wscnl* ")";
+
 plus                 = "+";
 minus                = "-";
 logical-not          = "!";
 binary-not           = "^";
-receive-operator     = "<-";
-unary-operator:alias = plus | minus | logical-not | binary-not | receive-operator;
-unary-expression     = unary-operator wscnl* primary-expression;
+unary-operator:alias = plus | minus | logical-not | binary-not;
+unary-expression     = unary-operator wscnl* primary-expression | receive-call-op;
 
 mul        = "*";
 div        = "/";
@@ -216,12 +239,12 @@ operand3:alias = operand2 | binary2;
 operand4:alias = operand3 | binary3;
 operand5:alias = operand4 | binary4;
 
-binary0 = operand0 binary-op0 operand0;
-binary1 = operand1 binary-op1 operand1;
-binary2 = operand2 binary-op2 operand2;
-binary3 = operand3 binary-op3 operand3;
-binary4 = operand4 binary-op4 operand4;
-binary5 = operand5 binary-op5 operand5;
+binary0 = operand0 wsc* binary-op0 wsc* operand0;
+binary1 = operand1 wsc* binary-op1 wsc* operand1;
+binary2 = operand2 wsc* binary-op2 wsc* operand2;
+binary3 = operand3 wsc* binary-op3 wsc* operand3;
+binary4 = operand4 wsc* binary-op4 wsc* operand4;
+binary5 = operand5 wsc* binary-op5 wsc* operand5;
 
 binary-expression:alias = binary0 | binary1 | binary2 | binary3 | binary4 | binary5;
 
@@ -241,14 +264,12 @@ primary-expression:alias = int
                          | function
                          | effect
                          | indexer
-                         | function-call
-                         | conditional
-                         | send-call
+                         | function-application // pseudo-expression
+                         | conditional // pseudo-expression
                          | receive-call
-                         | close
-                         | select
+                         | select // pseudo-expression
                          | require-expression
-                         | block
+                         | block // pseudo-expression
                          | expression-group;
 
 expression = primary-expression
@@ -259,6 +280,8 @@ statement = expression
           | assignment
           | loop-control
           | loop
+          | send
+          | close
           | panic-call
           | recover-call
           | definition
@@ -266,8 +289,8 @@ statement = expression
           | type-alias
           | require-statement;
 
-shebang-command  = [^\n]*
-shebang          = "#!" shebang-command "\n"
+shebang-command  = [^\n]*;
+shebang          = "#!" shebang-command "\n";
 sep:alias        = wsc* (";" | "\n") (wscnl | ";")*;
 statements:alias = statement (sep statement)*;
 mml:root         = shebang? (wscnl | ";")* statements? (wscnl | ";")*;
