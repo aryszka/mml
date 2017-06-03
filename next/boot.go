@@ -300,6 +300,22 @@ func defineSyntax() (*Syntax, error) {
 	return s, nil
 }
 
+func dropComments(n *Node) *Node {
+	ncc := *n
+	nc := &ncc
+
+	nc.Nodes = nil
+	for _, ni := range n.Nodes {
+		if ni.Name == "comment" {
+			continue
+		}
+
+		nc.Nodes = append(nc.Nodes, dropComments(ni))
+	}
+
+	return nc
+}
+
 func flagsToCommitType(n []*Node) CommitType {
 	var ct CommitType
 	for _, ni := range n {
@@ -501,6 +517,8 @@ func defineDocument(n *Node) (*Syntax, error) {
 	if n.Name != "document" {
 		return nil, ErrInvalidSyntax
 	}
+
+	n = dropComments(n)
 
 	s := NewSyntax(Options{Trace: NewTrace(TraceOff)})
 	for _, ni := range n.Nodes {

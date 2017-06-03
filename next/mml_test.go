@@ -2,42 +2,63 @@ package next
 
 import (
 	"testing"
-	"log"
 	"os"
 )
 
-func TestMML(*testing.T) {
+func TestMML(t *testing.T) {
 	s, err := defineSyntax()
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	def, err := os.Open("syntax.p")
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	defer def.Close()
 
 	n, err := s.Parse(def)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	st, err := defineDocument(n)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	mml, err := os.Open("mml.p")
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	defer mml.Close()
 
-	_, err = st.Parse(mml)
+	n, err = st.Parse(mml)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
+	}
+
+	mmlst, err := defineDocument(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tokens, err := os.Open("tokens.mml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer tokens.Close()
+
+	n, err = mmlst.Parse(tokens)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(n)
+	for _, ni := range n.Nodes {
+		t.Log(ni)
 	}
 }

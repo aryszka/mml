@@ -86,7 +86,7 @@ argument-list:alias = argument (list-sep argument)*;
 function-fact:alias = "(" (wscnl | ",")*
                       argument-list?
                       (wscnl | ",")*
-                      spreac-symbol?
+                      spread-symbol?
                       (wscnl | ",")* ")" wscnl*
                       expression;
 function            = "fn" wscnl* function-fact;
@@ -127,7 +127,7 @@ conditional = tertiary-if
 
 receive-call:alias       = "receive" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
 receive-call-op:alias    = "<-" wsc* primary-expression;
-recieve-call-group:alias = "(" wscnl* receive-expression wscnl* ")";
+receive-call-group:alias = "(" wscnl* receive-expression wscnl* ")";
 receive-expression       = receive-call | receive-call-op | receive-call-group;
 receive-capture:alias    = static-symbol wsc* ("=" wsc*)? receive-expression;
 receive-assignment       = ("set" wscnl*)? receive-capture;
@@ -229,15 +229,13 @@ primary-expression:alias = int
                          | receive-call
                          | select // pseudo-expression
                          | require-expression
-                         | recover-expression
+                         | recover
                          | block // pseudo-expression
                          | expression-group;
 
 expression = primary-expression
            | unary-expression
            | binary-expression;
-
-block = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
 
 break              = "break";
 continue           = "continue";
@@ -265,17 +263,17 @@ effect-definition                     = "fn" wscnl* effect-definition-fact;
 function-definition-facts:alias       = function-definition-fact (list-sep function-definition-fact)*;
 mixed-function-definition-facts:alias = (function-definition-fact | effect-definition-fact)
                                         (list-sep (function-definition-fact | effect-definition-fact))*;
-function-definition-group             = "fn" wscnl* "(" wscnl* mixed-definition-facts? wscnl* ")";
-effect-definition-group               = "fn" wscnl* "~" wscnl* "(" wscnl* function-definition-facts wcnl* ")";
+function-definition-group             = "fn" wscnl* "(" wscnl* mixed-function-definition-facts? wscnl* ")";
+effect-definition-group               = "fn" wscnl* "~" wscnl* "(" wscnl* function-definition-facts wscnl* ")";
 
 definition = value-definition
            | mutable-definition
            | value-definition-group
-	   | mutable-definition-group
-	   | function-definition
-	   | effect-definition
-	   | function-definition-group
-	   | effect-definition-group;
+           | mutable-definition-group
+           | function-definition
+           | effect-definition
+           | function-definition-group
+           | effect-definition-group;
 
 int-type    = "int";
 float-type  = "float";
@@ -285,9 +283,9 @@ error-type  = "error";
 
 primitive-type:alias = int-type
                      | float-type
-		     | string-type
-		     | bool-type
-		     | error-type;
+                     | string-type
+                     | bool-type
+                     | error-type;
 
 collect-type-expression = (static-symbol wscnl*)? "..." wscnl* type-expression;
 item-types:alias        = type-expression (list-sep type-expression)*;

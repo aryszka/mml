@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"time"
+	"log"
 )
 
 type Options struct {
@@ -116,16 +117,19 @@ func (s *Syntax) Init() error {
 		return ErrNoDefinitions
 	}
 
+	start := time.Now()
 	root, ok, err := rootDef.generator(s.trace, "", nil)
 	if err != nil {
 		return err
 	}
 
+	log.Println("generator created", time.Since(start))
+
 	if !ok {
 		return ErrInvalidSyntax
 	}
 
-	start := time.Now()
+	start = time.Now()
 	for {
 		var foundVoid bool
 		for id, g := range s.registry.generators {
@@ -141,7 +145,7 @@ func (s *Syntax) Init() error {
 		}
 	}
 
-	s.trace.Info("validation done", time.Since(start))
+	log.Println("validation done", time.Since(start), len(s.registry.generators))
 
 	if root.void() {
 		return ErrInvalidSyntax

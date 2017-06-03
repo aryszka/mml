@@ -9,7 +9,7 @@ var errInvalidDefinition = errors.New("invalid syntax definition")
 
 func stringToCommitType(s string) CommitType {
 	switch s {
-	case "alias":
+	case "alias", "doc": // TODO: implement doc
 		return Alias
 	default:
 		return None

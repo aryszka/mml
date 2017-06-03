@@ -26,3 +26,5 @@ Primary use cases:
 - simple tooling frontends
 
 for problems where go is not ideal but currently still the best choice
+
+encouraging declarative style

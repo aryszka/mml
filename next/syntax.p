@@ -4,7 +4,7 @@ wsc:alias = ws | comment;
 block-comment:alias   = "/*" ("*" [^/] | [^*])* "*/";
 line-comment:alias    = "//" [^\n]*;
 comment-segment:alias = line-comment | block-comment;
-ws-no-nl              = " " | "\t" | "\b" | "\f" | "\r" | "\v";
+ws-no-nl:alias        = " " | "\t" | "\b" | "\f" | "\r" | "\v";
 comment               = comment-segment (ws-no-nl* "\n"? ws-no-nl* comment-segment)*;
 
 any-char = "."; // equivalent to [^]
