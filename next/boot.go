@@ -227,9 +227,11 @@ var definitions = [][]string{{
 }, {
 	"chars", "alias", "none", "alias",
 }, {
+	"chars", "doc", "none", "doc",
+}, {
 	"chars", "root", "none", "root",
 }, {
-	"choice", "flag-word", "alias", "alias", "root",
+	"choice", "flag-word", "alias", "alias", "doc", "root",
 }, {
 	"chars", "colon", "alias", ":",
 }, {

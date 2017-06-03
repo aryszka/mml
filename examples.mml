@@ -639,3 +639,8 @@ fn (
 // fn (b) [a b]
 f(g(a))
 a -> g -> f
+
+// custom types, not supported in the first round:
+
+let type maybe just a | nothing
+let type money dollar int | euro int

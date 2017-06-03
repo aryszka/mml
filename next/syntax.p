@@ -54,8 +54,9 @@ expression:alias = terminal
                  | choice;
 
 alias      = "alias";
+doc        = "doc";
 root       = "root";
-flag:alias = alias | root;
+flag:alias = alias | doc | root;
 definition = symbol (":" flag)* wsc* "=" wsc* expression;
 
 definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*;
