@@ -19,8 +19,8 @@ char-class = "[" class-not? (class-char | char-range)* "]";
 sequence-char = [^\\\"] | "\\" .;
 char-sequence = "\"" sequence-char* "\"";
 
-// TODO: this can be mixed up with sequence. Is it fine?
-terminal = (any-char | char-class | char-sequence)+;
+// TODO: this can be mixed up with sequence. Is it fine? fix this, see mml symbol
+terminal:alias = any-char | char-class | char-sequence;
 
 symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}\^+*?|():=;]+;
 

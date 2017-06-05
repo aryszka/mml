@@ -3,9 +3,10 @@ package next
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
-	"time"
 	"log"
+	"time"
 )
 
 type Options struct {
@@ -16,12 +17,14 @@ type Syntax struct {
 	trace       Trace
 	registry    *registry
 	initialized bool
+	initFailed  bool
 	root        generator
 }
 
 var (
 	ErrNotImplemented    = errors.New("not implemented")
 	ErrSyntaxInitialized = errors.New("syntax already initialized")
+	ErrSyntaxInitFailed  = errors.New("syntax init failed")
 	ErrNoDefinitions     = errors.New("syntax contains no definitions")
 	ErrInvalidSyntax     = errors.New("invalid syntax")
 )
@@ -42,12 +45,20 @@ func (s *Syntax) ReadDefinition(r io.Reader) error {
 		return ErrSyntaxInitialized
 	}
 
+	if s.initFailed {
+		return ErrSyntaxInitFailed
+	}
+
 	panic(ErrNotImplemented)
 }
 
 func (s *Syntax) register(d definition, ct CommitType) error {
 	if s.initialized {
 		return ErrSyntaxInitialized
+	}
+
+	if s.initFailed {
+		return ErrSyntaxInitFailed
 	}
 
 	if err := s.registry.register(d); err != nil {
@@ -61,16 +72,32 @@ func (s *Syntax) register(d definition, ct CommitType) error {
 	return nil
 }
 
-func (s *Syntax) AnyChar(name string) error {
-	return s.register(newChar(s.registry, name, true, false, nil, nil), Alias)
+func (s *Syntax) AnyChar(name string, ct CommitType) error {
+	return s.register(newChar(s.registry, name, true, false, nil, nil), ct)
 }
 
-func (s *Syntax) Char(name string, c rune) error {
-	return s.register(newChar(s.registry, name, false, false, []rune{c}, nil), Alias)
+func childName(name string, childIndex int) string {
+	return fmt.Sprintf("%s:%d", name, childIndex)
 }
 
-func (s *Syntax) Class(name string, not bool, chars []rune, ranges [][]rune) error {
-	return s.register(newChar(s.registry, name, false, not, chars, ranges), Alias)
+func (s *Syntax) CharSequence(name string, ct CommitType, c []rune) error {
+	var refs []string
+	for i, ci := range c {
+		ni := childName(name, i)
+		refs = append(refs, ni)
+		if err := s.register(
+			newChar(s.registry, ni, false, false, []rune{ci}, nil),
+			Alias,
+		); err != nil {
+			return err
+		}
+	}
+
+	return s.Sequence(name, ct, refs...)
+}
+
+func (s *Syntax) Class(name string, ct CommitType, not bool, chars []rune, ranges [][]rune) error {
+	return s.register(newChar(s.registry, name, false, not, chars, ranges), ct)
 }
 
 func (s *Syntax) Terminal(name string, ct CommitType, t ...Terminal) error {
@@ -112,6 +139,10 @@ func (s *Syntax) Init() error {
 		return ErrSyntaxInitialized
 	}
 
+	if s.initFailed {
+		return ErrSyntaxInitFailed
+	}
+
 	rootDef := s.registry.root
 	if rootDef == nil {
 		return ErrNoDefinitions
@@ -145,7 +176,12 @@ func (s *Syntax) Init() error {
 		}
 	}
 
-	log.Println("validation done", time.Since(start), len(s.registry.generators))
+	log.Println(
+		"validation done",
+		time.Since(start),
+		len(s.registry.generators),
+		len(s.registry.definitions),
+	)
 
 	if root.void() {
 		return ErrInvalidSyntax

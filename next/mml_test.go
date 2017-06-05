@@ -1,8 +1,8 @@
 package next
 
 import (
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestMML(t *testing.T) {

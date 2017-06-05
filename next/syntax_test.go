@@ -44,6 +44,21 @@ func boot(t *testing.T) {
 	}
 
 	checkNode(t, nt, n)
+	// for {
+	// 	if len(nt.Nodes) > 0 {
+	// 		t.Log("<", nt.Nodes[0].Name, nt.Nodes[0])
+	// 		nt.Nodes = nt.Nodes[1:]
+	// 	}
+
+	// 	if len(n.Nodes) > 0 {
+	// 		t.Log(">", n.Nodes[0].Name, n.Nodes[0])
+	// 		n.Nodes = n.Nodes[1:]
+	// 	}
+
+	// 	if len(nt.Nodes) == 0 && len(n.Nodes) == 0 {
+	// 		break
+	// 	}
+	// }
 
 	stt, err := defineDocument(nt)
 	if err != nil {

@@ -89,21 +89,26 @@ func (p *charParser) nodeName() string { return p.name }
 
 func (p *charParser) match(t rune) bool {
 	if p.any {
+		p.trace.Debug("matching from any", string(t))
 		return true
 	}
 
 	for _, ci := range p.chars {
 		if ci == t {
+			p.trace.Debug("matching from char", string(t), !p.not)
 			return !p.not
 		}
 	}
 
 	for _, ri := range p.ranges {
+		p.trace.Debug("checking range", string(ri[0]), string(t), string(ri[1]))
 		if t >= ri[0] && t <= ri[1] {
+			p.trace.Debug("matching from range", string(t), !p.not)
 			return !p.not
 		}
 	}
 
+	p.trace.Debug("matching from not", string(t), p.not)
 	return p.not
 }
 

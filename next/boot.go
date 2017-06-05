@@ -1,9 +1,6 @@
 package next
 
-import (
-	"fmt"
-	"strconv"
-)
+import "strconv"
 
 var definitions = [][]string{{
 	"chars", "space", "alias", " ",
@@ -138,9 +135,7 @@ var definitions = [][]string{{
 }, {
 	"sequence", "char-sequence", "none", "double-quote", "char-sequence-chars", "double-quote",
 }, {
-	"choice", "terminal-element", "alias", "any-char", "char-class", "char-sequence",
-}, {
-	"quantifier", "terminal", "none", "terminal-element", "1", "-1",
+	"choice", "terminal", "alias", "any-char", "char-class", "char-sequence",
 }, {
 	"class", "symbol-char", "alias", "^\\\\ \\n\\t\\b\\f\\r\\v\\b/.\\[\\]\\\"{}\\^+*?|():=;",
 }, {
@@ -330,10 +325,6 @@ func flagsToCommitType(n []*Node) CommitType {
 	return ct
 }
 
-func childName(name string, childIndex int) string {
-	return fmt.Sprintf("%s:%d", name, childIndex)
-}
-
 func defineMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
 	var refs []string
 	for i, ni := range n {
@@ -365,71 +356,36 @@ func singleChar(n *Node) rune {
 	return toRune(s)
 }
 
-func defineClass(s *Syntax, name string, n []*Node) error {
+func defineClass(s *Syntax, name string, ct CommitType, n []*Node) error {
 	var (
 		not    bool
 		chars  []rune
 		ranges [][]rune
 	)
 
-	if n[0].len() > 0 {
-		not = true
+	if n[0].Name == "class-not" {
+		not, n = true, n[1:]
 	}
 
-	for _, c := range n[1:] {
+	for _, c := range n {
 		switch c.Name {
 		case "class-char":
 			chars = append(chars, singleChar(c))
-		case "class-range":
+		case "char-range":
 			ranges = append(ranges, []rune{singleChar(c.Nodes[0]), singleChar(c.Nodes[1])})
 		}
 	}
 
-	return s.Class(name, not, chars, ranges)
+	return s.Class(name, ct, not, chars, ranges)
 }
 
-func defineCharSequence(s *Syntax, name string, chars []*Node) ([]string, error) {
-	var refs []string
-	for i, c := range chars {
-		char := singleChar(c)
-		ref := childName(name, i)
-		if err := s.Char(ref, char); err != nil {
-			return nil, err
-		}
-
-		refs = append(refs, ref)
+func defineCharSequence(s *Syntax, name string, ct CommitType, charNodes []*Node) error {
+	var chars []rune
+	for _, ci := range charNodes {
+		chars = append(chars, singleChar(ci))
 	}
 
-	return refs, nil
-}
-
-func defineTerminalChars(s *Syntax, name string, c *Node) (refs []string, err error) {
-	switch c.Name {
-	case "any-char":
-		err = s.AnyChar(name)
-		refs = []string{name}
-	case "char-class":
-		err = defineClass(s, name, c.Nodes)
-		refs = []string{name}
-	case "char-sequence":
-		refs, err = defineCharSequence(s, name, c.Nodes)
-	}
-
-	return
-}
-
-func defineTerminal(s *Syntax, name string, ct CommitType, t *Node) error {
-	var refs []string
-	for i, c := range t.Nodes {
-		ref := childName(name, i)
-		if crefs, err := defineTerminalChars(s, ref, c); err != nil {
-			return err
-		} else {
-			refs = append(refs, crefs...)
-		}
-	}
-
-	return s.Sequence(name, ct, refs...)
+	return s.CharSequence(name, ct, chars)
 }
 
 func defineQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) error {
@@ -489,8 +445,12 @@ func defineChoice(s *Syntax, name string, ct CommitType, n ...*Node) error {
 func defineExpression(s *Syntax, name string, ct CommitType, expression *Node) error {
 	var err error
 	switch expression.Name {
-	case "terminal":
-		err = defineTerminal(s, name, ct, expression)
+	case "any-char":
+		err = s.AnyChar(name, ct)
+	case "char-class":
+		err = defineClass(s, name, ct, expression.Nodes)
+	case "char-sequence":
+		err = defineCharSequence(s, name, ct, expression.Nodes)
 	case "symbol":
 		err = defineSequence(s, name, ct, expression)
 	case "quantifier":
@@ -513,14 +473,14 @@ func documentDefinition(s *Syntax, n *Node) error {
 	)
 }
 
-func defineDocument(n *Node) (*Syntax, error) {
+func defineDocumentTrace(n *Node, tl TraceLevel) (*Syntax, error) {
 	if n.Name != "document" {
 		return nil, ErrInvalidSyntax
 	}
 
 	n = dropComments(n)
 
-	s := NewSyntax(Options{Trace: NewTrace(TraceOff)})
+	s := NewSyntax(Options{Trace: NewTrace(tl)})
 	for _, ni := range n.Nodes {
 		switch ni.Name {
 		case "comment":
@@ -533,4 +493,8 @@ func defineDocument(n *Node) (*Syntax, error) {
 	}
 
 	return s, nil
+}
+
+func defineDocument(n *Node) (*Syntax, error) {
+	return defineDocumentTrace(n, TraceOff)
 }
