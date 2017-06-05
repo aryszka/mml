@@ -20,6 +20,7 @@ type sequenceGenerator struct {
 	firstName string
 	restNames []string
 	commit    CommitType
+	initName  string // TODO: the same problem in the quantifier
 }
 
 type sequenceParser struct {
@@ -77,9 +78,10 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 	}
 
 	g := &sequenceGenerator{
-		name:   d.name,
-		id:     id,
-		commit: d.commit,
+		name:     d.name,
+		id:       id,
+		commit:   d.commit,
+		initName: init,
 	}
 
 	d.registry.setGenerator(id, g)
@@ -88,9 +90,8 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 	first, ok, err := items[0].generator(t, init, append(excluded, d.name))
 	if err != nil {
 		return nil, false, err
-	} else if !ok {
-		g.isVoid = true
-		return g, false, err
+	} else if !ok { // TODO: should check if init can be used
+		first = nil
 	}
 
 	items = items[1:]
@@ -127,6 +128,7 @@ func (d *sequenceDefinition) generator(t Trace, init string, excluded []string) 
 	g.rest = rest
 	g.firstName = firstName
 	g.restNames = restNames
+	g.initName = init
 
 	return g, true, nil
 }
@@ -137,7 +139,8 @@ func (g *sequenceGenerator) void() bool       { return g.isVoid }
 func (g *sequenceGenerator) finalize(t Trace) {
 	t = t.Extend(g.name)
 
-	if g.first == nil || g.first != nil && g.first.void() {
+	canUseInit := g.initName == g.firstName || stringsContain(g.restNames, g.initName)
+	if g.first == nil && !canUseInit || g.first != nil && g.first.void() && !canUseInit {
 		g.isVoid = true
 		return
 	}
@@ -155,7 +158,7 @@ func (g *sequenceGenerator) finalize(t Trace) {
 			g.rest[i] = nil
 		}
 
-		if restInitVoid && g.rest[i] == nil {
+		if restInitVoid && g.rest[i] == nil && !canUseInit {
 			g.isVoid = true
 			return
 		}
@@ -181,6 +184,10 @@ func (p *sequenceParser) nodeName() string { return p.name }
 
 func (p *sequenceParser) nextParser() parser {
 	if len(p.node.Nodes) == 0 {
+		if p.first == nil {
+			return nil
+		}
+
 		return p.first.parser(p.trace, p.init)
 	}
 
@@ -196,7 +203,7 @@ func (p *sequenceParser) nextParser() parser {
 		rest = p.rest[0]
 	}
 
-	p.restInit, p.rest = p.restInit[1:], p.rest[1:]
+	p.restInit, p.rest, p.restNames = p.restInit[1:], p.rest[1:], p.restNames[1:]
 
 	if rest == nil {
 		return nil

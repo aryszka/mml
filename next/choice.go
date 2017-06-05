@@ -83,6 +83,10 @@ func (d *choiceDefinition) generator(t Trace, init string, excluded []string) (g
 				return nil, false, err
 			}
 
+			// if d.name == "primary-expression" {
+			// 	t.Debug("element", e.nodeName())
+			// }
+
 			if ok {
 				g[j] = ge
 			}
@@ -109,8 +113,16 @@ func (g *choiceGenerator) finalize(t Trace) {
 		for j := range g.generators[i] {
 			if g.generators[i][j] != nil {
 				if g.generators[i][j].void() {
+					if g.generators[i][j].nodeName() == "indexer" {
+						t.Debug("removed", i, j)
+					}
+
 					g.generators[i][j] = nil
 				} else {
+					if g.generators[i][j].nodeName() == "indexer" {
+						t.Debug("left", i, j)
+					}
+
 					hasOne = true
 				}
 			}
@@ -191,6 +203,7 @@ func (p *choiceParser) parse(c *context) {
 		}
 
 		var elementParser parser
+		p.trace.Debug("checking parser", p.generators[initIndex][elementIndex] != nil)
 		if p.generators[initIndex][elementIndex] != nil {
 			elementParser = p.generators[initIndex][elementIndex].parser(p.trace, init)
 		}

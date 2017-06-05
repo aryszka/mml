@@ -21,6 +21,7 @@ type quantifierGenerator struct {
 	restInit generator
 	itemName string
 	rest     generator
+	initName string
 }
 
 type quantifierParser struct {
@@ -76,6 +77,7 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 		max:      d.max,
 		commit:   d.commit,
 		itemName: item.nodeName(),
+		initName: init,
 	}
 
 	d.registry.setGenerator(id, g)
@@ -85,8 +87,7 @@ func (d *quantifierDefinition) generator(t Trace, init string, excluded []string
 	if err != nil {
 		return g, false, err
 	} else if !ok {
-		g.isVoid = true
-		return g, false, nil
+		first = nil
 	}
 
 	excluded = []string{d.name}
@@ -121,6 +122,8 @@ func (g *quantifierGenerator) void() bool       { return g.isVoid }
 func (g *quantifierGenerator) finalize(t Trace) {
 	t.Extend(g.name)
 
+	canUseInit := g.initName == g.itemName
+
 	if g.first != nil && g.first.void() {
 		g.first = nil
 	}
@@ -133,7 +136,7 @@ func (g *quantifierGenerator) finalize(t Trace) {
 		g.rest = nil
 	}
 
-	g.isVoid = g.first == nil || g.min > 1 && (g.restInit == nil && g.rest == nil)
+	g.isVoid = g.first == nil || g.min > 1 && (g.restInit == nil && g.rest == nil) && !canUseInit
 }
 
 func (g *quantifierGenerator) parser(t Trace, init *Node) parser {
@@ -172,7 +175,9 @@ func (p *quantifierParser) parse(c *context) {
 
 		var itemParser parser
 		if len(p.node.Nodes) == 0 {
-			itemParser = p.first.parser(p.trace, p.init)
+			if p.first != nil {
+				itemParser = p.first.parser(p.trace, p.init)
+			}
 		} else if p.restInit != nil && p.node.len() == 0 {
 			itemParser = p.restInit.parser(p.trace, p.init)
 		} else if p.rest != nil && len(p.node.Nodes) > 0 && (p.node.len() > 0 || p.restInit == nil) {
