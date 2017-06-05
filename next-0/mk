@@ -1,0 +1,5 @@
+#! /usr/bin/mml -require mml/mk
+
+mk.task.build   = "main.mml"
+mk.task.test    = "main.mml"
+mk.task.install = "main.mml"
