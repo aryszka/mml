@@ -48,7 +48,7 @@ func TestMMLNodes(t *testing.T) {
 	}
 
 	tl := TraceOff
-	// tl = TraceDebug
+	tl = TraceDebug
 	s, err := defineDocumentTrace(n, tl)
 	if err != nil {
 		t.Error(err)
@@ -823,6 +823,97 @@ func TestMMLNodes(t *testing.T) {
 				Name: "int",
 				from: 2,
 				to:   4,
+			}},
+		}},
+	}, {
+		msg:  "range indexer",
+		text: "a[3:9]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   6,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "range-from",
+				from: 2,
+				to:   3,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 2,
+					to:   3,
+				}},
+			}, {
+				Name: "range-to",
+				from: 4,
+				to:   5,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 4,
+					to:   5,
+				}},
+			}},
+		}},
+	}, {
+		msg:  "range indexer, lower unbound",
+		text: "a[:9]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   5,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "range-to",
+				from: 3,
+				to:   4,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 3,
+					to:   4,
+				}},
+			}},
+		}},
+	}, {
+		msg:  "range indexer, upper unbound",
+		text: "a[3:]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   5,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "range-from",
+				from: 2,
+				to:   3,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 2,
+					to:   3,
+				}},
+			}},
+		}},
+	}, {
+		msg:  "indexer, chained",
+		text: "a[b][c]",
+		nodes: []*Node{{
+			Name: "indexer",
+			Nodes: []*Node{{
+				Name: "indexer",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "symbol",
 			}},
 		}},
 	}} {

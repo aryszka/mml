@@ -160,28 +160,28 @@ func (s *Syntax) Init() error {
 		return ErrInvalidSyntax
 	}
 
-	start = time.Now()
-	for {
-		var foundVoid bool
-		for id, g := range s.registry.generators {
-			g.finalize(s.trace)
-			if g.void() {
-				delete(s.registry.generators, id)
-				foundVoid = true
-			}
-		}
+	// start = time.Now()
+	// for {
+	// 	var foundVoid bool
+	// 	for id, g := range s.registry.generators {
+	// 		g.finalize(s.trace)
+	// 		if g.void() {
+	// 			delete(s.registry.generators, id)
+	// 			foundVoid = true
+	// 		}
+	// 	}
 
-		if !foundVoid {
-			break
-		}
-	}
+	// 	if !foundVoid {
+	// 		break
+	// 	}
+	// }
 
-	log.Println(
-		"validation done",
-		time.Since(start),
-		len(s.registry.generators),
-		len(s.registry.definitions),
-	)
+	// log.Println(
+	// 	"validation done",
+	// 	time.Since(start),
+	// 	len(s.registry.generators),
+	// 	len(s.registry.definitions),
+	// )
 
 	if root.void() {
 		return ErrInvalidSyntax
