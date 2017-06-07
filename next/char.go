@@ -26,8 +26,15 @@ func newChar(
 	}
 }
 
-func (p *charParser) parser(*registry) (parser, error) {
+func (p *charParser) nodeName() string { return p.name }
+
+func (p *charParser) parser(r *registry) (parser, error) {
+	r.setParser(p)
 	return p, nil
+}
+
+func (p *charParser) commitType() CommitType {
+	return p.commit
 }
 
 func (p *charParser) match(t rune) bool {
@@ -52,26 +59,26 @@ func (p *charParser) match(t rune) bool {
 
 func (p *charParser) parse(t Trace, c *context, _ []string) {
 	t = t.Extend(p.name)
-	t.Println0("parsing char", c.offset)
+	t.Out1("parsing char", c.offset)
 
 	if p.commit&Documentation != 0 {
-		t.Println0("fail, doc")
-		c.fail(p.name, c.offset)
+		t.Out1("fail, doc")
+		c.fail(c.offset)
 		return
 	}
 
-	if c.checkCache(p.name) {
-		t.Println0("found in cache")
+	if m, ok := c.fromCache(p.name); ok {
+		t.Out1("found in cache, match:", m)
 		return
 	}
 
 	if tok, ok := c.token(); ok && p.match(tok) {
-		t.Println0("success", string(tok))
+		t.Out1("success", string(tok))
 		c.success(newNode(p.name, p.commit, c.offset, c.offset+1))
 		return
 	} else {
-		t.Println0("fail", string(tok))
-		c.fail(p.name, c.offset)
+		t.Out1("fail", string(tok))
+		c.fail(c.offset)
 		return
 	}
 }

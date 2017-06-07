@@ -12,7 +12,7 @@ type sequenceParser struct {
 	items  []parser
 }
 
-func newSequenceDefinition(name string, ct CommitType, items []string) *sequenceDefinition {
+func newSequence(name string, ct CommitType, items []string) *sequenceDefinition {
 	return &sequenceDefinition{
 		name:   name,
 		commit: ct,
@@ -20,11 +20,20 @@ func newSequenceDefinition(name string, ct CommitType, items []string) *sequence
 	}
 }
 
+func (d *sequenceDefinition) nodeName() string { return d.name }
+
 func (d *sequenceDefinition) parser(r *registry) (parser, error) {
 	p, ok := r.parser(d.name)
 	if ok {
 		return p, nil
 	}
+
+	sp := &sequenceParser{
+		name:   d.name,
+		commit: d.commit,
+	}
+
+	r.setParser(sp)
 
 	var items []parser
 	for _, i := range d.items {
@@ -47,40 +56,56 @@ func (d *sequenceDefinition) parser(r *registry) (parser, error) {
 		items = append(items, item)
 	}
 
-	p = &sequenceParser{
-		name:   d.name,
-		commit: d.commit,
-		items:  items,
-	}
-
-	r.setParser(p)
-	return p, nil
+	sp.items = items
+	return sp, nil
 }
+
+func (d *sequenceDefinition) commitType() CommitType {
+	return d.commit
+}
+
+func (p *sequenceParser) nodeName() string { return p.name }
 
 func (p *sequenceParser) parse(t Trace, c *context, excluded []string) {
 	t = t.Extend(p.name)
-	t.Println0("parsing sequence", c.offset)
-
-	if stringsContain(excluded, p.name) {
-		t.Println0("excluded")
-		c.fail(p.name, c.offset)
-		return
-	}
+	t.Out1("parsing sequence", c.offset)
 
 	if p.commit&Documentation != 0 {
-		t.Println0("fail, doc")
-		c.fail(p.name, c.offset)
+		t.Out1("fail, doc")
+		c.fail(c.offset)
 		return
 	}
 
-	if c.checkCache(p.name) {
-		t.Println0("found in cache")
+	if stringsContain(excluded, p.name) {
+		t.Out1("excluded")
+		c.fail(c.offset)
 		return
+	}
+
+	var node *Node
+	if m, ok := c.fromCache(p.name); ok {
+		t.Out1("found in cache, match:", m)
+
+		if !m || len(p.items) == 0 {
+			return
+		}
+
+		node = c.node
+		if m, _ = c.fromCache(p.items[0].nodeName()); !m || c.node.tokenLength() <= node.tokenLength() {
+			t.Out1("no matching item found in cache")
+			t.Out2("offset before storing node", c.offset)
+			c.success(node)
+			t.Out2("offset after storing node", c.offset)
+			return
+		}
+
+		node.clear()
+		node.append(c.node)
 	}
 
 	excluded = append(excluded, p.name)
 	items := p.items
-	node := newNode(p.name, p.commit, c.offset, c.offset)
+	node = newNode(p.name, p.commit, c.offset, c.offset)
 
 	for len(items) > 0 {
 		if node.tokenLength() > 0 {
@@ -91,14 +116,16 @@ func (p *sequenceParser) parse(t Trace, c *context, excluded []string) {
 		items = items[1:]
 
 		if !c.match {
-			t.Println0("fail, item failed")
-			c.fail(p.name, node.from)
+			t.Out1("fail, item failed")
+			c.cache.set(node.from, p.name, nil)
+			c.fail(node.from)
 			return
 		}
 
 		node.append(c.node)
 	}
 
-	t.Println0("success, items parsed")
+	t.Out1("success, items parsed")
+	c.cache.set(node.from, p.name, node)
 	c.success(node)
 }
