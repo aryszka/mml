@@ -60,4 +60,4 @@ flag:alias = alias | doc | root;
 definition = symbol (":" flag)* wsc* "=" wsc* expression;
 
 definitions:alias = definition (wsc* ";" (wsc | ";")* definition)*;
-document:root     = (wsc | ";")* definitions? (wsc | ";")*;
+syntax:root     = (wsc | ";")* definitions? (wsc | ";")*;

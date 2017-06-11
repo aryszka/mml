@@ -34,6 +34,7 @@ var (
 	ErrInvalidCharacter    = errors.New("invalid character") // two use cases: utf8 and boot
 	ErrUnexpectedCharacter = errors.New("unexpected character")
 	ErrDuplicateDefinition = errors.New("duplicate definition")
+	ErrInvalidSyntax       = errors.New("invalid syntax")
 )
 
 func NewSyntax(t Trace) *Syntax {
@@ -99,13 +100,14 @@ func (s *Syntax) Choice(name string, ct CommitType, elements ...string) error {
 	return s.register(newChoice(name, ct, elements))
 }
 
+// TODO: move this back to Read and call compile from the test directly
 func (s *Syntax) read(self *Syntax, r io.Reader) error {
-	selfTree, err := self.Parse(r)
+	def, err := self.Parse(r)
 	if err != nil {
 		return err
 	}
 
-	return compile(s, selfTree)
+	return compile(s, def)
 }
 
 func (s *Syntax) Read(r io.Reader) error {

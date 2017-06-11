@@ -271,7 +271,7 @@ var bootDefinitions = [][]string{{
 	"1",
 }, {
 	"sequence",
-	"document",
+	"syntax",
 	"root",
 	"wsc-or-semicolons",
 	"opt-definitions",
