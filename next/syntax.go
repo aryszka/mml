@@ -100,16 +100,6 @@ func (s *Syntax) Choice(name string, ct CommitType, elements ...string) error {
 	return s.register(newChoice(name, ct, elements))
 }
 
-// TODO: move this back to Read and call compile from the test directly
-func (s *Syntax) read(self *Syntax, r io.Reader) error {
-	def, err := self.Parse(r)
-	if err != nil {
-		return err
-	}
-
-	return compile(s, def)
-}
-
 func (s *Syntax) Read(r io.Reader) error {
 	if s.initialized {
 		return ErrSyntaxInitialized

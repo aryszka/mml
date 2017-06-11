@@ -28,7 +28,7 @@ group:alias = "(" wsc* expression wsc* ")";
 
 count            = [0-9]+;
 count-quantifier = "{" wsc* count wsc* "}";
-range-quantifier = "{" wsc* count wsc* "," wsc* count wsc* "}";
+range-quantifier = "{" wsc* count wsc* "," wsc* count wsc* "}"; // TODO: make the counts optional
 one-or-more      = "+";
 zero-or-more     = "*";
 zero-or-one      = "?";

@@ -2,6 +2,7 @@ package next
 
 import (
 	"errors"
+	"os"
 	"strconv"
 )
 
@@ -93,12 +94,12 @@ func parseClass(c []rune) (not bool, chars []rune, ranges [][]rune, err error) {
 	}
 }
 
-func defineAnything(s *Syntax, d []string) error {
+func defineBootAnything(s *Syntax, d []string) error {
 	ct := stringToCommitType(d[2])
 	return s.AnyChar(d[1], ct)
 }
 
-func defineClass(s *Syntax, d []string) error {
+func defineBootClass(s *Syntax, d []string) error {
 	ct := stringToCommitType(d[2])
 
 	not, chars, ranges, err := parseClass([]rune(d[3]))
@@ -109,7 +110,7 @@ func defineClass(s *Syntax, d []string) error {
 	return s.Class(d[1], ct, not, chars, ranges)
 }
 
-func defineCharSequence(s *Syntax, d []string) error {
+func defineBootCharSequence(s *Syntax, d []string) error {
 	ct := stringToCommitType(d[2])
 
 	chars, err := unescape('\\', []rune{'"', '\\'}, []rune(d[3]))
@@ -120,7 +121,7 @@ func defineCharSequence(s *Syntax, d []string) error {
 	return s.CharSequence(d[1], ct, chars)
 }
 
-func defineQuantifier(s *Syntax, d []string) error {
+func defineBootQuantifier(s *Syntax, d []string) error {
 	ct := stringToCommitType(d[2])
 
 	var (
@@ -139,12 +140,12 @@ func defineQuantifier(s *Syntax, d []string) error {
 	return s.Quantifier(d[1], ct, d[3], min, max)
 }
 
-func defineSequence(s *Syntax, d []string) error {
+func defineBootSequence(s *Syntax, d []string) error {
 	ct := stringToCommitType(d[2])
 	return s.Sequence(d[1], ct, d[3:]...)
 }
 
-func defineChoice(s *Syntax, d []string) error {
+func defineBootChoice(s *Syntax, d []string) error {
 	ct := stringToCommitType(d[2])
 	return s.Choice(d[1], ct, d[3:]...)
 }
@@ -152,17 +153,17 @@ func defineChoice(s *Syntax, d []string) error {
 func defineBoot(s *Syntax, d []string) error {
 	switch d[0] {
 	case "anything":
-		return defineAnything(s, d)
+		return defineBootAnything(s, d)
 	case "class":
-		return defineClass(s, d)
+		return defineBootClass(s, d)
 	case "chars":
-		return defineCharSequence(s, d)
+		return defineBootCharSequence(s, d)
 	case "quantifier":
-		return defineQuantifier(s, d)
+		return defineBootQuantifier(s, d)
 	case "sequence":
-		return defineSequence(s, d)
+		return defineBootSequence(s, d)
 	case "choice":
-		return defineChoice(s, d)
+		return defineBootChoice(s, d)
 	default:
 		return errInvalidDefinition
 	}
@@ -185,4 +186,26 @@ func initBoot(t Trace, definitions [][]string) (*Syntax, error) {
 	}
 
 	return s, s.Init()
+}
+
+func bootSyntax(t Trace) (*Syntax, error) {
+	b, err := initBoot(t, bootDefinitions)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open("syntax.p")
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	doc, err := b.Parse(f)
+	if err != nil {
+		return nil, err
+	}
+
+	s := NewSyntax(t)
+	return s, define(s, doc)
 }

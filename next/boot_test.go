@@ -21,26 +21,38 @@ func TestBoot(t *testing.T) {
 		return
 	}
 
-	s := NewSyntax(trace)
-	if err = s.read(b, f); err != nil {
-		t.Error(err)
-		return
-	}
+	defer f.Close()
 
-	_, err = f.Seek(0, 0)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	n0, err := s.Parse(f)
+	n0, err := b.Parse(f)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	s0 := NewSyntax(trace)
-	if err := compile(s0, n0); err != nil {
+	if err := define(s0, n0); err != nil {
+		t.Error(err)
+	}
+
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	n1, err := s0.Parse(f)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	checkNode(t, n1, n0)
+	if t.Failed() {
+		return
+	}
+
+	s1 := NewSyntax(trace)
+	if err := define(s1, n1); err != nil {
 		t.Error(err)
 		return
 	}
@@ -51,11 +63,11 @@ func TestBoot(t *testing.T) {
 		return
 	}
 
-	n1, err := s.Parse(f)
+	n2, err := s1.Parse(f)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	checkNode(t, n1, n0)
+	checkNode(t, n2, n1)
 }

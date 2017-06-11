@@ -65,6 +65,8 @@ func (d *quantifierDefinition) commitType() CommitType {
 
 func (p *quantifierParser) nodeName() string { return p.name }
 
+// TODO: merge the quantifier into the sequence
+
 func (p *quantifierParser) parse(t Trace, c *context, excluded []string) {
 	t = t.Extend(p.name)
 	t.Out1("parsing quantifier", c.offset)
@@ -84,22 +86,23 @@ func (p *quantifierParser) parse(t Trace, c *context, excluded []string) {
 	var node *Node
 	if m, ok := c.fromCache(p.name); ok {
 		t.Out1("found in cache, match:", m)
+		return
 
-		if !m {
-			return
-		}
+		// if !m {
+		// 	return
+		// }
 
-		node = c.node
-		if m, _ = c.fromCache(p.item.nodeName()); !m || c.node.tokenLength() <= node.tokenLength() {
-			t.Out1("no matching item found in cache")
-			t.Out2("offset before storing node", c.offset)
-			c.success(node)
-			t.Out2("offset after storing node", c.offset)
-			return
-		}
+		// node = c.node
+		// if m, _ = c.fromCache(p.item.nodeName()); !m || c.node.tokenLength() <= node.tokenLength() {
+		// 	t.Out1("no matching item found in cache")
+		// 	t.Out2("offset before storing node", c.offset)
+		// 	c.success(node)
+		// 	t.Out2("offset after storing node", c.offset)
+		// 	return
+		// }
 
-		node.clear()
-		node.append(c.node)
+		// node.clear()
+		// node.append(c.node)
 	}
 
 	node = newNode(p.name, p.commit, c.offset, c.offset)

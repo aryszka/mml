@@ -106,7 +106,7 @@ func nodeChar(n *Node) rune {
 	return toRune(s)
 }
 
-func compileMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
+func defineMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
 	var refs []string
 	for i, ni := range n {
 		nmi := childName(name, i)
@@ -115,7 +115,7 @@ func compileMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
 			refs = append(refs, ni.Text())
 		default:
 			refs = append(refs, nmi)
-			if err := compileExpression(s, nmi, Alias, ni); err != nil {
+			if err := defineExpression(s, nmi, Alias, ni); err != nil {
 				return nil, err
 			}
 		}
@@ -124,7 +124,7 @@ func compileMembers(s *Syntax, name string, n ...*Node) ([]string, error) {
 	return refs, nil
 }
 
-func compileClass(s *Syntax, name string, ct CommitType, n []*Node) error {
+func defineClass(s *Syntax, name string, ct CommitType, n []*Node) error {
 	var (
 		not    bool
 		chars  []rune
@@ -147,7 +147,7 @@ func compileClass(s *Syntax, name string, ct CommitType, n []*Node) error {
 	return s.Class(name, ct, not, chars, ranges)
 }
 
-func compileCharSequence(s *Syntax, name string, ct CommitType, charNodes []*Node) error {
+func defineCharSequence(s *Syntax, name string, ct CommitType, charNodes []*Node) error {
 	var chars []rune
 	for _, ci := range charNodes {
 		chars = append(chars, nodeChar(ci))
@@ -156,8 +156,8 @@ func compileCharSequence(s *Syntax, name string, ct CommitType, charNodes []*Nod
 	return s.CharSequence(name, ct, chars)
 }
 
-func compileQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) error {
-	refs, err := compileMembers(s, name, n)
+func defineQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) error {
+	refs, err := defineMembers(s, name, n)
 	if err != nil {
 		return err
 	}
@@ -192,8 +192,8 @@ func compileQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) 
 	return s.Quantifier(name, ct, refs[0], min, max)
 }
 
-func compileSequence(s *Syntax, name string, ct CommitType, n ...*Node) error {
-	refs, err := compileMembers(s, name, n...)
+func defineSequence(s *Syntax, name string, ct CommitType, n ...*Node) error {
+	refs, err := defineMembers(s, name, n...)
 	if err != nil {
 		return err
 	}
@@ -201,8 +201,8 @@ func compileSequence(s *Syntax, name string, ct CommitType, n ...*Node) error {
 	return s.Sequence(name, ct, refs...)
 }
 
-func compileChoice(s *Syntax, name string, ct CommitType, n ...*Node) error {
-	refs, err := compileMembers(s, name, n...)
+func defineChoice(s *Syntax, name string, ct CommitType, n ...*Node) error {
+	refs, err := defineMembers(s, name, n...)
 	if err != nil {
 		return err
 	}
@@ -210,30 +210,30 @@ func compileChoice(s *Syntax, name string, ct CommitType, n ...*Node) error {
 	return s.Choice(name, ct, refs...)
 }
 
-func compileExpression(s *Syntax, name string, ct CommitType, expression *Node) error {
+func defineExpression(s *Syntax, name string, ct CommitType, expression *Node) error {
 	var err error
 	switch expression.Name {
 	case "any-char":
 		err = s.AnyChar(name, ct)
 	case "char-class":
-		err = compileClass(s, name, ct, expression.Nodes)
+		err = defineClass(s, name, ct, expression.Nodes)
 	case "char-sequence":
-		err = compileCharSequence(s, name, ct, expression.Nodes)
+		err = defineCharSequence(s, name, ct, expression.Nodes)
 	case "symbol":
-		err = compileSequence(s, name, ct, expression)
+		err = defineSequence(s, name, ct, expression)
 	case "quantifier":
-		err = compileQuantifier(s, name, ct, expression.Nodes[0], expression.Nodes[1])
+		err = defineQuantifier(s, name, ct, expression.Nodes[0], expression.Nodes[1])
 	case "sequence":
-		err = compileSequence(s, name, ct, expression.Nodes...)
+		err = defineSequence(s, name, ct, expression.Nodes...)
 	case "choice":
-		err = compileChoice(s, name, ct, expression.Nodes...)
+		err = defineChoice(s, name, ct, expression.Nodes...)
 	}
 
 	return err
 }
 
-func compileDefinition(s *Syntax, n *Node) error {
-	return compileExpression(
+func defineDefinition(s *Syntax, n *Node) error {
+	return defineExpression(
 		s,
 		n.Nodes[0].Text(),
 		flagsToCommitType(n.Nodes[1:len(n.Nodes)-1]),
@@ -241,7 +241,7 @@ func compileDefinition(s *Syntax, n *Node) error {
 	)
 }
 
-func compile(s *Syntax, n *Node) error {
+func define(s *Syntax, n *Node) error {
 	if n.Name != "syntax" {
 		return ErrInvalidSyntax
 	}
@@ -249,7 +249,7 @@ func compile(s *Syntax, n *Node) error {
 	n = dropComments(n)
 
 	for _, ni := range n.Nodes {
-		if err := compileDefinition(s, ni); err != nil {
+		if err := defineDefinition(s, ni); err != nil {
 			return err
 		}
 	}
