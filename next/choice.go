@@ -25,7 +25,7 @@ func (d *choiceDefinition) nodeName() string { return d.name }
 
 // could store and cache everything that it fulfils
 
-func (d *choiceDefinition) parser(r *registry) (parser, error) {
+func (d *choiceDefinition) parser(r *registry, path []string) (parser, error) {
 	p, ok := r.parser(d.name)
 	if ok {
 		return p, nil
@@ -39,10 +39,12 @@ func (d *choiceDefinition) parser(r *registry) (parser, error) {
 	r.setParser(cp)
 
 	var elements []parser
+	path = append(path, d.name)
 	for _, e := range d.elements {
 		element, ok := r.parser(e)
 		if ok {
 			elements = append(elements, element)
+			element.setIncludedBy(cp, path)
 			continue
 		}
 
@@ -51,11 +53,12 @@ func (d *choiceDefinition) parser(r *registry) (parser, error) {
 			return nil, parserNotFound(e)
 		}
 
-		element, err := elementDefinition.parser(r)
+		element, err := elementDefinition.parser(r, path)
 		if err != nil {
 			return nil, err
 		}
 
+		element.setIncludedBy(cp, path)
 		elements = append(elements, element)
 	}
 
@@ -69,14 +72,19 @@ func (d *choiceDefinition) commitType() CommitType {
 
 func (p *choiceParser) nodeName() string { return p.name }
 
-func (p *choiceParser) setIncludedBy(i parser) {
+func (p *choiceParser) setIncludedBy(i parser, path []string) {
+	if stringsContain(path, p.name) {
+		return
+	}
+
 	p.including = append(p.including, i)
 }
 
 func (p *choiceParser) cacheIncluded(c *context, n *Node) {
+	println(n.from, c.offset)
 	nc := newNode(p.name, p.commit, n.from, n.to)
 	nc.append(n)
-	c.cache.set(c.offset, p.name, nc)
+	c.cache.set(nc.from, p.name, nc)
 
 	for _, i := range p.including {
 		i.cacheIncluded(c, nc)
@@ -161,7 +169,6 @@ func (p *choiceParser) parse(t Trace, c *context) {
 	if match {
 		t.Out1("choice, success")
 		t.Out2("choice done", node.nodeLength())
-		// TODO: check maybe what was caused by this cache not been set before
 		c.success(node)
 		return
 	}

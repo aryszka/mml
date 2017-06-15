@@ -29,7 +29,7 @@ func TestMML(t *testing.T) {
 		return
 	}
 
-	trace = NewTrace(1)
+	// trace = NewTrace(1)
 	s := NewSyntax(trace)
 	if err := define(s, mmlDoc); err != nil {
 		t.Error(err)
@@ -880,22 +880,41 @@ func TestMML(t *testing.T) {
 				}},
 			}},
 		}},
-		// }, {
-		// 	msg:  "indexer, chained",
-		// 	text: "a[b][c]",
-		// 	nodes: []*Node{{
-		// 		Name: "indexer",
-		// 		Nodes: []*Node{{
-		// 			Name: "indexer",
-		// 			Nodes: []*Node{{
-		// 				Name: "symbol",
-		// 			}, {
-		// 				Name: "symbol",
-		// 			}},
-		// 		}, {
-		// 			Name: "symbol",
-		// 		}},
-		// 	}},
+	}, {
+		msg:  "indexer, chained",
+		text: "a[b][c][d]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   10,
+			Nodes: []*Node{{
+				Name: "indexer",
+				from: 0,
+				to:   7,
+				Nodes: []*Node{{
+					Name: "indexer",
+					from: 0,
+					to:   4,
+					Nodes: []*Node{{
+						Name: "symbol",
+						from: 0,
+						to:   1,
+					}, {
+						Name: "symbol",
+						from: 2,
+						to:   3,
+					}},
+				}, {
+					Name: "symbol",
+					from: 5,
+					to:   6,
+				}},
+			}, {
+				Name: "symbol",
+				from: 8,
+				to:   9,
+			}},
+		}},
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))

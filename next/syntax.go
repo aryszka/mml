@@ -122,7 +122,7 @@ func (s *Syntax) Init() error {
 	}
 
 	var err error
-	s.parser, err = s.root.parser(s.registry)
+	s.parser, err = s.root.parser(s.registry, nil)
 	if err != nil {
 		s.initFailed = true
 		return err

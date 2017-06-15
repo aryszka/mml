@@ -29,7 +29,11 @@ func newChar(
 
 func (p *charParser) nodeName() string { return p.name }
 
-func (p *charParser) parser(r *registry) (parser, error) {
+func (p *charParser) parser(r *registry, path []string) (parser, error) {
+	if stringsContain(path, p.name) {
+		panic(errCannotIncludeParsers)
+	}
+
 	r.setParser(p)
 	return p, nil
 }
@@ -38,7 +42,11 @@ func (p *charParser) commitType() CommitType {
 	return p.commit
 }
 
-func (p *charParser) setIncludedBy(i parser) {
+func (p *charParser) setIncludedBy(i parser, path []string) {
+	if stringsContain(path, p.name) {
+		panic(errCannotIncludeParsers)
+	}
+
 	p.includedBy = append(p.includedBy, i)
 }
 

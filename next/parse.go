@@ -7,13 +7,13 @@ import (
 
 type definition interface {
 	nodeName() string
-	parser(*registry) (parser, error)
+	parser(*registry, []string) (parser, error)
 	commitType() CommitType
 }
 
 type parser interface {
 	nodeName() string
-	setIncludedBy(parser)
+	setIncludedBy(parser, []string)
 	cacheIncluded(*context, *Node)
 	parse(Trace, *context)
 }

@@ -63,23 +63,17 @@ func (n *Node) applyTokens(t []rune) {
 }
 
 func (n *Node) commit() {
-	println("start commit", n.Name, len(n.Nodes))
-
 	var nodes []*Node
 	for _, ni := range n.Nodes {
 		ni.commit()
 		if ni.commitType&Alias != 0 {
-			println("appending alias", ni.Name)
 			nodes = append(nodes, ni.Nodes...)
 		} else {
-			println("appending normal", ni.Name)
 			nodes = append(nodes, ni)
 		}
 	}
 
 	n.Nodes = nodes
-
-	println("commit done", n.Name)
 }
 
 func (n *Node) String() string {

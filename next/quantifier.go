@@ -27,7 +27,11 @@ func newQuantifier(name string, ct CommitType, item string, min, max int) *quant
 
 func (d *quantifierDefinition) nodeName() string { return d.name }
 
-func (d *quantifierDefinition) parser(r *registry) (parser, error) {
+func (d *quantifierDefinition) parser(r *registry, path []string) (parser, error) {
+	if stringsContain(path, d.name) {
+		panic(errCannotIncludeParsers)
+	}
+
 	p, ok := r.parser(d.name)
 	if ok {
 		return p, nil
@@ -50,7 +54,7 @@ func (d *quantifierDefinition) parser(r *registry) (parser, error) {
 		}
 
 		var err error
-		item, err = itemDefinition.parser(r)
+		item, err = itemDefinition.parser(r, path)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +69,11 @@ func (p *quantifierParser) nodeName() string           { return p.name }
 
 // TODO: merge the quantifier into the sequence
 
-func (p *quantifierParser) setIncludedBy(i parser) {
+func (p *quantifierParser) setIncludedBy(i parser, path []string) {
+	if stringsContain(path, p.name) {
+		panic(errCannotIncludeParsers)
+	}
+
 	p.includedBy = append(p.includedBy, i)
 }
 
@@ -112,10 +120,11 @@ func (p *quantifierParser) parse(t Trace, c *context) {
 		// n, m, ok := c.cache.get(c.offset, p.item.nodeName())
 		m, ok := c.fromCache(p.item.nodeName())
 		if ok {
-			t.Out1("item found in cache, match:", m, c.offset)
+			t.Out1("quantifier item found in cache, match:", m, c.offset, c.node.tokenLength())
 			if m {
 				node.append(c.node)
 				if c.node.tokenLength() > 0 {
+					t.Out2("taking next after cached found")
 					continue
 				}
 			}

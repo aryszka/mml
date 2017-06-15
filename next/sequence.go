@@ -23,7 +23,11 @@ func newSequence(name string, ct CommitType, items []string) *sequenceDefinition
 
 func (d *sequenceDefinition) nodeName() string { return d.name }
 
-func (d *sequenceDefinition) parser(r *registry) (parser, error) {
+func (d *sequenceDefinition) parser(r *registry, path []string) (parser, error) {
+	if stringsContain(path, d.name) {
+		panic(errCannotIncludeParsers)
+	}
+
 	p, ok := r.parser(d.name)
 	if ok {
 		return p, nil
@@ -49,7 +53,7 @@ func (d *sequenceDefinition) parser(r *registry) (parser, error) {
 			return nil, parserNotFound(i)
 		}
 
-		item, err := itemDefinition.parser(r)
+		item, err := itemDefinition.parser(r, path)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +71,11 @@ func (d *sequenceDefinition) commitType() CommitType {
 
 func (p *sequenceParser) nodeName() string { return p.name }
 
-func (p *sequenceParser) setIncludedBy(i parser) {
+func (p *sequenceParser) setIncludedBy(i parser, path []string) {
+	if stringsContain(path, p.name) {
+		panic(errCannotIncludeParsers)
+	}
+
 	p.including = append(p.including, i)
 }
 
@@ -152,5 +160,6 @@ func (p *sequenceParser) parse(t Trace, c *context) {
 		i.cacheIncluded(c, node)
 	}
 
+	t.Out2("caching sequence and included by done")
 	c.success(node)
 }
