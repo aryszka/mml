@@ -89,7 +89,7 @@ list-fact:alias = "[" (wscnl | ",")* expression-list? (wscnl | ",")* "]";
 list            = list-fact;
 mutable-list    = "~" wscnl* list-fact;
 
-indexer-symbol          = "[" wscnl* expression wscnl* "]";
+indexer-symbol    = "[" wscnl* expression wscnl* "]";
 entry             = (symbol-expression | indexer-symbol) wscnl* ":" wscnl* expression;
 entry-list:alias  = (entry | spread-expression) (list-sep (entry | spread-expression))*;
 struct-fact:alias = "{" (wscnl | ",")* entry-list? (wscnl | ",")* "}";
@@ -98,8 +98,8 @@ mutable-struct    = "~" wscnl* struct-fact;
 
 channel = "<>" | "<" wscnl* int wscnl* ">";
 
-// and-expression:doc = "and" wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
-// or-expression:doc  = "or" wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
+and-expression:doc = "and" wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
+or-expression:doc  = "or" wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
 
 // TODO: use collect
 argument-list:alias = static-symbol (list-sep static-symbol)*;
@@ -131,9 +131,9 @@ expression-indexer:alias = primary-expression wsc* "[" wscnl* indexer-expression
 symbol-indexer:alias     = primary-expression wscnl* "." wscnl* symbol-expression; // TODO: test with a float on a new line
 indexer                  = expression-indexer | symbol-indexer;
 
-// // TODO: implement doc flag and test and() and or()
-// function-application = primary-expression wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
-// 
+// TODO: implement doc flag and test and() and or()
+function-application = primary-expression wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
+
 // tertiary-if = expression wscnl* "?" wscnl* expression wscnl* ":" wscnl* expression;
 // 
 // if = "if" wscnl* expression wscnl* block
@@ -262,12 +262,12 @@ primary-expression:alias = int
                          | struct
                          | mutable-struct
                          | channel
-                         // | and-expression // only documentation
-                         // | or-expression // only documentation
+                         | and-expression // only documentation
+                         | or-expression // only documentation
                          | function
                          | effect
                          | indexer
-                         // | function-application // pseudo-expression
+                         | function-application // pseudo-expression
                          // | conditional // pseudo-expression
                          // | receive-call
                          // | select // pseudo-expression

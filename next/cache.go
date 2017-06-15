@@ -43,10 +43,6 @@ func (c *cache) setOne(offset int, name string, n *Node) {
 }
 
 func (c *cache) set(offset int, name string, n *Node) {
-	if n != nil {
-		println("caching", offset, n.Name, n.commitType, len(n.Nodes))
-	}
-
 	if len(c.tokens) <= offset {
 		if cap(c.tokens) > offset {
 			c.tokens = c.tokens[:offset+1]
