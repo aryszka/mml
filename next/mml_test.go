@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestMMLNodes(t *testing.T) {
+func TestMML(t *testing.T) {
 	trace := NewTrace(0)
 
 	b, err := bootSyntax(trace)
@@ -29,6 +29,7 @@ func TestMMLNodes(t *testing.T) {
 		return
 	}
 
+	trace = NewTrace(1)
 	s := NewSyntax(trace)
 	if err := define(s, mmlDoc); err != nil {
 		t.Error(err)
@@ -787,98 +788,98 @@ func TestMMLNodes(t *testing.T) {
 				to:   10,
 			}},
 		}},
-		// }, {
-		// 	msg:  "indexer",
-		// 	text: "a[42]",
-		// 	nodes: []*Node{{
-		// 		Name: "indexer",
-		// 		from: 0,
-		// 		to:   5,
-		// 		Nodes: []*Node{{
-		// 			Name: "symbol",
-		// 			from: 0,
-		// 			to:   1,
-		// 		}, {
-		// 			Name: "int",
-		// 			from: 2,
-		// 			to:   4,
-		// 		}},
-		// 	}},
-		// }, {
-		// 	msg:  "range indexer",
-		// 	text: "a[3:9]",
-		// 	nodes: []*Node{{
-		// 		Name: "indexer",
-		// 		from: 0,
-		// 		to:   6,
-		// 		Nodes: []*Node{{
-		// 			Name: "symbol",
-		// 			from: 0,
-		// 			to:   1,
-		// 		}, {
-		// 			Name: "range-from",
-		// 			from: 2,
-		// 			to:   3,
-		// 			Nodes: []*Node{{
-		// 				Name: "int",
-		// 				from: 2,
-		// 				to:   3,
-		// 			}},
-		// 		}, {
-		// 			Name: "range-to",
-		// 			from: 4,
-		// 			to:   5,
-		// 			Nodes: []*Node{{
-		// 				Name: "int",
-		// 				from: 4,
-		// 				to:   5,
-		// 			}},
-		// 		}},
-		// 	}},
-		// }, {
-		// 	msg:  "range indexer, lower unbound",
-		// 	text: "a[:9]",
-		// 	nodes: []*Node{{
-		// 		Name: "indexer",
-		// 		from: 0,
-		// 		to:   5,
-		// 		Nodes: []*Node{{
-		// 			Name: "symbol",
-		// 			from: 0,
-		// 			to:   1,
-		// 		}, {
-		// 			Name: "range-to",
-		// 			from: 3,
-		// 			to:   4,
-		// 			Nodes: []*Node{{
-		// 				Name: "int",
-		// 				from: 3,
-		// 				to:   4,
-		// 			}},
-		// 		}},
-		// 	}},
-		// }, {
-		// 	msg:  "range indexer, upper unbound",
-		// 	text: "a[3:]",
-		// 	nodes: []*Node{{
-		// 		Name: "indexer",
-		// 		from: 0,
-		// 		to:   5,
-		// 		Nodes: []*Node{{
-		// 			Name: "symbol",
-		// 			from: 0,
-		// 			to:   1,
-		// 		}, {
-		// 			Name: "range-from",
-		// 			from: 2,
-		// 			to:   3,
-		// 			Nodes: []*Node{{
-		// 				Name: "int",
-		// 				from: 2,
-		// 				to:   3,
-		// 			}},
-		// 		}},
-		// 	}},
+	}, {
+		msg:  "indexer",
+		text: "a[42]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   5,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "int",
+				from: 2,
+				to:   4,
+			}},
+		}},
+	}, {
+		msg:  "range indexer",
+		text: "a[3:9]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   6,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "range-from",
+				from: 2,
+				to:   3,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 2,
+					to:   3,
+				}},
+			}, {
+				Name: "range-to",
+				from: 4,
+				to:   5,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 4,
+					to:   5,
+				}},
+			}},
+		}},
+	}, {
+		msg:  "range indexer, lower unbound",
+		text: "a[:9]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   5,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "range-to",
+				from: 3,
+				to:   4,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 3,
+					to:   4,
+				}},
+			}},
+		}},
+	}, {
+		msg:  "range indexer, upper unbound",
+		text: "a[3:]",
+		nodes: []*Node{{
+			Name: "indexer",
+			from: 0,
+			to:   5,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "range-from",
+				from: 2,
+				to:   3,
+				Nodes: []*Node{{
+					Name: "int",
+					from: 2,
+					to:   3,
+				}},
+			}},
+		}},
 		// }, {
 		// 	msg:  "indexer, chained",
 		// 	text: "a[b][c]",
@@ -908,6 +909,8 @@ func TestMMLNodes(t *testing.T) {
 			} else if ti.fail {
 				return
 			}
+
+			t.Log(n)
 
 			if ti.node != nil {
 				checkNode(t, n, ti.node)

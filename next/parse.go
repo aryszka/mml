@@ -1,6 +1,9 @@
 package next
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type definition interface {
 	nodeName() string
@@ -10,8 +13,12 @@ type definition interface {
 
 type parser interface {
 	nodeName() string
-	parse(Trace, *context, []string)
+	setIncludedBy(parser)
+	cacheIncluded(*context, *Node)
+	parse(Trace, *context)
 }
+
+var errCannotIncludeParsers = errors.New("cannot include parsers")
 
 func parserNotFound(name string) error {
 	return fmt.Errorf("parser not found: %s", name)
@@ -27,8 +34,25 @@ func stringsContain(ss []string, s string) bool {
 	return false
 }
 
+func copyIncludes(to, from map[string]CommitType) {
+	if from == nil {
+		return
+	}
+
+	for name, ct := range from {
+		to[name] = ct
+	}
+}
+
+func mergeIncludes(left, right map[string]CommitType) map[string]CommitType {
+	m := make(map[string]CommitType)
+	copyIncludes(m, left)
+	copyIncludes(m, right)
+	return m
+}
+
 func parse(t Trace, p parser, c *context) (*Node, error) {
-	p.parse(t, c, nil)
+	p.parse(t, c)
 	if c.readErr != nil {
 		return nil, c.readErr
 	}

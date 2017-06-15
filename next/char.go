@@ -1,12 +1,13 @@
 package next
 
 type charParser struct {
-	name   string
-	commit CommitType
-	any    bool
-	not    bool
-	chars  []rune
-	ranges [][]rune
+	name       string
+	commit     CommitType
+	any        bool
+	not        bool
+	chars      []rune
+	ranges     [][]rune
+	includedBy []parser
 }
 
 func newChar(
@@ -37,6 +38,14 @@ func (p *charParser) commitType() CommitType {
 	return p.commit
 }
 
+func (p *charParser) setIncludedBy(i parser) {
+	p.includedBy = append(p.includedBy, i)
+}
+
+func (p *charParser) cacheIncluded(*context, *Node) {
+	panic(errCannotIncludeParsers)
+}
+
 func (p *charParser) match(t rune) bool {
 	if p.any {
 		return true
@@ -57,7 +66,7 @@ func (p *charParser) match(t rune) bool {
 	return p.not
 }
 
-func (p *charParser) parse(t Trace, c *context, _ []string) {
+func (p *charParser) parse(t Trace, c *context) {
 	t = t.Extend(p.name)
 	t.Out1("parsing char", c.offset)
 
@@ -74,10 +83,17 @@ func (p *charParser) parse(t Trace, c *context, _ []string) {
 
 	if tok, ok := c.token(); ok && p.match(tok) {
 		t.Out1("success", string(tok))
-		c.success(newNode(p.name, p.commit, c.offset, c.offset+1))
+		n := newNode(p.name, p.commit, c.offset, c.offset+1)
+		c.cache.set(c.offset, p.name, n)
+		for _, i := range p.includedBy {
+			i.cacheIncluded(c, n)
+		}
+
+		c.success(n)
 		return
 	} else {
 		t.Out1("fail", string(tok))
+		c.cache.set(c.offset, p.name, nil)
 		c.fail(c.offset)
 		return
 	}

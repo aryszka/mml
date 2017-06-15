@@ -7,7 +7,7 @@ import (
 
 func TestBoot(t *testing.T) {
 	var trace Trace
-	// trace = NewTrace(1)
+	// trace = NewTrace(2)
 
 	b, err := initBoot(trace, bootDefinitions)
 	if err != nil {

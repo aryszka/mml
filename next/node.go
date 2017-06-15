@@ -27,8 +27,21 @@ func (n *Node) nodeLength() int {
 	return len(n.Nodes)
 }
 
+func findNode(in, n *Node) {
+	if n == in {
+		panic(fmt.Errorf("found self in %s", in.Name))
+	}
+
+	for _, ni := range n.Nodes {
+		findNode(in, ni)
+	}
+}
+
 func (n *Node) append(p *Node) {
+	findNode(n, p)
 	n.Nodes = append(n.Nodes, p)
+	// TODO: check rather if n.from <= p.from??? or panic if less? or check rather node length and commit
+	// happens in the end anyway?
 	if n.from == 0 && n.to == 0 {
 		n.from = p.from
 	}
@@ -50,17 +63,23 @@ func (n *Node) applyTokens(t []rune) {
 }
 
 func (n *Node) commit() {
+	println("start commit", n.Name, len(n.Nodes))
+
 	var nodes []*Node
 	for _, ni := range n.Nodes {
 		ni.commit()
 		if ni.commitType&Alias != 0 {
+			println("appending alias", ni.Name)
 			nodes = append(nodes, ni.Nodes...)
 		} else {
+			println("appending normal", ni.Name)
 			nodes = append(nodes, ni)
 		}
 	}
 
 	n.Nodes = nodes
+
+	println("commit done", n.Name)
 }
 
 func (n *Node) String() string {

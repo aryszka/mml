@@ -224,13 +224,13 @@ var bootDefinitions = [][]string{{
 }, {
 	"chars", "root", "none", "root",
 }, {
-	"choice", "flag-word", "alias", "alias", "doc", "root",
+	"choice", "flag", "alias", "alias", "doc", "root",
 }, {
 	"chars", "colon", "alias", ":",
 }, {
-	"sequence", "flag", "alias", "colon", "flag-word",
+	"sequence", "flag-tag", "alias", "colon", "flag",
 }, {
-	"quantifier", "flags", "alias", "flag", "0", "-1",
+	"quantifier", "flags", "alias", "flag-tag", "0", "-1",
 }, {
 	"chars", "equal", "alias", "=",
 }, {

@@ -7,9 +7,10 @@ type sequenceDefinition struct {
 }
 
 type sequenceParser struct {
-	name   string
-	commit CommitType
-	items  []parser
+	name      string
+	commit    CommitType
+	items     []parser
+	including []parser
 }
 
 func newSequence(name string, ct CommitType, items []string) *sequenceDefinition {
@@ -66,7 +67,27 @@ func (d *sequenceDefinition) commitType() CommitType {
 
 func (p *sequenceParser) nodeName() string { return p.name }
 
-func (p *sequenceParser) parse(t Trace, c *context, excluded []string) {
+func (p *sequenceParser) setIncludedBy(i parser) {
+	p.including = append(p.including, i)
+}
+
+func (p *sequenceParser) cacheIncluded(*context, *Node) {
+	panic(errCannotIncludeParsers)
+}
+
+/*
+should be possible to parse:
+
+a = "0"
+b = "1"
+c = a* e b
+d = a | c
+e = b | d
+
+input: 111
+*/
+
+func (p *sequenceParser) parse(t Trace, c *context) {
 	t = t.Extend(p.name)
 	t.Out1("parsing sequence", c.offset)
 
@@ -76,43 +97,37 @@ func (p *sequenceParser) parse(t Trace, c *context, excluded []string) {
 		return
 	}
 
-	if stringsContain(excluded, p.name) {
+	if c.excluded(c.offset, p.name) {
 		t.Out1("excluded")
 		c.fail(c.offset)
 		return
 	}
 
-	var node *Node
-	if m, ok := c.fromCache(p.name); ok {
-		t.Out1("found in cache, match:", m)
+	c.exclude(c.offset, p.name)
+	defer c.include(c.offset, p.name)
 
-		if !m || len(p.items) == 0 {
-			return
-		}
-
-		node = c.node
-		if m, _ = c.fromCache(p.items[0].nodeName()); !m || c.node.tokenLength() <= node.tokenLength() {
-			t.Out1("no matching item found in cache")
-			t.Out2("offset before storing node", c.offset)
-			c.success(node)
-			t.Out2("offset after storing node", c.offset)
-			return
-		}
-
-		node.clear()
-		node.append(c.node)
-	}
-
-	excluded = append(excluded, p.name)
 	items := p.items
-	node = newNode(p.name, p.commit, c.offset, c.offset)
+	node := newNode(p.name, p.commit, c.offset, c.offset)
 
 	for len(items) > 0 {
-		if node.tokenLength() > 0 {
-			excluded = nil
+		t.Out2("next sequence item")
+		// n, m, ok := c.cache.get(c.offset, items[0].nodeName())
+		m, ok := c.fromCache(items[0].nodeName())
+		if ok {
+			t.Out1("sequence item found in cache, match:", m)
+			if m {
+				t.Out2("sequence item from cache:", c.node.Name, len(c.node.Nodes), c.node.from)
+				node.append(c.node)
+				items = items[1:]
+				continue
+			}
+
+			c.cache.set(node.from, p.name, nil)
+			c.fail(node.from)
+			return
 		}
 
-		items[0].parse(t, c, excluded)
+		items[0].parse(t, c)
 		items = items[1:]
 
 		if !c.match {
@@ -122,10 +137,20 @@ func (p *sequenceParser) parse(t Trace, c *context, excluded []string) {
 			return
 		}
 
+		t.Out2("appending sequence item", c.node.Name, len(c.node.Nodes))
 		node.append(c.node)
 	}
 
 	t.Out1("success, items parsed")
+	t.Out2("nodes", node.nodeLength())
+	if node.Name == "group" {
+		t.Out2("caching group", node.from, node.Nodes[2].Name, node.Nodes[2].nodeLength())
+	}
+
 	c.cache.set(node.from, p.name, node)
+	for _, i := range p.including {
+		i.cacheIncluded(c, node)
+	}
+
 	c.success(node)
 }

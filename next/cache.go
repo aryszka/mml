@@ -39,7 +39,14 @@ func (c *cache) get(offset int, name string) (*Node, bool, bool) {
 	return nil, false, false
 }
 
+func (c *cache) setOne(offset int, name string, n *Node) {
+}
+
 func (c *cache) set(offset int, name string, n *Node) {
+	if n != nil {
+		println("caching", offset, n.Name, n.commitType, len(n.Nodes))
+	}
+
 	if len(c.tokens) <= offset {
 		if cap(c.tokens) > offset {
 			c.tokens = c.tokens[:offset+1]
@@ -76,7 +83,10 @@ func (c *cache) set(offset int, name string, n *Node) {
 
 	for _, i := range tc.match {
 		if i.name == name {
-			i.node = n
+			if n.tokenLength() > i.node.tokenLength() {
+				i.node = n
+			}
+
 			return
 		}
 	}

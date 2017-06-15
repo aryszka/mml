@@ -15,6 +15,7 @@ type context struct {
 	tokens     []rune
 	match      bool
 	node       *Node
+	isExcluded [][]string
 }
 
 func newContext(r io.RuneReader) *context {
@@ -61,6 +62,42 @@ func (c *context) token() (rune, bool) {
 	}
 
 	return c.tokens[c.offset], true
+}
+
+func (c *context) excluded(offset int, name string) bool {
+	if len(c.isExcluded) <= offset {
+		return false
+	}
+
+	return stringsContain(c.isExcluded[offset], name)
+}
+
+func (c *context) exclude(offset int, name string) {
+	if len(c.isExcluded) <= offset {
+		c.isExcluded = append(c.isExcluded, nil)
+		if cap(c.isExcluded) > offset {
+			c.isExcluded = c.isExcluded[:offset+1]
+		} else {
+			c.isExcluded = append(
+				c.isExcluded[:cap(c.isExcluded)],
+				make([][]string, offset+1-cap(c.isExcluded))...,
+			)
+		}
+	}
+
+	c.isExcluded[offset] = append(c.isExcluded[offset], name)
+}
+
+func (c *context) include(offset int, name string) {
+	if len(c.isExcluded) <= offset {
+		return
+	}
+
+	for i := len(c.isExcluded[offset]) - 1; i >= 0; i-- {
+		if c.isExcluded[offset][i] == name {
+			c.isExcluded[offset] = append(c.isExcluded[offset][:i], c.isExcluded[offset][i+1:]...)
+		}
+	}
 }
 
 func (c *context) fromCache(name string) (bool, bool) {

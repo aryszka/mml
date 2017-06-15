@@ -7,9 +7,10 @@ type choiceDefinition struct {
 }
 
 type choiceParser struct {
-	name     string
-	commit   CommitType
-	elements []parser
+	name      string
+	commit    CommitType
+	elements  []parser
+	including []parser
 }
 
 func newChoice(name string, ct CommitType, elements []string) *choiceDefinition {
@@ -21,6 +22,8 @@ func newChoice(name string, ct CommitType, elements []string) *choiceDefinition 
 }
 
 func (d *choiceDefinition) nodeName() string { return d.name }
+
+// could store and cache everything that it fulfils
 
 func (d *choiceDefinition) parser(r *registry) (parser, error) {
 	p, ok := r.parser(d.name)
@@ -66,7 +69,21 @@ func (d *choiceDefinition) commitType() CommitType {
 
 func (p *choiceParser) nodeName() string { return p.name }
 
-func (p *choiceParser) parse(t Trace, c *context, excluded []string) {
+func (p *choiceParser) setIncludedBy(i parser) {
+	p.including = append(p.including, i)
+}
+
+func (p *choiceParser) cacheIncluded(c *context, n *Node) {
+	nc := newNode(p.name, p.commit, n.from, n.to)
+	nc.append(n)
+	c.cache.set(c.offset, p.name, nc)
+
+	for _, i := range p.including {
+		i.cacheIncluded(c, nc)
+	}
+}
+
+func (p *choiceParser) parse(t Trace, c *context) {
 	t = t.Extend(p.name)
 	t.Out1("parsing choice", c.offset)
 
@@ -76,18 +93,20 @@ func (p *choiceParser) parse(t Trace, c *context, excluded []string) {
 		return
 	}
 
-	if stringsContain(excluded, p.name) {
-		t.Out1("excluded")
-		c.fail(c.offset)
-		return
-	}
-
 	if m, ok := c.fromCache(p.name); ok {
 		t.Out1("found in cache, match:", m)
 		return
 	}
 
-	excluded = append(excluded, p.name)
+	if c.excluded(c.offset, p.name) {
+		t.Out1("excluded")
+		c.fail(c.offset)
+		return
+	}
+
+	c.exclude(c.offset, p.name)
+	defer c.include(c.offset, p.name)
+
 	node := newNode(p.name, p.commit, c.offset, c.offset)
 	var match bool
 
@@ -100,20 +119,36 @@ func (p *choiceParser) parse(t Trace, c *context, excluded []string) {
 		// continously, dynamically cached way. E.g. teach a machine that learns
 		// everything from a public library.
 
+		t.Out2("elements again")
 		for len(elements) > 0 {
-			elements[0].parse(t, c, excluded)
+			t.Out2("in the choice", c.offset, node.from, elements[0].nodeName())
+			elements[0].parse(t, c)
 			elements = elements[1:]
 			c.offset = node.from
 
 			if !c.match || match && c.node.tokenLength() <= node.tokenLength() {
+				t.Out2("skipping")
 				continue
 			}
 
+			t.Out2("appending", c.node.tokenLength(), node.tokenLength(),
+				"\"", string(c.tokens[node.from:node.to]), "\"",
+				"\"", string(c.tokens[c.node.from:c.node.to]), "\"",
+				c.node.Name,
+			)
 			match = true
 			foundMatch = true
-			node.clear()
+			// node.clear()
+			node = newNode(p.name, p.commit, c.offset, c.offset) // TODO: review caching conditions
+			t.Out2("node length", node.tokenLength(), c.node.tokenLength(), node.from, node.to,
+				c.node.from, c.node.to, string(c.tokens[c.offset]), c.offset, c.node.Name)
 			node.append(c.node)
+			t.Out2("node length", node.tokenLength(), c.node.tokenLength())
+
 			c.cache.set(node.from, p.name, node)
+			for _, i := range p.including {
+				i.cacheIncluded(c, node)
+			}
 
 			// TODO: a simple break here can force PEG-style "priority" choices
 		}
@@ -124,7 +159,9 @@ func (p *choiceParser) parse(t Trace, c *context, excluded []string) {
 	}
 
 	if match {
-		t.Out1("success")
+		t.Out1("choice, success")
+		t.Out2("choice done", node.nodeLength())
+		// TODO: check maybe what was caused by this cache not been set before
 		c.success(node)
 		return
 	}

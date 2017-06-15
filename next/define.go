@@ -222,6 +222,7 @@ func defineExpression(s *Syntax, name string, ct CommitType, expression *Node) e
 	case "symbol":
 		err = defineSequence(s, name, ct, expression)
 	case "quantifier":
+		println(expression.Nodes[0].Name, expression.Text())
 		err = defineQuantifier(s, name, ct, expression.Nodes[0], expression.Nodes[1])
 	case "sequence":
 		err = defineSequence(s, name, ct, expression.Nodes...)

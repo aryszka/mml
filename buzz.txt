@@ -28,3 +28,8 @@ Primary use cases:
 for problems where go is not ideal but currently still the best choice
 
 encouraging declarative style
+but allow procedural style where it makes more sense
+
+[parser]
+
+natural parser: imitating how the human brain parses text

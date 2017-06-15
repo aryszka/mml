@@ -8,10 +8,11 @@ type quantifierDefinition struct {
 }
 
 type quantifierParser struct {
-	name     string
-	commit   CommitType
-	min, max int
-	item     parser
+	name       string
+	commit     CommitType
+	min, max   int
+	item       parser
+	includedBy []parser
 }
 
 func newQuantifier(name string, ct CommitType, item string, min, max int) *quantifierDefinition {
@@ -59,15 +60,20 @@ func (d *quantifierDefinition) parser(r *registry) (parser, error) {
 	return qp, nil
 }
 
-func (d *quantifierDefinition) commitType() CommitType {
-	return d.commit
-}
-
-func (p *quantifierParser) nodeName() string { return p.name }
+func (d *quantifierDefinition) commitType() CommitType { return d.commit }
+func (p *quantifierParser) nodeName() string           { return p.name }
 
 // TODO: merge the quantifier into the sequence
 
-func (p *quantifierParser) parse(t Trace, c *context, excluded []string) {
+func (p *quantifierParser) setIncludedBy(i parser) {
+	p.includedBy = append(p.includedBy, i)
+}
+
+func (p *quantifierParser) cacheIncluded(*context, *Node) {
+	panic(errCannotIncludeParsers)
+}
+
+func (p *quantifierParser) parse(t Trace, c *context) {
 	t = t.Extend(p.name)
 	t.Out1("parsing quantifier", c.offset)
 
@@ -77,54 +83,69 @@ func (p *quantifierParser) parse(t Trace, c *context, excluded []string) {
 		return
 	}
 
-	if stringsContain(excluded, p.name) {
+	if c.excluded(c.offset, p.name) {
 		t.Out1("excluded")
 		c.fail(c.offset)
 		return
 	}
 
-	var node *Node
-	if m, ok := c.fromCache(p.name); ok {
-		t.Out1("found in cache, match:", m)
-		return
+	c.exclude(c.offset, p.name)
+	defer c.include(c.offset, p.name)
 
-		// if !m {
-		// 	return
-		// }
+	node := newNode(p.name, p.commit, c.offset, c.offset)
 
-		// node = c.node
-		// if m, _ = c.fromCache(p.item.nodeName()); !m || c.node.tokenLength() <= node.tokenLength() {
-		// 	t.Out1("no matching item found in cache")
-		// 	t.Out2("offset before storing node", c.offset)
-		// 	c.success(node)
-		// 	t.Out2("offset after storing node", c.offset)
-		// 	return
-		// }
-
-		// node.clear()
-		// node.append(c.node)
-	}
-
-	node = newNode(p.name, p.commit, c.offset, c.offset)
-	excluded = append(excluded, p.name)
-
+	// this way of checking the cache definitely needs the testing of the russ cox form
 	for {
 		if p.max >= 0 && node.nodeLength() == p.max {
 			t.Out1("success, max reached")
 			c.cache.set(node.from, p.name, node)
+			for _, i := range p.includedBy {
+				i.cacheIncluded(c, node)
+			}
+
 			c.success(node)
 			return
 		}
 
-		if node.tokenLength() > 0 {
-			excluded = nil
+		t.Out2("next quantifier item")
+
+		// n, m, ok := c.cache.get(c.offset, p.item.nodeName())
+		m, ok := c.fromCache(p.item.nodeName())
+		if ok {
+			t.Out1("item found in cache, match:", m, c.offset)
+			if m {
+				node.append(c.node)
+				if c.node.tokenLength() > 0 {
+					continue
+				}
+			}
+
+			if node.nodeLength() >= p.min {
+				t.Out1("success, no more match")
+				c.cache.set(node.from, p.name, node)
+				for _, i := range p.includedBy {
+					i.cacheIncluded(c, node)
+				}
+
+				c.success(node)
+			} else {
+				t.Out1("fail, min not reached")
+				c.cache.set(node.from, p.name, nil)
+				c.fail(node.from)
+			}
+
+			return
 		}
 
-		p.item.parse(t, c, excluded)
+		p.item.parse(t, c)
 		if !c.match {
 			if node.nodeLength() >= p.min {
 				t.Out1("success, no more match")
 				c.cache.set(node.from, p.name, node)
+				for _, i := range p.includedBy {
+					i.cacheIncluded(c, node)
+				}
+
 				c.success(node)
 			} else {
 				t.Out1("fail, min not reached")
