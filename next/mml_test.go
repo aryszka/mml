@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMML(t *testing.T) {
@@ -41,6 +42,8 @@ func TestMML(t *testing.T) {
 		return
 	}
 
+	start := time.Now()
+	defer func() { t.Log("\nTestMML, total duration", time.Since(start)) }()
 	for _, ti := range []struct {
 		msg   string
 		text  string
@@ -597,29 +600,29 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg: "struct with indexer key",
+		msg:  "struct with indexer key",
 		text: "{[a]: b}",
 		nodes: []*Node{{
 			Name: "struct",
 			from: 0,
-			to: 8,
+			to:   8,
 			Nodes: []*Node{{
 				Name: "entry",
 				from: 1,
-				to: 7,
+				to:   7,
 				Nodes: []*Node{{
 					Name: "indexer-symbol",
 					from: 1,
-					to: 4,
+					to:   4,
 					Nodes: []*Node{{
 						Name: "symbol",
 						from: 2,
-						to: 3,
+						to:   3,
 					}},
 				}, {
 					Name: "symbol",
 					from: 6,
-					to: 7,
+					to:   7,
 				}},
 			}},
 		}},
@@ -667,53 +670,53 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg: "and expression",
+		msg:  "and expression",
 		text: "and(a, b, c)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 12,
+			to:   12,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 3,
+				to:   3,
 			}, {
 				Name: "symbol",
 				from: 4,
-				to: 5,
+				to:   5,
 			}, {
 				Name: "symbol",
 				from: 7,
-				to: 8,
+				to:   8,
 			}, {
 				Name: "symbol",
 				from: 10,
-				to: 11,
+				to:   11,
 			}},
 		}},
 	}, {
-		msg: "or expression",
+		msg:  "or expression",
 		text: "or(a, b, c)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 11,
+			to:   11,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 2,
+				to:   2,
 			}, {
 				Name: "symbol",
 				from: 3,
-				to: 4,
+				to:   4,
 			}, {
 				Name: "symbol",
 				from: 6,
-				to: 7,
+				to:   7,
 			}, {
 				Name: "symbol",
 				from: 9,
-				to: 10,
+				to:   10,
 			}},
 		}},
 	}, {
@@ -993,335 +996,356 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg: "symbol indexer",
+		msg:  "symbol indexer",
 		text: "a.b",
 		nodes: []*Node{{
 			Name: "indexer",
 			from: 0,
-			to: 3,
+			to:   3,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "symbol",
 				from: 2,
-				to: 3,
+				to:   3,
 			}},
 		}},
 	}, {
-		msg: "symbol indexer, with string",
+		msg:  "symbol indexer, with string",
 		text: "a.\"b\"",
 		nodes: []*Node{{
 			Name: "indexer",
 			from: 0,
-			to: 5,
+			to:   5,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "string",
 				from: 2,
-				to: 5,
+				to:   5,
 			}},
 		}},
 	}, {
-		msg: "symbol indexer, with dynamic symbol",
+		msg:  "symbol indexer, with dynamic symbol",
 		text: "a.symbol(b)",
 		nodes: []*Node{{
 			Name: "indexer",
 			from: 0,
-			to: 11,
+			to:   11,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "dynamic-symbol",
 				from: 2,
-				to: 11,
+				to:   11,
 				Nodes: []*Node{{
 					Name: "symbol",
 					from: 9,
-					to: 10,
+					to:   10,
 				}},
 			}},
 		}},
 	}, {
-		msg: "chained symbol indexer",
+		msg:  "chained symbol indexer",
 		text: "a.b.c.d",
 		nodes: []*Node{{
 			Name: "indexer",
 			from: 0,
-			to: 7,
+			to:   7,
 			Nodes: []*Node{{
 				Name: "indexer",
 				from: 0,
-				to: 5,
+				to:   5,
 				Nodes: []*Node{{
 					Name: "indexer",
 					from: 0,
-					to: 3,
+					to:   3,
 					Nodes: []*Node{{
 						Name: "symbol",
 						from: 0,
-						to: 1,
+						to:   1,
 					}, {
 						Name: "symbol",
 						from: 2,
-						to: 3,
+						to:   3,
 					}},
 				}, {
 					Name: "symbol",
 					from: 4,
-					to: 5,
+					to:   5,
 				}},
 			}, {
 				Name: "symbol",
 				from: 6,
-				to: 7,
+				to:   7,
 			}},
 		}},
 	}, {
-		msg: "chained symbol indexer on new line",
+		msg:  "chained symbol indexer on new line",
 		text: "a\n.b\n.c",
 		nodes: []*Node{{
 			Name: "indexer",
 			from: 0,
-			to: 7,
+			to:   7,
 			Nodes: []*Node{{
 				Name: "indexer",
 				from: 0,
-				to: 4,
+				to:   4,
 				Nodes: []*Node{{
 					Name: "symbol",
 					from: 0,
-					to: 1,
+					to:   1,
 				}, {
 					Name: "symbol",
 					from: 3,
-					to: 4,
+					to:   4,
 				}},
 			}, {
 				Name: "symbol",
 				from: 6,
-				to: 7,
+				to:   7,
 			}},
 		}},
 	}, {
-		msg: "chained symbol indexer on new line after dot",
+		msg:  "chained symbol indexer on new line after dot",
 		text: "a.\nb.\nc",
 		nodes: []*Node{{
 			Name: "indexer",
 			from: 0,
-			to: 7,
+			to:   7,
 			Nodes: []*Node{{
 				Name: "indexer",
 				from: 0,
-				to: 4,
+				to:   4,
 				Nodes: []*Node{{
 					Name: "symbol",
 					from: 0,
-					to: 1,
+					to:   1,
 				}, {
 					Name: "symbol",
 					from: 3,
-					to: 4,
+					to:   4,
 				}},
 			}, {
 				Name: "symbol",
 				from: 6,
-				to: 7,
+				to:   7,
 			}},
 		}},
 	}, {
-		msg: "function application",
+		msg:  "function application",
 		text: "f()",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 3,
+			to:   3,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}},
 		}},
 	}, {
-		msg: "function application, single arg",
+		msg:  "function application, single arg",
 		text: "f(a)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 4,
+			to:   4,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "symbol",
 				from: 2,
-				to: 3,
+				to:   3,
 			}},
 		}},
 	}, {
-		msg: "function application, multiple args",
+		msg:  "function application, multiple args",
 		text: "f(a, b, c)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 10,
+			to:   10,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "symbol",
 				from: 2,
-				to: 3,
+				to:   3,
 			}, {
 				Name: "symbol",
 				from: 5,
-				to: 6,
+				to:   6,
 			}, {
 				Name: "symbol",
 				from: 8,
-				to: 9,
+				to:   9,
 			}},
 		}},
 	}, {
-		msg: "function application, multiple args, new line",
+		msg:  "function application, multiple args, new line",
 		text: "f(a\nb\nc\n)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 9,
+			to:   9,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "symbol",
 				from: 2,
-				to: 3,
+				to:   3,
 			}, {
 				Name: "symbol",
 				from: 4,
-				to: 5,
+				to:   5,
 			}, {
 				Name: "symbol",
 				from: 6,
-				to: 7,
+				to:   7,
 			}},
 		}},
 	}, {
-		msg: "function application, spread",
+		msg:  "function application, spread",
 		text: "f(a, b..., c, d...)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 19,
+			to:   19,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "symbol",
 				from: 2,
-				to: 3,
+				to:   3,
 			}, {
 				Name: "spread-expression",
 				from: 5,
-				to: 9,
+				to:   9,
 				Nodes: []*Node{{
 					Name: "symbol",
 					from: 5,
-					to: 6,
+					to:   6,
 				}},
 			}, {
 				Name: "symbol",
 				from: 11,
-				to: 12,
+				to:   12,
 			}, {
 				Name: "spread-expression",
 				from: 14,
-				to: 18,
+				to:   18,
 				Nodes: []*Node{{
 					Name: "symbol",
 					from: 14,
-					to: 15,
+					to:   15,
 				}},
 			}},
 		}},
 	}, {
-		msg: "chained function application",
+		msg:  "chained function application",
 		text: "f(a)(b)(c)",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 10,
+			to:   10,
 			Nodes: []*Node{{
 				Name: "function-application",
 				from: 0,
-				to: 7,
+				to:   7,
 				Nodes: []*Node{{
 					Name: "function-application",
 					from: 0,
-					to: 4,
+					to:   4,
 					Nodes: []*Node{{
 						Name: "symbol",
 						from: 0,
-						to: 1,
+						to:   1,
 					}, {
 						Name: "symbol",
 						from: 2,
-						to: 3,
+						to:   3,
 					}},
 				}, {
 					Name: "symbol",
 					from: 5,
-					to: 6,
+					to:   6,
 				}},
 			}, {
 				Name: "symbol",
 				from: 8,
-				to: 9,
+				to:   9,
 			}},
 		}},
 	}, {
-		msg: "embedded function application",
+		msg:  "embedded function application",
 		text: "f(g(h(a)))",
 		nodes: []*Node{{
 			Name: "function-application",
 			from: 0,
-			to: 10,
+			to:   10,
 			Nodes: []*Node{{
 				Name: "symbol",
 				from: 0,
-				to: 1,
+				to:   1,
 			}, {
 				Name: "function-application",
 				from: 2,
-				to: 9,
+				to:   9,
 				Nodes: []*Node{{
 					Name: "symbol",
 					from: 2,
-					to: 3,
+					to:   3,
 				}, {
 					Name: "function-application",
 					from: 4,
-					to: 8,
+					to:   8,
 					Nodes: []*Node{{
 						Name: "symbol",
 						from: 4,
-						to: 5,
+						to:   5,
 					}, {
 						Name: "symbol",
 						from: 6,
-						to: 7,
+						to:   7,
 					}},
 				}},
+			}},
+		}},
+	}, {
+		msg:  "ternary expression",
+		text: "a ? b : c",
+		nodes: []*Node{{
+			Name: "ternary-expression",
+			from: 0,
+			to:   9,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "symbol",
+				from: 4,
+				to:   5,
+			}, {
+				Name: "symbol",
+				from: 8,
+				to:   9,
 			}},
 		}},
 	}} {

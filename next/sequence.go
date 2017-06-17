@@ -41,16 +41,17 @@ func (d *sequenceDefinition) parser(r *registry, path []string) (parser, error) 
 	r.setParser(sp)
 
 	var items []parser
-	for _, i := range d.items {
-		item, ok := r.parser(i)
+	path = append(path, d.name)
+	for _, name := range d.items {
+		item, ok := r.parser(name)
 		if ok {
 			items = append(items, item)
 			continue
 		}
 
-		itemDefinition, ok := r.definition(i)
+		itemDefinition, ok := r.definition(name)
 		if !ok {
-			return nil, parserNotFound(i)
+			return nil, parserNotFound(name)
 		}
 
 		item, err := itemDefinition.parser(r, path)
@@ -59,6 +60,11 @@ func (d *sequenceDefinition) parser(r *registry, path []string) (parser, error) 
 		}
 
 		items = append(items, item)
+	}
+
+	// for single items, acts like a choice
+	if len(items) == 1 {
+		items[0].setIncludedBy(sp, path)
 	}
 
 	sp.items = items
@@ -73,14 +79,21 @@ func (p *sequenceParser) nodeName() string { return p.name }
 
 func (p *sequenceParser) setIncludedBy(i parser, path []string) {
 	if stringsContain(path, p.name) {
-		panic(errCannotIncludeParsers)
+		return
 	}
 
 	p.including = append(p.including, i)
 }
 
-func (p *sequenceParser) cacheIncluded(*context, *Node) {
-	panic(errCannotIncludeParsers)
+func (p *sequenceParser) cacheIncluded(c *context, n *Node) {
+	nc := newNode(p.name, p.commit, n.from, n.to)
+	nc.append(n)
+	c.cache.set(nc.from, p.name, nc)
+
+	// maybe it is enough to cache only those that are on the path
+	for _, i := range p.including {
+		i.cacheIncluded(c, nc)
+	}
 }
 
 /*
@@ -104,6 +117,8 @@ func (p *sequenceParser) parse(t Trace, c *context) {
 		c.fail(c.offset)
 		return
 	}
+
+	// TODO: maybe we can check the cache here? no because that would exclude the continuations
 
 	if c.excluded(c.offset, p.name) {
 		t.Out1("excluded")
@@ -155,6 +170,7 @@ func (p *sequenceParser) parse(t Trace, c *context) {
 		t.Out2("caching group", node.from, node.Nodes[2].Name, node.Nodes[2].nodeLength())
 	}
 
+	// is this cached item ever taken?
 	c.cache.set(node.from, p.name, node)
 	for _, i := range p.including {
 		i.cacheIncluded(c, node)

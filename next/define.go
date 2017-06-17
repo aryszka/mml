@@ -198,6 +198,13 @@ func defineSequence(s *Syntax, name string, ct CommitType, n ...*Node) error {
 		return err
 	}
 
+	// // TODO: try to make this expressed in the syntax (maybe as sequences need either a quantififer or not
+	// // one item? or by maintaining the excluded and caching in the sequence in a similar way when there is
+	// // only one item?) how does this effect the quantifiers?
+	// if len(refs) == 1 {
+	// 	return s.Choice(name, ct, refs[0])
+	// }
+
 	return s.Sequence(name, ct, refs...)
 }
 

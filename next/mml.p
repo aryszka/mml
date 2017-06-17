@@ -134,8 +134,6 @@ indexer                  = expression-indexer | symbol-indexer;
 // TODO: implement doc flag and test and() and or()
 function-application = primary-expression wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
 
-// tertiary-if = expression wscnl* "?" wscnl* expression wscnl* ":" wscnl* expression;
-// 
 // if = "if" wscnl* expression wscnl* block
 //      (wscnl* "else" wscnl* "if" wscnl* expression wscnl* block)*
 //      (wscnl* "else" wscnl* block)?;
@@ -153,12 +151,12 @@ function-application = primary-expression wsc* "(" (wscnl | ",")* expression-lis
 // match               = "match" wscnl* expression wscnl* "{" wscnl*
 //                       pattern-cases? (case-sep default)? (case-sep pattern-cases)?
 //                       wscnl* "}";
-// 
-// conditional = tertiary-if
-//             | if
-//             | switch
-//             | match;
-// 
+
+// conditional:alias = if
+//                     // | switch
+//                     // | match
+// 	            ;
+
 // receive-call:alias       = "receive" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
 // receive-call-op:alias    = "<-" wsc* primary-expression;
 // receive-call-group:alias = "(" wscnl* receive-expression wscnl* ")";
@@ -195,7 +193,33 @@ function-application = primary-expression wsc* "(" (wscnl | ",")* expression-lis
 // 
 // block = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
 // expression-group = "(" wscnl* expression wscnl* ")";
-// 
+
+primary-expression:alias = int
+                         | float
+                         | string
+                         | bool
+                         | symbol
+                         | dynamic-symbol
+                         | list
+                         | mutable-list
+                         | struct
+                         | mutable-struct
+                         | channel
+                         | and-expression // only documentation
+                         | or-expression // only documentation
+                         | function
+                         | effect
+                         | indexer
+                         | function-application // pseudo-expression
+                         // | conditional // pseudo-expression
+                         // | receive-call
+                         // | select // pseudo-expression
+                         // | require-expression
+                         // | recover
+                         // | block // pseudo-expression
+                         // | expression-group;
+                         ;
+
 // plus                 = "+";
 // minus                = "-";
 // logical-not          = "!";
@@ -251,35 +275,14 @@ function-application = primary-expression wsc* "(" (wscnl | ",")* expression-lis
 // 
 // binary-expression:alias = binary0 | binary1 | binary2 | binary3 | binary4 | binary5;
 
-primary-expression:alias = int
-                         | float
-                         | string
-                         | bool
-                         | symbol
-                         | dynamic-symbol
-                         | list
-                         | mutable-list
-                         | struct
-                         | mutable-struct
-                         | channel
-                         | and-expression // only documentation
-                         | or-expression // only documentation
-                         | function
-                         | effect
-                         | indexer
-                         | function-application // pseudo-expression
-                         // | conditional // pseudo-expression
-                         // | receive-call
-                         // | select // pseudo-expression
-                         // | require-expression
-                         // | recover
-                         // | block // pseudo-expression
-                         // | expression-group;
-                         ;
+// TODO: this cannot be a primary expression
+ternary-item:alias = primary-expression; // | unary-expression | binary-expression;
+ternary-expression = ternary-item wscnl* "?" wscnl* ternary-item wscnl* ":" wscnl* ternary-item;
 
 expression:alias = primary-expression
                  // | unary-expression
                  // | binary-expression;
+		 | ternary-expression
                  ;
 
 // TODO: code()
