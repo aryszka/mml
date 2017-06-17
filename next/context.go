@@ -137,6 +137,10 @@ func (c *context) finalize() error {
 		}
 
 		return c.readErr
+	} else {
+		if c.node.to < c.readOffset {
+			return ErrUnexpectedCharacter
+		}
 	}
 
 	c.node.commit()

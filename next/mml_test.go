@@ -733,6 +733,19 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg:  "function, noop",
+		text: "fn () {;}",
+		nodes: []*Node{{
+			Name: "function",
+			from: 0,
+			to:   9,
+			Nodes: []*Node{{
+				Name: "block",
+				from: 6,
+				to:   9,
+			}},
+		}},
+	}, {
 		msg:  "function with args",
 		text: "fn (a, b, c) [a, b, c]",
 		nodes: []*Node{{
@@ -1328,6 +1341,286 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg:  "if",
+		text: "if a { b() }",
+		nodes: []*Node{{
+			Name: "if",
+			from: 0,
+			to:   12,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 3,
+				to:   4,
+			}, {
+				Name: "block",
+				from: 5,
+				to:   12,
+				Nodes: []*Node{{
+					Name: "function-application",
+					from: 7,
+					to:   10,
+					Nodes: []*Node{{
+						Name: "symbol",
+						from: 7,
+						to:   8,
+					}},
+				}},
+			}},
+		}},
+	}, {
+		msg:  "if, else",
+		text: "if a { b } else { c }",
+		nodes: []*Node{{
+			Name: "if",
+			from: 0,
+			to:   21,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 3,
+				to:   4,
+			}, {
+				Name: "block",
+				from: 5,
+				to:   10,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 7,
+					to:   8,
+				}},
+			}, {
+				Name: "block",
+				from: 16,
+				to:   21,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 18,
+					to:   19,
+				}},
+			}},
+		}},
+	}, {
+		msg: "if, else if, else if, else",
+		text: `
+			if a { b }
+			else if c { d }
+			else if e { f }
+			else { g }
+		`,
+		nodes: []*Node{{
+			Name: "if",
+			from: 4,
+			to:   66,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 7,
+				to:   8,
+			}, {
+				Name: "block",
+				from: 9,
+				to:   14,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 11,
+					to:   12,
+				}},
+			}, {
+				Name: "symbol",
+				from: 26,
+				to:   27,
+			}, {
+				Name: "block",
+				from: 28,
+				to:   33,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 30,
+					to:   31,
+				}},
+			}, {
+				Name: "symbol",
+				from: 45,
+				to:   46,
+			}, {
+				Name: "block",
+				from: 47,
+				to:   52,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 49,
+					to:   50,
+				}},
+			}, {
+				Name: "block",
+				from: 61,
+				to:   66,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 63,
+					to:   64,
+				}},
+			}},
+		}},
+	}, {
+		msg:  "switch, empty",
+		text: "switch _ {}",
+		nodes: []*Node{{
+			Name: "switch",
+			from: 0,
+			to:   11,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 7,
+				to:   8,
+			}},
+		}},
+	}, {
+		msg:  "switch, empty, no cond",
+		text: "switch {default:}",
+		nodes: []*Node{{
+			Name: "switch",
+			from: 0,
+			to:   17,
+			Nodes: []*Node{{
+				Name: "default",
+				from: 8,
+				to:   16,
+			}},
+		}},
+	}, {
+		msg:  "switch, single case",
+		text: "switch a {case b: c}",
+		nodes: []*Node{{
+			Name: "switch",
+			from: 0,
+			to:   20,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 7,
+				to:   8,
+			}, {
+				Name: "case",
+				from: 10,
+				to:   17,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 15,
+					to:   16,
+				}},
+			}, {
+				Name: "symbol",
+				from: 18,
+				to:   19,
+			}},
+		}},
+	}, {
+		msg:  "switch",
+		text: "switch a {case b: c; case d: e; default: f}",
+		nodes: []*Node{{
+			Name: "switch",
+			from: 0,
+			to:   43,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 7,
+				to:   8,
+			}, {
+				Name: "case",
+				from: 10,
+				to:   17,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 15,
+					to:   16,
+				}},
+			}, {
+				Name: "symbol",
+				from: 18,
+				to:   19,
+			}, {
+				Name: "case",
+				from: 21,
+				to:   28,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 26,
+					to:   27,
+				}},
+			}, {
+				Name: "symbol",
+				from: 29,
+				to:   30,
+			}, {
+				Name: "default",
+				from: 32,
+				to:   40,
+			}, {
+				Name: "symbol",
+				from: 41,
+				to:   42,
+			}},
+		}},
+	}, {
+		msg: "switch, all new lines",
+		text: `switch
+			a
+			{
+			case
+			b
+			:
+			c
+			case
+			d
+			:
+			e
+			default
+			:
+			f
+		}`,
+		nodes: []*Node{{
+			Name: "switch",
+			from: 0,
+			to:   87,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 10,
+				to:   11,
+			}, {
+				Name: "case",
+				from: 20,
+				to:   34,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 28,
+					to:   29,
+				}},
+			}, {
+				Name: "symbol",
+				from: 38,
+				to:   39,
+			}, {
+				Name: "case",
+				from: 43,
+				to:   57,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 51,
+					to:   52,
+				}},
+			}, {
+				Name: "symbol",
+				from: 61,
+				to:   62,
+			}, {
+				Name: "default",
+				from: 66,
+				to:   78,
+			}, {
+				Name: "symbol",
+				from: 82,
+				to:   83,
+			}},
+		}},
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{
@@ -1346,6 +1639,74 @@ func TestMML(t *testing.T) {
 				Name: "symbol",
 				from: 8,
 				to:   9,
+			}},
+		}},
+	}, {
+		msg:  "multiple ternary expressions, consequence",
+		text: "a ? b ? c : d : e",
+		nodes: []*Node{{
+			Name: "ternary-expression",
+			from: 0,
+			to:   17,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "ternary-expression",
+				from: 4,
+				to:   13,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 4,
+					to:   5,
+				}, {
+					Name: "symbol",
+					from: 8,
+					to:   9,
+				}, {
+					Name: "symbol",
+					from: 12,
+					to:   13,
+				}},
+			}, {
+				Name: "symbol",
+				from: 16,
+				to:   17,
+			}},
+		}},
+	}, {
+		msg:  "multiple ternary expressions, alternative",
+		text: "a ? b : c ? d : e",
+		nodes: []*Node{{
+			Name: "ternary-expression",
+			from: 0,
+			to:   17,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 0,
+				to:   1,
+			}, {
+				Name: "symbol",
+				from: 4,
+				to:   5,
+			}, {
+				Name: "ternary-expression",
+				from: 8,
+				to:   17,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 8,
+					to:   9,
+				}, {
+					Name: "symbol",
+					from: 12,
+					to:   13,
+				}, {
+					Name: "symbol",
+					from: 16,
+					to:   17,
+				}},
 			}},
 		}},
 	}} {

@@ -131,31 +131,30 @@ expression-indexer:alias = primary-expression wsc* "[" wscnl* indexer-expression
 symbol-indexer:alias     = primary-expression wscnl* "." wscnl* symbol-expression; // TODO: test with a float on a new line
 indexer                  = expression-indexer | symbol-indexer;
 
-// TODO: implement doc flag and test and() and or()
 function-application = primary-expression wsc* "(" (wscnl | ",")* expression-list? (wscnl | ",")* ")";
 
-// if = "if" wscnl* expression wscnl* block
-//      (wscnl* "else" wscnl* "if" wscnl* expression wscnl* block)*
-//      (wscnl* "else" wscnl* block)?;
-// 
-// case-sep:alias = wsc* "\n" (wsc | "\n")*;
-// default        = "default" wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
-// case           = "case" wscnl* expression wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
-// cases:alias    = case (case-sep case);
-// switch         = "switch" wscnl* expression? wscnl* "{" wscnl*
-//                  cases? (case-sep default)? (case-sep cases)?
-//                  wscnl* "}";
-// 
+if = "if" wscnl* expression wscnl* block
+     (wscnl* "else" wscnl* "if" wscnl* expression wscnl* block)*
+     (wscnl* "else" wscnl* block)?;
+
+default            = "default" wscnl* ":";
+default-item:alias = default (wscnl | ";")* statement?;
+case               = "case" wscnl* expression wscnl* ":";
+case-item:alias    = case (wscnl | ";")* statement?;
+switch             = "switch" wscnl* expression? wscnl* "{" (wscnl | ";")*
+		     ((case-item | default-item) (sep (case-item | default-item | statement))*)?
+	             (wscnl | ";")* "}";
+
 // pattern-case        = "case" wscnl* type-expression? wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
-// pattern-cases:alias = pattern-case (case-sep pattern-case);
+// pattern-cases:alias = pattern-case (sep pattern-case);
 // match               = "match" wscnl* expression wscnl* "{" wscnl*
-//                       pattern-cases? (case-sep default)? (case-sep pattern-cases)?
+//                       pattern-cases? (sep default)? (sep pattern-cases)?
 //                       wscnl* "}";
 
-// conditional:alias = if
-//                     // | switch
-//                     // | match
-// 	            ;
+conditional:alias = if
+                    | switch
+                    // | match
+	            ;
 
 // receive-call:alias       = "receive" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
 // receive-call-op:alias    = "<-" wsc* primary-expression;
@@ -180,9 +179,9 @@ function-application = primary-expression wsc* "(" (wscnl | ",")* expression-lis
 // communication:alias      = receive-expression | receive-statement | send | communication-group;
 // communication-group:alias = "(" wscnl* communication wscnl* ")";
 // select-case              = "case" wscnl* communication wscnl* ":" (wscnl | ";")* statements? (wscnl | ";")*;
-// select-cases:alias       = select-case (case-sep select-case)*;
+// select-cases:alias       = select-case (sep select-case)*;
 // select                   = "select" wscnl* "{"
-//                            select-cases? (case-sep default)? (case-sep select-cases)?
+//                            select-cases? (sep default)? (sep select-cases)?
 //                            wscnl* "}";
 // go                       = "go" wscnl* function-application;
 // 
@@ -190,8 +189,8 @@ function-application = primary-expression wsc* "(" (wscnl | ",")* expression-lis
 // 
 // panic   = "panic" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
 // recover = "recover" wsc* "(" (wscnl | ",")* ")";
-// 
-// block = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
+
+block = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
 // expression-group = "(" wscnl* expression wscnl* ")";
 
 primary-expression:alias = int
@@ -211,12 +210,12 @@ primary-expression:alias = int
                          | effect
                          | indexer
                          | function-application // pseudo-expression
-                         // | conditional // pseudo-expression
+                         | conditional // pseudo-expression
                          // | receive-call
                          // | select // pseudo-expression
                          // | require-expression
                          // | recover
-                         // | block // pseudo-expression
+                         | block // pseudo-expression
                          // | expression-group;
                          ;
 
@@ -276,8 +275,7 @@ primary-expression:alias = int
 // binary-expression:alias = binary0 | binary1 | binary2 | binary3 | binary4 | binary5;
 
 // TODO: this cannot be a primary expression
-ternary-item:alias = primary-expression; // | unary-expression | binary-expression;
-ternary-expression = ternary-item wscnl* "?" wscnl* ternary-item wscnl* ":" wscnl* ternary-item;
+ternary-expression = expression wscnl* "?" wscnl* expression wscnl* ":" wscnl* expression;
 
 expression:alias = primary-expression
                  // | unary-expression
