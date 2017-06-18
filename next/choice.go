@@ -81,6 +81,10 @@ func (p *choiceParser) setIncludedBy(i parser, path []string) {
 }
 
 func (p *choiceParser) cacheIncluded(c *context, n *Node) {
+	if !c.excluded(n.from, p.name) {
+		return
+	}
+
 	nc := newNode(p.name, p.commit, n.from, n.to)
 	nc.append(n)
 	c.cache.set(nc.from, p.name, nc)

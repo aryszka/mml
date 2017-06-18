@@ -30,7 +30,7 @@ func TestMML(t *testing.T) {
 		return
 	}
 
-	trace = NewTrace(1)
+	// trace = NewTrace(1)
 	s := NewSyntax(trace)
 	if err := define(s, mmlDoc); err != nil {
 		t.Error(err)
@@ -1718,16 +1718,117 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
-		// }, {
-		// 	msg: "match expression, complex",
-		// 	text: `match a {
-		// 		case [first T int|string, op fn ([T, int, ...T]) int, ...rest T]:
-		// 			op([first, now(), rest...])
-		// 		default:
-		// 			error("invalid list")
-		// 	}`,
-		// 	ignorePosition: true,
-
+	}, {
+		msg: "match expression, complex",
+		text: `match a {
+				case [first T int|string, op fn ([T, int, ...T]) int, ...rest T]:
+					op([first, now(), rest...])
+				default:
+					error("invalid list")
+			}`,
+		nodes: []*Node{{
+			Name: "match",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "match-case",
+				Nodes: []*Node{{
+					Name: "list-match",
+					Nodes: []*Node{{
+						Name: "list-destructure-match",
+						Nodes: []*Node{{
+							Name: "destructure-match-item",
+							Nodes: []*Node{{
+								Name: "symbol",
+							}, {
+								Name: "symbol",
+							}, {
+								Name: "int-type",
+							}, {
+								Name: "string-type",
+							}},
+						}, {
+							Name: "destructure-match-item",
+							Nodes: []*Node{{
+								Name: "symbol",
+							}, {
+								Name: "function-type",
+								Nodes: []*Node{{
+									Name: "arg-type",
+									Nodes: []*Node{{
+										Name: "list-type",
+										Nodes: []*Node{{
+											Name: "list-destructure-type",
+											Nodes: []*Node{{
+												Name: "destructure-item",
+												Nodes: []*Node{{
+													Name: "symbol",
+												}},
+											}, {
+												Name: "destructure-item",
+												Nodes: []*Node{{
+													Name: "int-type",
+												}},
+											}, {
+												Name: "collect-destructure-item",
+												Nodes: []*Node{{
+													Name: "destructure-item",
+													Nodes: []*Node{{
+														Name: "symbol",
+													}},
+												}},
+											}},
+										}},
+									}},
+								}, {
+									Name: "int-type",
+								}},
+							}},
+						}, {
+							Name: "collect-destructure-match-item",
+							Nodes: []*Node{{
+								Name: "destructure-match-item",
+								Nodes: []*Node{{
+									Name: "symbol",
+								}, {
+									Name: "symbol",
+								}},
+							}},
+						}},
+					}},
+				}},
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "list",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "function-application",
+						Nodes: []*Node{{
+							Name: "symbol",
+						}},
+					}, {
+						Name: "spread-expression",
+						Nodes: []*Node{{
+							Name: "symbol",
+						}},
+					}},
+				}},
+			}, {
+				Name: "default",
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
 	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
