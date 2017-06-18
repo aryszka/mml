@@ -45,11 +45,12 @@ func TestMML(t *testing.T) {
 	start := time.Now()
 	defer func() { t.Log("\nTestMML, total duration", time.Since(start)) }()
 	for _, ti := range []struct {
-		msg   string
-		text  string
-		fail  bool
-		node  *Node
-		nodes []*Node
+		msg            string
+		text           string
+		fail           bool
+		node           *Node
+		nodes          []*Node
+		ignorePosition bool
 	}{{
 		msg:  "empty",
 		node: &Node{Name: "mml"},
@@ -780,7 +781,7 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
-		msg:  "function with collect arg",
+		msg:  "function with spread arg",
 		text: "fn (a, b, ...c) [a, b, c]",
 		nodes: []*Node{{
 			Name: "function",
@@ -1534,14 +1535,199 @@ func TestMML(t *testing.T) {
 				from: 6,
 				to:   7,
 			}, {
-				Name:  "match-case",
-				from:  13,
-				to:    35,
-				Nodes: []*Node{{}},
+				Name: "match-case",
+				from: 13,
+				to:   35,
+				Nodes: []*Node{{
+					Name: "list-type",
+					from: 18,
+					to:   34,
+					Nodes: []*Node{{
+						Name: "list-destructure-type",
+						from: 19,
+						to:   33,
+						Nodes: []*Node{{
+							Name: "destructure-item",
+							from: 19,
+							to:   24,
+							Nodes: []*Node{{
+								Name: "symbol",
+								from: 19,
+								to:   24,
+							}},
+						}, {
+							Name: "collect-destructure-item",
+							from: 26,
+							to:   33,
+							Nodes: []*Node{{
+								Name: "destructure-item",
+								from: 29,
+								to:   33,
+								Nodes: []*Node{{
+									Name: "symbol",
+									from: 29,
+									to:   33,
+								}},
+							}},
+						}},
+					}},
+				}},
 			}, {
 				Name: "symbol",
+				from: 36,
+				to:   41,
 			}},
 		}},
+	}, {
+		msg: "match expression, multiple cases",
+		text: `match a {
+			case [0]: []
+			case [2:]: a[2:]
+			default: error("invalid length")
+		}`,
+		nodes: []*Node{{
+			Name: "match",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "match-case",
+				Nodes: []*Node{{
+					Name: "list-type",
+					Nodes: []*Node{{
+						Name: "items-type",
+						Nodes: []*Node{{
+							Name: "items-quantifier",
+							Nodes: []*Node{{
+								Name: "int",
+							}},
+						}},
+					}},
+				}},
+			}, {
+				Name: "list",
+			}, {
+				Name: "match-case",
+				Nodes: []*Node{{
+					Name: "list-type",
+					Nodes: []*Node{{
+						Name: "items-type",
+						Nodes: []*Node{{
+							Name: "items-quantifier",
+							Nodes: []*Node{{
+								Name: "static-range-from",
+								Nodes: []*Node{{
+									Name: "int",
+								}},
+							}},
+						}},
+					}},
+				}},
+			}, {
+				Name: "indexer",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "range-from",
+					Nodes: []*Node{{
+						Name: "int",
+					}},
+				}},
+			}, {
+				Name: "default",
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "match function",
+		text: `match a {
+			case fn () int: a()
+			default: 42
+		}`,
+		nodes: []*Node{{
+			Name: "match",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "match-case",
+				Nodes: []*Node{{
+					Name: "function-type",
+					Nodes: []*Node{{
+						Name: "int-type",
+					}},
+				}},
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}, {
+				Name: "default",
+			}, {
+				Name: "int",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "match expression, combined",
+		text: `match a {
+			case [fn (int)]: a[0]()
+			default: 42
+		}`,
+		nodes: []*Node{{
+			Name: "match",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "match-case",
+				Nodes: []*Node{{
+					Name: "list-type",
+					Nodes: []*Node{{
+						Name: "items-type",
+						Nodes: []*Node{{
+							Name: "function-type",
+							Nodes: []*Node{{
+								Name: "arg-type",
+								Nodes: []*Node{{
+									Name: "int-type",
+								}},
+							}},
+						}},
+					}},
+				}},
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "indexer",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "int",
+					}},
+				}},
+			}, {
+				Name: "default",
+			}, {
+				Name: "int",
+			}},
+		}},
+		ignorePosition: true,
+		// }, {
+		// 	msg: "match expression, complex",
+		// 	text: `match a {
+		// 		case [first T int|string, op fn ([T, int, ...T]) int, ...rest T]:
+		// 			op([first, now(), rest...])
+		// 		default:
+		// 			error("invalid list")
+		// 	}`,
+		// 	ignorePosition: true,
+
 	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
@@ -1641,10 +1827,15 @@ func TestMML(t *testing.T) {
 
 			t.Log(n)
 
+			cn := checkNode
+			if ti.ignorePosition {
+				cn = checkNodeIgnorePosition
+			}
+
 			if ti.node != nil {
-				checkNode(t, n, ti.node)
+				cn(t, n, ti.node)
 			} else {
-				checkNode(t, n, &Node{
+				cn(t, n, &Node{
 					Name:  "mml",
 					from:  0,
 					to:    len(ti.text),

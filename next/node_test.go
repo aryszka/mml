@@ -2,14 +2,14 @@ package next
 
 import "testing"
 
-func checkNodes(t *testing.T, left, right []*Node) {
+func checkNodesPosition(t *testing.T, left, right []*Node, position bool) {
 	if len(left) != len(right) {
 		t.Error("length doesn't match", len(left), len(right))
 		return
 	}
 
 	for len(left) > 0 {
-		checkNode(t, left[0], right[0])
+		checkNodePosition(t, left[0], right[0], position)
 		if t.Failed() {
 			return
 		}
@@ -18,7 +18,7 @@ func checkNodes(t *testing.T, left, right []*Node) {
 	}
 }
 
-func checkNode(t *testing.T, left, right *Node) {
+func checkNodePosition(t *testing.T, left, right *Node, position bool) {
 	if (left == nil) != (right == nil) {
 		t.Error("nil reference doesn't match", left == nil, right == nil)
 		return
@@ -33,12 +33,12 @@ func checkNode(t *testing.T, left, right *Node) {
 		return
 	}
 
-	if left.from != right.from {
+	if position && left.from != right.from {
 		t.Error("from doesn't match", left.Name, left.from, right.from)
 		return
 	}
 
-	if left.to != right.to {
+	if position && left.to != right.to {
 		t.Error("to doesn't match", left.Name, left.to, right.to)
 		return
 	}
@@ -65,5 +65,21 @@ func checkNode(t *testing.T, left, right *Node) {
 		return
 	}
 
-	checkNodes(t, left.Nodes, right.Nodes)
+	checkNodesPosition(t, left.Nodes, right.Nodes, position)
+}
+
+func checkNodes(t *testing.T, left, right []*Node) {
+	checkNodesPosition(t, left, right, true)
+}
+
+func checkNode(t *testing.T, left, right *Node) {
+	checkNodePosition(t, left, right, true)
+}
+
+func checkNodesIgnorePosition(t *testing.T, left, right []*Node) {
+	checkNodesPosition(t, left, right, false)
+}
+
+func checkNodeIgnorePosition(t *testing.T, left, right *Node) {
+	checkNodePosition(t, left, right, false)
 }

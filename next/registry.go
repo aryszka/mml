@@ -24,7 +24,7 @@ func (r *registry) parser(name string) (parser, bool) {
 
 func (r *registry) setDefinition(d definition) error {
 	if _, ok := r.definitions[d.nodeName()]; ok {
-		return ErrDuplicateDefinition
+		return duplicateDefinition(d.nodeName())
 	}
 
 	r.definitions[d.nodeName()] = d

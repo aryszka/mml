@@ -33,9 +33,12 @@ var (
 	ErrInvalidInput        = errors.New("invalid input")
 	ErrInvalidCharacter    = errors.New("invalid character") // two use cases: utf8 and boot
 	ErrUnexpectedCharacter = errors.New("unexpected character")
-	ErrDuplicateDefinition = errors.New("duplicate definition")
 	ErrInvalidSyntax       = errors.New("invalid syntax")
 )
+
+func duplicateDefinition(name string) error {
+	return fmt.Errorf("duplicate definition: %s", name)
+}
 
 func NewSyntax(t Trace) *Syntax {
 	if t == nil {

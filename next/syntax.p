@@ -44,6 +44,8 @@ item:alias = terminal | symbol | group | quantifier;
 sequence   = item (wsc* item)+;
 
 element:alias = terminal | symbol | group | quantifier | sequence;
+
+// DOC: once cached, doesn't try again, even in a new context, therefore the order may matter
 choice        = element (wsc* "|" wsc* element)+;
 
 expression:alias = terminal

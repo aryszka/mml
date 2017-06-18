@@ -122,7 +122,7 @@ func (p *quantifierParser) parse(t Trace, c *context) {
 		// n, m, ok := c.cache.get(c.offset, p.item.nodeName())
 		m, ok := c.fromCache(p.item.nodeName())
 		if ok {
-			t.Out1("quantifier item found in cache, match:", m, c.offset, c.node.tokenLength())
+			t.Out1("quantifier item found in cache, match:", m, c.offset, c.node.tokenLength(), c.node.Name)
 			if m {
 				node.append(c.node)
 				if c.node.tokenLength() > 0 {
