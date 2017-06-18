@@ -68,6 +68,8 @@ func (d *quantifierDefinition) commitType() CommitType { return d.commit }
 func (p *quantifierParser) nodeName() string           { return p.name }
 
 // TODO: merge the quantifier into the sequence
+// DOC: sequences are hungry and are not revisited, a*a cannot match anything.
+// DOC: how to match a tailing a? (..)*a | .(..)*a
 
 func (p *quantifierParser) setIncludedBy(i parser, path []string) {
 	if stringsContain(path, p.name) {

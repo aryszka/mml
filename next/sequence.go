@@ -137,7 +137,7 @@ func (p *sequenceParser) parse(t Trace, c *context) {
 		// n, m, ok := c.cache.get(c.offset, items[0].nodeName())
 		m, ok := c.fromCache(items[0].nodeName())
 		if ok {
-			t.Out1("sequence item found in cache, match:", m)
+			t.Out1("sequence item found in cache, match:", m, items[0].nodeName(), c.offset)
 			if m {
 				t.Out2("sequence item from cache:", c.node.Name, len(c.node.Nodes), c.node.from)
 				node.append(c.node)

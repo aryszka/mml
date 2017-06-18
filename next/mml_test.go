@@ -30,7 +30,7 @@ func TestMML(t *testing.T) {
 		return
 	}
 
-	// trace = NewTrace(1)
+	trace = NewTrace(1)
 	s := NewSyntax(trace)
 	if err := define(s, mmlDoc); err != nil {
 		t.Error(err)
@@ -58,7 +58,6 @@ func TestMML(t *testing.T) {
 		text: "// foo bar baz",
 		nodes: []*Node{{
 			Name: "comment",
-			from: 0,
 			to:   14,
 			Nodes: []*Node{{
 				Name: "line-comment-content",
@@ -71,7 +70,6 @@ func TestMML(t *testing.T) {
 		text: "// foo bar\n// baz qux",
 		nodes: []*Node{{
 			Name: "comment",
-			from: 0,
 			to:   21,
 			Nodes: []*Node{{
 				Name: "line-comment-content",
@@ -88,7 +86,6 @@ func TestMML(t *testing.T) {
 		text: "/* foo bar baz */",
 		nodes: []*Node{{
 			Name: "comment",
-			from: 0,
 			to:   17,
 			Nodes: []*Node{{
 				Name: "block-comment-content",
@@ -101,7 +98,6 @@ func TestMML(t *testing.T) {
 		text: "/* foo bar */\n/* baz qux */",
 		nodes: []*Node{{
 			Name: "comment",
-			from: 0,
 			to:   27,
 			Nodes: []*Node{{
 				Name: "block-comment-content",
@@ -118,7 +114,6 @@ func TestMML(t *testing.T) {
 		text: "// foo\n/* bar */\n// baz",
 		nodes: []*Node{{
 			Name: "comment",
-			from: 0,
 			to:   23,
 			Nodes: []*Node{{
 				Name: "line-comment-content",
@@ -139,7 +134,6 @@ func TestMML(t *testing.T) {
 		text: "42",
 		nodes: []*Node{{
 			Name: "int",
-			from: 0,
 			to:   2,
 		}},
 	}, {
@@ -147,7 +141,6 @@ func TestMML(t *testing.T) {
 		text: "1; 2; 3",
 		nodes: []*Node{{
 			Name: "int",
-			from: 0,
 			to:   1,
 		}, {
 			Name: "int",
@@ -163,7 +156,6 @@ func TestMML(t *testing.T) {
 		text: "052",
 		nodes: []*Node{{
 			Name: "int",
-			from: 0,
 			to:   3,
 		}},
 	}, {
@@ -171,7 +163,6 @@ func TestMML(t *testing.T) {
 		text: "0x2a",
 		nodes: []*Node{{
 			Name: "int",
-			from: 0,
 			to:   4,
 		}},
 	}, {
@@ -179,7 +170,6 @@ func TestMML(t *testing.T) {
 		text: "0.",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   2,
 		}},
 	}, {
@@ -187,7 +177,6 @@ func TestMML(t *testing.T) {
 		text: "72.40",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   5,
 		}},
 	}, {
@@ -195,7 +184,6 @@ func TestMML(t *testing.T) {
 		text: "072.40",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   6,
 		}},
 	}, {
@@ -203,7 +191,6 @@ func TestMML(t *testing.T) {
 		text: "2.71828",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   7,
 		}},
 	}, {
@@ -211,7 +198,6 @@ func TestMML(t *testing.T) {
 		text: "6.67428e-11",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   11,
 		}},
 	}, {
@@ -219,7 +205,6 @@ func TestMML(t *testing.T) {
 		text: "1E6",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   3,
 		}},
 	}, {
@@ -227,7 +212,6 @@ func TestMML(t *testing.T) {
 		text: ".25",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   3,
 		}},
 	}, {
@@ -235,7 +219,6 @@ func TestMML(t *testing.T) {
 		text: ".12345E+5",
 		nodes: []*Node{{
 			Name: "float",
-			from: 0,
 			to:   9,
 		}},
 	}, {
@@ -243,7 +226,6 @@ func TestMML(t *testing.T) {
 		text: "\"\"",
 		nodes: []*Node{{
 			Name: "string",
-			from: 0,
 			to:   2,
 		}},
 	}, {
@@ -251,7 +233,6 @@ func TestMML(t *testing.T) {
 		text: "\"foo\"",
 		nodes: []*Node{{
 			Name: "string",
-			from: 0,
 			to:   5,
 		}},
 	}, {
@@ -259,7 +240,6 @@ func TestMML(t *testing.T) {
 		text: "\"foo\nbar\"",
 		nodes: []*Node{{
 			Name: "string",
-			from: 0,
 			to:   9,
 		}},
 	}, {
@@ -267,7 +247,6 @@ func TestMML(t *testing.T) {
 		text: "\"foo\\nbar\"",
 		nodes: []*Node{{
 			Name: "string",
-			from: 0,
 			to:   10,
 		}},
 	}, {
@@ -275,7 +254,6 @@ func TestMML(t *testing.T) {
 		text: "\"foo \\\"bar\\\" baz\"",
 		nodes: []*Node{{
 			Name: "string",
-			from: 0,
 			to:   17,
 		}},
 	}, {
@@ -283,7 +261,6 @@ func TestMML(t *testing.T) {
 		text: "true",
 		nodes: []*Node{{
 			Name: "true",
-			from: 0,
 			to:   4,
 		}},
 	}, {
@@ -291,7 +268,6 @@ func TestMML(t *testing.T) {
 		text: "false",
 		nodes: []*Node{{
 			Name: "false",
-			from: 0,
 			to:   5,
 		}},
 	}, {
@@ -299,7 +275,6 @@ func TestMML(t *testing.T) {
 		text: "foo",
 		nodes: []*Node{{
 			Name: "symbol",
-			from: 0,
 			to:   3,
 		}},
 	}, {
@@ -307,7 +282,6 @@ func TestMML(t *testing.T) {
 		text: "symbol(a)",
 		nodes: []*Node{{
 			Name: "dynamic-symbol",
-			from: 0,
 			to:   9,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -320,7 +294,6 @@ func TestMML(t *testing.T) {
 		text: "[]",
 		nodes: []*Node{{
 			Name: "list",
-			from: 0,
 			to:   2,
 		}},
 	}, {
@@ -328,7 +301,6 @@ func TestMML(t *testing.T) {
 		text: "[a, b, c]",
 		nodes: []*Node{{
 			Name: "list",
-			from: 0,
 			to:   9,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -353,7 +325,6 @@ func TestMML(t *testing.T) {
 		]`,
 		nodes: []*Node{{
 			Name: "list",
-			from: 0,
 			to:   20,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -374,7 +345,6 @@ func TestMML(t *testing.T) {
 		text: "[a, b, c..., [d, e], [f, [g]]...]",
 		nodes: []*Node{{
 			Name: "list",
-			from: 0,
 			to:   33,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -436,7 +406,6 @@ func TestMML(t *testing.T) {
 		text: "~[a, b, c]",
 		nodes: []*Node{{
 			Name: "mutable-list",
-			from: 0,
 			to:   10,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -457,7 +426,6 @@ func TestMML(t *testing.T) {
 		text: "{}",
 		nodes: []*Node{{
 			Name: "struct",
-			from: 0,
 			to:   2,
 		}},
 	}, {
@@ -465,7 +433,6 @@ func TestMML(t *testing.T) {
 		text: "{foo: 1, \"bar\": 2, symbol(baz): 3, [qux]: 4}",
 		nodes: []*Node{{
 			Name: "struct",
-			from: 0,
 			to:   44,
 			Nodes: []*Node{{
 				Name: "entry",
@@ -536,7 +503,6 @@ func TestMML(t *testing.T) {
 		text: "{foo: 1, {bar: 2}..., {baz: {}}...}",
 		nodes: []*Node{{
 			Name: "struct",
-			from: 0,
 			to:   35,
 			Nodes: []*Node{{
 				Name: "entry",
@@ -604,7 +570,6 @@ func TestMML(t *testing.T) {
 		text: "{[a]: b}",
 		nodes: []*Node{{
 			Name: "struct",
-			from: 0,
 			to:   8,
 			Nodes: []*Node{{
 				Name: "entry",
@@ -631,7 +596,6 @@ func TestMML(t *testing.T) {
 		text: "~{foo: 1}",
 		nodes: []*Node{{
 			Name: "mutable-struct",
-			from: 0,
 			to:   9,
 			Nodes: []*Node{{
 				Name: "entry",
@@ -653,7 +617,6 @@ func TestMML(t *testing.T) {
 		text: "<>",
 		nodes: []*Node{{
 			Name: "channel",
-			from: 0,
 			to:   2,
 		}},
 	}, {
@@ -661,7 +624,6 @@ func TestMML(t *testing.T) {
 		text: "<42>",
 		nodes: []*Node{{
 			Name: "channel",
-			from: 0,
 			to:   4,
 			Nodes: []*Node{{
 				Name: "int",
@@ -674,11 +636,9 @@ func TestMML(t *testing.T) {
 		text: "and(a, b, c)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   12,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   3,
 			}, {
 				Name: "symbol",
@@ -699,11 +659,9 @@ func TestMML(t *testing.T) {
 		text: "or(a, b, c)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   11,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   2,
 			}, {
 				Name: "symbol",
@@ -724,7 +682,6 @@ func TestMML(t *testing.T) {
 		text: "fn () 42",
 		nodes: []*Node{{
 			Name: "function",
-			from: 0,
 			to:   8,
 			Nodes: []*Node{{
 				Name: "int",
@@ -737,7 +694,6 @@ func TestMML(t *testing.T) {
 		text: "fn () {;}",
 		nodes: []*Node{{
 			Name: "function",
-			from: 0,
 			to:   9,
 			Nodes: []*Node{{
 				Name: "block",
@@ -750,7 +706,6 @@ func TestMML(t *testing.T) {
 		text: "fn (a, b, c) [a, b, c]",
 		nodes: []*Node{{
 			Name: "function",
-			from: 0,
 			to:   22,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -792,7 +747,6 @@ func TestMML(t *testing.T) {
 		) [a, b, c]`,
 		nodes: []*Node{{
 			Name: "function",
-			from: 0,
 			to:   33,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -830,7 +784,6 @@ func TestMML(t *testing.T) {
 		text: "fn (a, b, ...c) [a, b, c]",
 		nodes: []*Node{{
 			Name: "function",
-			from: 0,
 			to:   25,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -873,7 +826,6 @@ func TestMML(t *testing.T) {
 		text: "fn ~ () 42",
 		nodes: []*Node{{
 			Name: "effect",
-			from: 0,
 			to:   10,
 			Nodes: []*Node{{
 				Name: "int",
@@ -886,11 +838,9 @@ func TestMML(t *testing.T) {
 		text: "a[42]",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   5,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "int",
@@ -903,11 +853,9 @@ func TestMML(t *testing.T) {
 		text: "a[3:9]",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   6,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "range-from",
@@ -934,11 +882,9 @@ func TestMML(t *testing.T) {
 		text: "a[:9]",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   5,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "range-to",
@@ -956,11 +902,9 @@ func TestMML(t *testing.T) {
 		text: "a[3:]",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   5,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "range-from",
@@ -978,19 +922,15 @@ func TestMML(t *testing.T) {
 		text: "a[b][c][d]",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   10,
 			Nodes: []*Node{{
 				Name: "indexer",
-				from: 0,
 				to:   7,
 				Nodes: []*Node{{
 					Name: "indexer",
-					from: 0,
 					to:   4,
 					Nodes: []*Node{{
 						Name: "symbol",
-						from: 0,
 						to:   1,
 					}, {
 						Name: "symbol",
@@ -1013,11 +953,9 @@ func TestMML(t *testing.T) {
 		text: "a.b",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   3,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
@@ -1030,11 +968,9 @@ func TestMML(t *testing.T) {
 		text: "a.\"b\"",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   5,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "string",
@@ -1047,11 +983,9 @@ func TestMML(t *testing.T) {
 		text: "a.symbol(b)",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   11,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "dynamic-symbol",
@@ -1069,19 +1003,15 @@ func TestMML(t *testing.T) {
 		text: "a.b.c.d",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   7,
 			Nodes: []*Node{{
 				Name: "indexer",
-				from: 0,
 				to:   5,
 				Nodes: []*Node{{
 					Name: "indexer",
-					from: 0,
 					to:   3,
 					Nodes: []*Node{{
 						Name: "symbol",
-						from: 0,
 						to:   1,
 					}, {
 						Name: "symbol",
@@ -1104,15 +1034,12 @@ func TestMML(t *testing.T) {
 		text: "a\n.b\n.c",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   7,
 			Nodes: []*Node{{
 				Name: "indexer",
-				from: 0,
 				to:   4,
 				Nodes: []*Node{{
 					Name: "symbol",
-					from: 0,
 					to:   1,
 				}, {
 					Name: "symbol",
@@ -1130,15 +1057,12 @@ func TestMML(t *testing.T) {
 		text: "a.\nb.\nc",
 		nodes: []*Node{{
 			Name: "indexer",
-			from: 0,
 			to:   7,
 			Nodes: []*Node{{
 				Name: "indexer",
-				from: 0,
 				to:   4,
 				Nodes: []*Node{{
 					Name: "symbol",
-					from: 0,
 					to:   1,
 				}, {
 					Name: "symbol",
@@ -1156,11 +1080,9 @@ func TestMML(t *testing.T) {
 		text: "f()",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   3,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}},
 		}},
@@ -1169,11 +1091,9 @@ func TestMML(t *testing.T) {
 		text: "f(a)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   4,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
@@ -1186,11 +1106,9 @@ func TestMML(t *testing.T) {
 		text: "f(a, b, c)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   10,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
@@ -1211,11 +1129,9 @@ func TestMML(t *testing.T) {
 		text: "f(a\nb\nc\n)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   9,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
@@ -1236,11 +1152,9 @@ func TestMML(t *testing.T) {
 		text: "f(a, b..., c, d...)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   19,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
@@ -1275,19 +1189,15 @@ func TestMML(t *testing.T) {
 		text: "f(a)(b)(c)",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   10,
 			Nodes: []*Node{{
 				Name: "function-application",
-				from: 0,
 				to:   7,
 				Nodes: []*Node{{
 					Name: "function-application",
-					from: 0,
 					to:   4,
 					Nodes: []*Node{{
 						Name: "symbol",
-						from: 0,
 						to:   1,
 					}, {
 						Name: "symbol",
@@ -1310,11 +1220,9 @@ func TestMML(t *testing.T) {
 		text: "f(g(h(a)))",
 		nodes: []*Node{{
 			Name: "function-application",
-			from: 0,
 			to:   10,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "function-application",
@@ -1345,7 +1253,6 @@ func TestMML(t *testing.T) {
 		text: "if a { b() }",
 		nodes: []*Node{{
 			Name: "if",
-			from: 0,
 			to:   12,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -1372,7 +1279,6 @@ func TestMML(t *testing.T) {
 		text: "if a { b } else { c }",
 		nodes: []*Node{{
 			Name: "if",
-			from: 0,
 			to:   21,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -1462,23 +1368,9 @@ func TestMML(t *testing.T) {
 		}},
 	}, {
 		msg:  "switch, empty",
-		text: "switch _ {}",
-		nodes: []*Node{{
-			Name: "switch",
-			from: 0,
-			to:   11,
-			Nodes: []*Node{{
-				Name: "symbol",
-				from: 7,
-				to:   8,
-			}},
-		}},
-	}, {
-		msg:  "switch, empty, no cond",
 		text: "switch {default:}",
 		nodes: []*Node{{
 			Name: "switch",
-			from: 0,
 			to:   17,
 			Nodes: []*Node{{
 				Name: "default",
@@ -1491,7 +1383,6 @@ func TestMML(t *testing.T) {
 		text: "switch a {case b: c}",
 		nodes: []*Node{{
 			Name: "switch",
-			from: 0,
 			to:   20,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -1517,7 +1408,6 @@ func TestMML(t *testing.T) {
 		text: "switch a {case b: c; case d: e; default: f}",
 		nodes: []*Node{{
 			Name: "switch",
-			from: 0,
 			to:   43,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -1578,7 +1468,6 @@ func TestMML(t *testing.T) {
 		}`,
 		nodes: []*Node{{
 			Name: "switch",
-			from: 0,
 			to:   87,
 			Nodes: []*Node{{
 				Name: "symbol",
@@ -1621,15 +1510,46 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg:  "match expression, empty",
+		text: "match a {}",
+		nodes: []*Node{{
+			Name: "match",
+			to:   10,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 6,
+				to:   7,
+			}},
+		}},
+	}, {
+		msg: "match expression",
+		text: `match a {
+			case [first, ...rest]: first
+		}`,
+		nodes: []*Node{{
+			Name: "match",
+			to:   45,
+			Nodes: []*Node{{
+				Name: "symbol",
+				from: 6,
+				to:   7,
+			}, {
+				Name:  "match-case",
+				from:  13,
+				to:    35,
+				Nodes: []*Node{{}},
+			}, {
+				Name: "symbol",
+			}},
+		}},
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{
 			Name: "ternary-expression",
-			from: 0,
 			to:   9,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
@@ -1646,11 +1566,9 @@ func TestMML(t *testing.T) {
 		text: "a ? b ? c : d : e",
 		nodes: []*Node{{
 			Name: "ternary-expression",
-			from: 0,
 			to:   17,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "ternary-expression",
@@ -1680,11 +1598,9 @@ func TestMML(t *testing.T) {
 		text: "a ? b : c ? d : e",
 		nodes: []*Node{{
 			Name: "ternary-expression",
-			from: 0,
 			to:   17,
 			Nodes: []*Node{{
 				Name: "symbol",
-				from: 0,
 				to:   1,
 			}, {
 				Name: "symbol",
