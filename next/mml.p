@@ -422,14 +422,23 @@ in-expression   = static-symbol wscnl* "in" wscnl* (expression | range-expressio
 loop-expression = expression | in-expression;
 loop            = "for" wscnl* (block | (loop-expression wscnl*)? block);
 
+/*
+a = b
+set c = d
+set e f
+set (
+        g = h
+        i j
+)
+*/
 assignable:alias     = symbol-expression | indexer;
-// assign-capture:alias = assignable wscnl* ("=" wscnl*)? expression;
-// assign-set:alias     = "set" wscnl* assign-capture;
-// assign-equal:alias   = assignable wscnl* "=" wscnl* expression;
-// assign-captures:alias = assign-capture (list-sep assign-capture)*;
-// assign-group:alias         = "set" wscnl* "(" (wscnl | ",")* assign-captures? (wscnl | ",")* ")";
-// assignment           = assign-set | assign-equal | assign-group;
-// 
+assign-capture = assignable wscnl* ("=" wscnl*)? expression;
+assign-set:alias     = "set" wscnl* assign-capture;
+assign-equal   = assignable wscnl* "=" wscnl* expression;
+assign-captures:alias = assign-capture (list-sep assign-capture)*;
+assign-group:alias         = "set" wscnl* "(" (wscnl | ",")* assign-captures? (wscnl | ",")* ")";
+assignment           = assign-set | assign-equal | assign-group;
+
 // value-capture:alias = symbol-expression wscnl* ("=" wscnl*)? expression;
 // value-definition = "let" wscnl* value-capture;
 // mutable-definition = "~" "let" wscnl* value-capture;
@@ -473,11 +482,11 @@ statement:alias = send
                 | panic
                 | require
                 | loop-control
-		| expression
                 | go
                 | loop
-                // | assignment
+                | assignment
                 // | definition
+                | expression
                 // | type-constraint
                 // | type-alias
                 // | statement-group;

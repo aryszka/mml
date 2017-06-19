@@ -2488,6 +2488,76 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
+	}, {
+		msg:  "assign, eq",
+		text: "a = b",
+		nodes: []*Node{{
+			Name: "assignment",
+			Nodes: []*Node{{
+				Name: "assign-equal",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "assign, set, eq",
+		text: "set a = b",
+		nodes: []*Node{{
+			Name: "assignment",
+			Nodes: []*Node{{
+				Name: "assign-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "assign, set",
+		text: "set a b",
+		nodes: []*Node{{
+			Name: "assignment",
+			Nodes: []*Node{{
+				Name: "assign-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "assign, group",
+		text: `set (
+			a = b
+			c d
+		)`,
+		nodes: []*Node{{
+			Name: "assignment",
+			Nodes: []*Node{{
+				Name: "assign-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "assign-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
