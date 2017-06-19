@@ -1833,9 +1833,12 @@ func TestMML(t *testing.T) {
 		msg:  "receive op",
 		text: "<-chan",
 		nodes: []*Node{{
-			Name: "receive-op",
+			Name: "unary-expression",
 			Nodes: []*Node{{
-				Name: "symbol",
+				Name: "receive-op",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
 			}},
 		}},
 		ignorePosition: true,
@@ -2107,6 +2110,168 @@ func TestMML(t *testing.T) {
 		}},
 		ignorePosition: true,
 	}, {
+		msg:  "unary operator",
+		text: "!foo",
+		nodes: []*Node{{
+			Name: "unary-expression",
+			Nodes: []*Node{{
+				Name: "logical-not",
+			}, {
+				Name: "symbol",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "binary 0",
+		text: "a * b",
+		nodes: []*Node{{
+			Name: "binary0",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "mul",
+			}, {
+				Name: "symbol",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "binary 1",
+		text: "a * b + c * d",
+		nodes: []*Node{{
+			Name: "binary1",
+			Nodes: []*Node{{
+				Name: "binary0",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "mul",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "add",
+			}, {
+				Name: "binary0",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "mul",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "binary 2",
+		text: "a * b + c * d == e * f",
+		nodes: []*Node{{
+			Name: "binary2",
+			Nodes: []*Node{{
+				Name: "binary1",
+				Nodes: []*Node{{
+					Name: "binary0",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "mul",
+					}, {
+						Name: "symbol",
+					}},
+				}, {
+					Name: "add",
+				}, {
+					Name: "binary0",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "mul",
+					}, {
+						Name: "symbol",
+					}},
+				}},
+			}, {
+				Name: "eq",
+			}, {
+				Name: "binary0",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "mul",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "binary 3, 4, 5",
+		text: "a * b + c * d == e * f && g || h -> f()",
+		nodes: []*Node{{
+			Name: "binary5",
+			Nodes: []*Node{{
+				Name: "binary4",
+				Nodes: []*Node{{
+					Name: "binary3",
+					Nodes: []*Node{{
+						Name: "binary2",
+						Nodes: []*Node{{
+							Name: "binary1",
+							Nodes: []*Node{{
+								Name: "binary0",
+								Nodes: []*Node{{
+									Name: "symbol",
+								}, {
+									Name: "mul",
+								}, {
+									Name: "symbol",
+								}},
+							}, {
+								Name: "add",
+							}, {
+								Name: "binary0",
+								Nodes: []*Node{{
+									Name: "symbol",
+								}, {
+									Name: "mul",
+								}, {
+									Name: "symbol",
+								}},
+							}},
+						}, {
+							Name: "eq",
+						}, {
+							Name: "binary0",
+							Nodes: []*Node{{
+								Name: "symbol",
+							}, {
+								Name: "mul",
+							}, {
+								Name: "symbol",
+							}},
+						}},
+					}, {
+						Name: "logical-and",
+					}, {
+						Name: "symbol",
+					}},
+				}, {
+					Name: "logical-or",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "chain",
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{
@@ -2189,6 +2354,140 @@ func TestMML(t *testing.T) {
 				}},
 			}},
 		}},
+	}, {
+		msg:  "infinite loop",
+		text: "for {}",
+		nodes: []*Node{{
+			Name: "loop",
+			Nodes: []*Node{{
+				Name: "block",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "conditional loop",
+		text: "for foo {}",
+		nodes: []*Node{{
+			Name: "loop",
+			Nodes: []*Node{{
+				Name: "loop-expression",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}, {
+				Name: "block",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "in list loop",
+		text: "for i in [1, 2, 3] {}",
+		nodes: []*Node{{
+			Name: "loop",
+			Nodes: []*Node{{
+				Name: "loop-expression",
+				Nodes: []*Node{{
+					Name: "in-expression",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "list",
+						Nodes: []*Node{{
+							Name: "int",
+						}, {
+							Name: "int",
+						}, {
+							Name: "int",
+						}},
+					}},
+				}},
+			}, {
+				Name: "block",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "in range loop",
+		text: "for i in -3:42 {}",
+		nodes: []*Node{{
+			Name: "loop",
+			Nodes: []*Node{{
+				Name: "loop-expression",
+				Nodes: []*Node{{
+					Name: "in-expression",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "range-from",
+						Nodes: []*Node{{
+							Name: "unary-expression",
+							Nodes: []*Node{{
+								Name: "minus",
+							}, {
+								Name: "int",
+							}},
+						}},
+					}, {
+						Name: "range-to",
+						Nodes: []*Node{{
+							Name: "int",
+						}},
+					}},
+				}},
+			}, {
+				Name: "block",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "loop control",
+		text: `for i in l {
+			if i % 2 == 0 {
+				break
+			}
+		}`,
+		nodes: []*Node{{
+			Name: "loop",
+			Nodes: []*Node{{
+				Name: "loop-expression",
+				Nodes: []*Node{{
+					Name: "in-expression",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "symbol",
+					}},
+				}},
+			}, {
+				Name: "block",
+				Nodes: []*Node{{
+					Name: "if",
+					Nodes: []*Node{{
+						Name: "binary2",
+						Nodes: []*Node{{
+							Name: "binary0",
+							Nodes: []*Node{{
+								Name: "symbol",
+							}, {
+								Name: "mod",
+							}, {
+								Name: "int",
+							}},
+						}, {
+							Name: "eq",
+						}, {
+							Name: "int",
+						}},
+					}, {
+						Name: "block",
+						Nodes: []*Node{{
+							Name: "break",
+						}},
+					}},
+				}},
+			}},
+		}},
+		ignorePosition: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))

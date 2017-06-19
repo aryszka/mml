@@ -297,7 +297,7 @@ go = "go" wscnl* function-application;
 /*
 require . = "mml/foo"
 require bar = "mml/foo"
-require . "mml/foo" // can be parsed as an indexer due to the dot
+require . "mml/foo"
 require bar "mml/foo"
 require "mml/foo"
 require (
@@ -307,7 +307,7 @@ require (
         bar "mml/foo"
         "mml/foo"
 )
-require () // may be parsed as function call
+require ()
 */
 require-inline                = ".";
 require-fact                  = string
@@ -319,8 +319,8 @@ require-statement-group:alias = "require" wsc* "(" (wscnl | ",")*
                                 (wscnl | ",")* ")";
 require                       = require-statement | require-statement-group;
 
-panic:doc   = "panic" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
-recover:doc = "recover" wsc* "(" (wscnl | ",")* ")";
+panic   = "panic" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
+recover = "recover" wsc* "(" (wscnl | ",")* ")";
 
 block                  = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
 expression-group:alias = "(" wscnl* expression wscnl* ")";
@@ -343,86 +343,84 @@ primary-expression:alias = int
                          | indexer
                          | function-application // pseudo-expression
                          | conditional // pseudo-expression
-                         | receive-call // can be parsed as a function-application
+                         | receive-call
                          | select // pseudo-expression
                          | recover
                          | block // pseudo-expression
                          | expression-group;
 
-// plus                 = "+";
-// minus                = "-";
-// logical-not          = "!";
-// binary-not           = "^";
-// unary-operator:alias = plus | minus | logical-not | binary-not;
-unary-expression:alias = /* unary-operator wsc* primary-expression | */ receive-op;
-// 
-// mul        = "*";
-// div        = "/";
-// mod        = "%";
-// lshift     = "<<";
-// rshift     = ">>";
-// binary-and = "&";
-// and-not    = "&^";
-// 
-// add       = "+";
-// sub       = "-";
-// binary-or = "|";
-// xor       = "^";
-// 
-// eq            = "==";
-// not-eq        = "!=";
-// less          = "<";
-// less-or-eq    = "<=";
-// greater       = ">";
-// greater-or-eq = ">=";
-// 
-// logical-and = "&&";
-// logical-or  = "||";
-// 
-// chain = "->";
-// 
-// binary-op0:alias = mul | div | mod | lshift | rshift | binary-and | and-not;
-// binary-op1:alias = add | sub | binary-or | xor;
-// binary-op2:alias = eq | not-eq | less | less-or-eq | greater | greater-or-eq;
-// binary-op3:alias = logical-and;
-// binary-op4:alias = logical-or;
-// binary-op5:alias = chain;
-// 
-// operand0:alias = primary-expression | unary-expression;
-// operand1:alias = operand0 | binary0;
-// operand2:alias = operand1 | binary1;
-// operand3:alias = operand2 | binary2;
-// operand4:alias = operand3 | binary3;
-// operand5:alias = operand4 | binary4;
-// 
-// binary0 = operand0 wsc* binary-op0 wsc* operand0;
-// binary1 = operand1 wsc* binary-op1 wsc* operand1;
-// binary2 = operand2 wsc* binary-op2 wsc* operand2;
-// binary3 = operand3 wsc* binary-op3 wsc* operand3;
-// binary4 = operand4 wsc* binary-op4 wsc* operand4;
-// binary5 = operand5 wsc* binary-op5 wsc* operand5;
-// 
-// binary-expression:alias = binary0 | binary1 | binary2 | binary3 | binary4 | binary5;
+plus                 = "+";
+minus                = "-";
+logical-not          = "!";
+binary-not           = "^";
+unary-operator:alias = plus | minus | logical-not | binary-not;
+unary-expression = unary-operator wsc* primary-expression | receive-op;
 
-// TODO: this cannot be a primary expression
+mul        = "*";
+div        = "/";
+mod        = "%";
+lshift     = "<<";
+rshift     = ">>";
+binary-and = "&";
+and-not    = "&^";
+
+add       = "+";
+sub       = "-";
+binary-or = "|";
+xor       = "^";
+
+eq            = "==";
+not-eq        = "!=";
+less          = "<";
+less-or-eq    = "<=";
+greater       = ">";
+greater-or-eq = ">=";
+
+logical-and = "&&";
+logical-or  = "||";
+
+chain = "->";
+
+binary-op0:alias = mul | div | mod | lshift | rshift | binary-and | and-not;
+binary-op1:alias = add | sub | binary-or | xor;
+binary-op2:alias = eq | not-eq | less | less-or-eq | greater | greater-or-eq;
+binary-op3:alias = logical-and;
+binary-op4:alias = logical-or;
+binary-op5:alias = chain;
+
+operand0:alias = primary-expression | unary-expression;
+operand1:alias = operand0 | binary0;
+operand2:alias = operand1 | binary1;
+operand3:alias = operand2 | binary2;
+operand4:alias = operand3 | binary3;
+operand5:alias = operand4 | binary4;
+
+binary0 = operand0 wsc* binary-op0 wsc* operand0;
+binary1 = operand1 wsc* binary-op1 wsc* operand1;
+binary2 = operand2 wsc* binary-op2 wsc* operand2;
+binary3 = operand3 wsc* binary-op3 wsc* operand3;
+binary4 = operand4 wsc* binary-op4 wsc* operand4;
+binary5 = operand5 wsc* binary-op5 wsc* operand5;
+
+binary-expression:alias = binary0 | binary1 | binary2 | binary3 | binary4 | binary5;
+
 ternary-expression = expression wscnl* "?" wscnl* expression wscnl* ":" wscnl* expression;
 
 expression:alias = primary-expression
                  | unary-expression
-                 // | binary-expression;
-                 | ternary-expression
-                 ;
+                 | binary-expression
+                 | ternary-expression;
 
 // TODO: code()
 // TODO: observability
 
-// break              = "break";
-// continue           = "continue";
-// loop-control:alias = break | continue;
-// 
-// in-expression   = static-symbol wscnl* "in" wscnl* (expression | range-expression);
-// loop-expression = expression | in-expression;
-// loop            = "for" wscnl* (loop-expression wscnl*)? block;
+break              = "break";
+continue           = "continue";
+loop-control:alias = break | continue;
+
+in-expression   = static-symbol wscnl* "in" wscnl* (expression | range-expression);
+loop-expression = expression | in-expression;
+loop            = "for" wscnl* (block | (loop-expression wscnl*)? block);
 
 assignable:alias     = symbol-expression | indexer;
 // assign-capture:alias = assignable wscnl* ("=" wscnl*)? expression;
@@ -469,18 +467,19 @@ assignable:alias     = symbol-expression | indexer;
 // 
 // statement-group = "(" wscnl* statement wscnl* ")";
 
-statement:alias = expression
-                // | loop-control
-                // | loop
-                | send
-                | close // can be parsed as function call
-                | go
+// TODO: parse fails by moving expression. Why?
+statement:alias = send
+                | close
                 | panic
+                | require
+                | loop-control
+		| expression
+                | go
+                | loop
                 // | assignment
                 // | definition
                 // | type-constraint
                 // | type-alias
-                | require
                 // | statement-group;
                 ;
 
