@@ -1985,6 +1985,111 @@ func TestMML(t *testing.T) {
 		}},
 		ignorePosition: true,
 	}, {
+		msg:  "require, dot, equal",
+		text: "require . = \"mml/foo\"",
+		nodes: []*Node{{
+			Name: "require",
+			Nodes: []*Node{{
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "require-inline",
+				}, {
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "require, symbol, equal",
+		text: "require bar = \"mml/foo\"",
+		nodes: []*Node{{
+			Name: "require",
+			Nodes: []*Node{{
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "require, symbol",
+		text: "require bar \"mml/foo\"",
+		nodes: []*Node{{
+			Name: "require",
+			Nodes: []*Node{{
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "require",
+		text: "require \"mml/foo\"",
+		nodes: []*Node{{
+			Name: "require",
+			Nodes: []*Node{{
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "require, group",
+		text: `require (
+			. = "mml/foo"
+			bar = "mml/foo"
+			. "mml/foo"
+			bar "mml/foo"
+			"mml/foo"
+		)`,
+		nodes: []*Node{{
+			Name: "require",
+			Nodes: []*Node{{
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "require-inline",
+				}, {
+					Name: "string",
+				}},
+			}, {
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "string",
+				}},
+			}, {
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "require-inline",
+				}, {
+					Name: "string",
+				}},
+			}, {
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "string",
+				}},
+			}, {
+				Name: "require-fact",
+				Nodes: []*Node{{
+					Name: "string",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{

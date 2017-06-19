@@ -262,33 +262,63 @@ conditional:alias = if
                   | switch
                   | match;
 
-receive-call       = "receive" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
-receive-op    = "<-" wsc* primary-expression;
-receive-expression-group:alias = "(" wscnl* receive-expression wscnl* ")";
-receive-expression:alias       = receive-call | receive-op | receive-expression-group;
-receive-assign-capture:alias    = assignable wscnl* ("=" wscnl*)? receive-expression;
-receive-assignment       = "set" wscnl* receive-assign-capture;
-receive-assignment-equal = assignable wscnl* "=" wscnl* receive-expression;
-receive-capture:alias = symbol-expression wscnl* ("=" wscnl*)? receive-expression;
-receive-definition       = "let" wscnl* receive-capture;
-receive-mutable-definition = "let" wcnl* "~" wscnl* receive-capture;
-receive-statement:alias        = receive-assignment | receive-definition;
-send-call:alias          = "send" wsc* "(" (wscnl | ",")* expression list-sep expression (wscnl | ",")* ")";
-send-op:alias       = primary-expression wsc* "<-" wsc* expression;
-send-call-group:alias    = "(" wscnl* send wscnl* ")";
-send                     = send-call | send-op | send-call-group;
-close                    = "close" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
-communication-group:alias = "(" wscnl* communication wscnl* ")";
-communication:alias      = receive-expression | receive-statement | send | communication-group;
-select-case               = "case" wscnl* communication wscnl* ":";
-select-case-line:alias    = select-case (wscnl | ";")* statement?;
-select             = "select" wscnl* "{" (wscnl | ";")*
-                     ((select-case-line | default-line) (sep (select-case-line | default-line | statement))*)?
-                     (wscnl | ";")* "}";
-go                       = "go" wscnl* function-application;
+receive-call                    = "receive" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
+receive-op                      = "<-" wsc* primary-expression;
+receive-expression-group:alias  = "(" wscnl* receive-expression wscnl* ")";
+receive-expression:alias        = receive-call | receive-op | receive-expression-group;
 
-// require-expression = "require" wscnl* string;
-// 
+receive-assign-capture:alias = assignable wscnl* ("=" wscnl*)? receive-expression;
+receive-assignment           = "set" wscnl* receive-assign-capture;
+receive-assignment-equal     = assignable wscnl* "=" wscnl* receive-expression;
+receive-capture:alias        = symbol-expression wscnl* ("=" wscnl*)? receive-expression;
+receive-definition           = "let" wscnl* receive-capture;
+receive-mutable-definition   = "let" wcnl* "~" wscnl* receive-capture;
+receive-statement:alias      = receive-assignment | receive-definition;
+
+send-call:alias       = "send" wsc* "(" (wscnl | ",")* expression list-sep expression (wscnl | ",")* ")";
+send-op:alias         = primary-expression wsc* "<-" wsc* expression;
+send-call-group:alias = "(" wscnl* send wscnl* ")";
+send                  = send-call | send-op | send-call-group;
+
+close = "close" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
+
+communication-group:alias = "(" wscnl* communication wscnl* ")";
+communication:alias       = receive-expression | receive-statement | send | communication-group;
+
+select-case            = "case" wscnl* communication wscnl* ":";
+select-case-line:alias = select-case (wscnl | ";")* statement?;
+select                 = "select" wscnl* "{" (wscnl | ";")*
+                         ((select-case-line | default-line)
+                          (sep (select-case-line | default-line | statement))*)?
+                         (wscnl | ";")* "}";
+
+go = "go" wscnl* function-application;
+
+/*
+require . = "mml/foo"
+require bar = "mml/foo"
+require . "mml/foo" // can be parsed as an indexer due to the dot
+require bar "mml/foo"
+require "mml/foo"
+require (
+        . = "mml/foo"
+        bar = "mml/foo"
+        . "mml/foo"
+        bar "mml/foo"
+        "mml/foo"
+)
+require () // may be parsed as function call
+*/
+require-inline                = ".";
+require-fact                  = string
+                              | (static-symbol | require-inline) (wscnl* "=")? wscnl* string;
+require-facts:alias           = require-fact (list-sep require-fact)*;
+require-statement:alias       = "require" wscnl* require-fact;
+require-statement-group:alias = "require" wsc* "(" (wscnl | ",")*
+                                require-facts?
+                                (wscnl | ",")* ")";
+require                       = require-statement | require-statement-group;
+
 // panic   = "panic" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
 // recover = "recover" wsc* "(" (wscnl | ",")* ")";
 
@@ -315,7 +345,6 @@ primary-expression:alias = int
                          | conditional // pseudo-expression
                          | receive-call // can be parsed as a function-application
                          | select // pseudo-expression
-                         // | require-expression
                          // | recover
                          | block // pseudo-expression
                          // | expression-group;
@@ -439,8 +468,6 @@ assignable:alias     = symbol-expression | indexer;
 // type-constraint = "type" wscnl* static-symbol wscnl* type-set;
 // type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;
 // 
-// require-statement = "require" wscnl* static-symbol wscnl* ("=" wscnl*)? string;
-// 
 // statement-group = "(" wscnl* statement wscnl* ")";
 
 statement:alias = expression
@@ -448,13 +475,13 @@ statement:alias = expression
                 // | loop
                 | send
                 | close // can be parsed as function call
-		| go
+                | go
                 // | panic
                 // | assignment
                 // | definition
                 // | type-constraint
                 // | type-alias
-                // | require-statement
+                | require
                 // | statement-group;
                 ;
 
