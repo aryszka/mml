@@ -448,6 +448,7 @@ statement:alias = expression
                 // | loop
                 | send
                 | close // can be parsed as function call
+		| go
                 // | panic
                 // | assignment
                 // | definition

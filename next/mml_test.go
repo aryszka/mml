@@ -1972,6 +1972,19 @@ func TestMML(t *testing.T) {
 		}},
 		ignorePosition: true,
 	}, {
+		msg:  "go",
+		text: "go f()",
+		nodes: []*Node{{
+			Name: "go",
+			Nodes: []*Node{{
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{
