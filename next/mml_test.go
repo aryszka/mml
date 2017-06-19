@@ -1830,6 +1830,148 @@ func TestMML(t *testing.T) {
 		}},
 		ignorePosition: true,
 	}, {
+		msg:  "receive op",
+		text: "<-chan",
+		nodes: []*Node{{
+			Name: "receive-op",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "send op",
+		text: "chan <- a",
+		nodes: []*Node{{
+			Name: "send",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "symbol",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "select, empty",
+		text: `select {
+		}`,
+		nodes: []*Node{{
+			Name: "select",
+			to:   12,
+		}},
+	}, {
+		msg: "select",
+		text: `select {
+			case let a <-r: s <- a
+			case s <- f(): g()
+			default: h()
+		}`,
+		nodes: []*Node{{
+			Name: "select",
+			Nodes: []*Node{{
+				Name: "select-case",
+				Nodes: []*Node{{
+					Name: "receive-definition",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "receive-op",
+						Nodes: []*Node{{
+							Name: "symbol",
+						}},
+					}},
+				}},
+			}, {
+				Name: "send",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "select-case",
+				Nodes: []*Node{{
+					Name: "send",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "function-application",
+						Nodes: []*Node{{
+							Name: "symbol",
+						}},
+					}},
+				}},
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}, {
+				Name: "default",
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "select, call",
+		text: `select {
+			case let a receive(r): f()
+			case send(s, g()): h()
+			default: i()
+		}`,
+		nodes: []*Node{{
+			Name: "select",
+			Nodes: []*Node{{
+				Name: "select-case",
+				Nodes: []*Node{{
+					Name: "receive-definition",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "receive-call",
+						Nodes: []*Node{{
+							Name: "symbol",
+						}},
+					}},
+				}},
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}, {
+				Name: "select-case",
+				Nodes: []*Node{{
+					Name: "send",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "function-application",
+						Nodes: []*Node{{
+							Name: "symbol",
+						}},
+					}},
+				}},
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}, {
+				Name: "default",
+			}, {
+				Name: "function-application",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{

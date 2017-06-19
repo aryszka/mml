@@ -48,6 +48,8 @@ element:alias = terminal | symbol | group | quantifier | sequence;
 // DOC: once cached, doesn't try again, even in a new context, therefore the order may matter
 choice        = element (wsc* "|" wsc* element)+;
 
+// DOC: not having 'not' needs some tricks sometimes
+
 expression:alias = terminal
                  | symbol
                  | group
