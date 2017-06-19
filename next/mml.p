@@ -319,11 +319,11 @@ require-statement-group:alias = "require" wsc* "(" (wscnl | ",")*
                                 (wscnl | ",")* ")";
 require                       = require-statement | require-statement-group;
 
-// panic   = "panic" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
-// recover = "recover" wsc* "(" (wscnl | ",")* ")";
+panic:doc   = "panic" wsc* "(" (wscnl | ",")* expression (wscnl | ",")* ")";
+recover:doc = "recover" wsc* "(" (wscnl | ",")* ")";
 
-block = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
-// expression-group = "(" wscnl* expression wscnl* ")";
+block                  = "{" (wscnl | ";")* statements? (wscnl | ";")* "}";
+expression-group:alias = "(" wscnl* expression wscnl* ")";
 
 primary-expression:alias = int
                          | float
@@ -345,10 +345,9 @@ primary-expression:alias = int
                          | conditional // pseudo-expression
                          | receive-call // can be parsed as a function-application
                          | select // pseudo-expression
-                         // | recover
+                         | recover
                          | block // pseudo-expression
-                         // | expression-group;
-                         ;
+                         | expression-group;
 
 // plus                 = "+";
 // minus                = "-";
@@ -476,7 +475,7 @@ statement:alias = expression
                 | send
                 | close // can be parsed as function call
                 | go
-                // | panic
+                | panic
                 // | assignment
                 // | definition
                 // | type-constraint

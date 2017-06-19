@@ -2090,6 +2090,23 @@ func TestMML(t *testing.T) {
 		}},
 		ignorePosition: true,
 	}, {
+		msg:  "expression group",
+		text: "(fn (a) a)(a)",
+		nodes: []*Node{{
+			Name: "function-application",
+			Nodes: []*Node{{
+				Name: "function",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "symbol",
+			}},
+		}},
+		ignorePosition: true,
+	}, {
 		msg:  "ternary expression",
 		text: "a ? b : c",
 		nodes: []*Node{{
