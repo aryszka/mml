@@ -2806,7 +2806,7 @@ func TestMML(t *testing.T) {
 		ignorePosition: true,
 	}, {
 		msg:  "type alias",
-		text: "type alias a int|bool|string",
+		text: "type alias a int|(fn () int|string)|string",
 		nodes: []*Node{{
 			Name: "type-alias",
 			Nodes: []*Node{{
@@ -2814,7 +2814,12 @@ func TestMML(t *testing.T) {
 			}, {
 				Name: "int-type",
 			}, {
-				Name: "bool-type",
+				Name: "function-type",
+				Nodes: []*Node{{
+					Name: "int-type",
+				}, {
+					Name: "string-type",
+				}},
 			}, {
 				Name: "string-type",
 			}},

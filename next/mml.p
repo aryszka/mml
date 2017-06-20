@@ -230,6 +230,7 @@ channel-type      = "<" wscnl*
                     destructure-item?
                     wscnl* ">";
 
+type-fact-group:alias = "(" wscnl* type-fact wscnl* ")";
 type-fact:alias = primitive-type
                 | type-alias-name
                 | list-type
@@ -238,7 +239,8 @@ type-fact:alias = primitive-type
                 | mutable-struct-type
                 | function-type
                 | effect-type
-                | channel-type;
+                | channel-type
+                | type-fact-group;
 
 type-set:alias        = type-fact (wscnl* "|" wscnl* type-fact)*;
 type-expression:alias = type-set | static-symbol wsc* type-set;
