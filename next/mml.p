@@ -456,10 +456,10 @@ let ~ (
 )
 */
 value-capture-fact:alias = symbol-expression wscnl* ("=" wscnl*)? expression;
-value-capture = value-capture-fact;
-mutable-capture = "~" wscnl* value-capture-fact;
-value-definition = "let" wscnl* (value-capture | mutable-capture);
-value-captures:alias           = value-capture (list-sep value-capture)*;
+value-capture            = value-capture-fact;
+mutable-capture          = "~" wscnl* value-capture-fact;
+value-definition         = "let" wscnl* (value-capture | mutable-capture);
+value-captures:alias     = value-capture (list-sep value-capture)*;
 mixed-captures:alias     = (value-capture | mutable-capture) (list-sep (value-capture | mutable-capture))*;
 value-definition-group   = "let" wscnl* "(" (wscnl | ",")* mixed-captures? (wscnl | ",")* ")";
 mutable-definition-group = "let" wscnl* "~" wscnl* "(" (wscnl | ",")* value-captures? (wscnl | ",")* ")";
@@ -476,37 +476,36 @@ fn ~ (
         j()
 )
 */
-function-definition-fact:alias        = static-symbol wscnl* function-fact;
-function-capture                   = function-definition-fact;
-effect-capture          = "~" wscnl* function-definition-fact;
-function-definition = "fn" wscnl* (function-capture | effect-capture);
-function-captures:alias       = function-capture (list-sep function-capture)*;
-mixed-function-captures:alias = (function-capture | effect-capture)
-                                        (list-sep (function-capture | effect-capture))*;
-function-definition-group             = "fn" wscnl* "(" (wscnl | ",")*
-                                        mixed-function-captures?
-                                        (wscnl | ",")* ")";
-effect-definition-group               = "fn" wscnl* "~" wscnl* "(" (wscnl | ",")*
-                                        function-captures?
-                                        (wscnl | ",")* ")";
+function-definition-fact:alias = static-symbol wscnl* function-fact;
+function-capture               = function-definition-fact;
+effect-capture                 = "~" wscnl* function-definition-fact;
+function-definition            = "fn" wscnl* (function-capture | effect-capture);
+function-captures:alias        = function-capture (list-sep function-capture)*;
+mixed-function-captures:alias  = (function-capture | effect-capture)
+                                 (list-sep (function-capture | effect-capture))*;
+function-definition-group      = "fn" wscnl* "(" (wscnl | ",")*
+                                 mixed-function-captures?
+                                 (wscnl | ",")* ")";
+effect-definition-group        = "fn" wscnl* "~" wscnl* "(" (wscnl | ",")*
+                                 function-captures?
+                                 (wscnl | ",")* ")";
 
 definition:alias = value-definition
-           | value-definition-group
-           | mutable-definition-group
-           | function-definition
-           | function-definition-group
-           | effect-definition-group;
+                 | value-definition-group
+                 | mutable-definition-group
+                 | function-definition
+                 | function-definition-group
+                 | effect-definition-group;
 
 // TODO: cannot do:
 // type alias a int|fn () string|error
-// needs grouping
+// needs grouping of type-set
 
 type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;
 type-constraint = "type" wscnl* static-symbol wscnl* type-set;
 
 statement-group:alias = "(" wscnl* statement wscnl* ")";
 
-// TODO: parse fails by moving expression. Why?
 statement:alias = send
                 | close
                 | panic
