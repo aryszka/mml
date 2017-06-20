@@ -217,7 +217,7 @@ args-type:alias          = arg-type (list-sep arg-type)*;
 function-type-fact:alias = "(" wscnl*
                             args-type?
                             wscnl* ")"
-                            (wscnl* (type-set | static-symbol wscnl* type-set))?;
+                            (wsc* (type-set | static-symbol wsc* type-set))?;
 function-type            = "fn" wscnl* function-type-fact;
 effect-type              = "fn" wscnl* "~" wscnl* function-type-fact;
 
@@ -241,7 +241,7 @@ type-fact:alias = primitive-type
                 | channel-type;
 
 type-set:alias        = type-fact (wscnl* "|" wscnl* type-fact)*;
-type-expression:alias = type-set | static-symbol wscnl* type-set;
+type-expression:alias = type-set | static-symbol wsc* type-set;
 
 match-fact:alias = list-match
                  | mutable-list-match
@@ -249,7 +249,7 @@ match-fact:alias = list-match
                  | mutable-struct-match;
 
 match-set:alias        = type-set | match-fact;
-match-expression:alias = match-set | static-symbol wscnl* match-set;
+match-expression:alias = match-set | static-symbol wsc* match-set;
 
 match-case               = "case" wscnl* match-expression wscnl* ":";
 match-case-line:alias    = match-case (wscnl | ";")* statement?;
@@ -497,9 +497,13 @@ definition:alias = value-definition
            | function-definition-group
            | effect-definition-group;
 
-// type-constraint = "type" wscnl* static-symbol wscnl* type-set;
-// type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;
-// 
+// TODO: cannot do:
+// type alias a int|fn () string|error
+// needs grouping
+
+type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;
+type-constraint = "type" wscnl* static-symbol wscnl* type-set;
+
 // statement-group = "(" wscnl* statement wscnl* ")";
 
 // TODO: parse fails by moving expression. Why?
@@ -513,8 +517,8 @@ statement:alias = send
                 | assignment
                 | definition
                 | expression
-                // | type-constraint
-                // | type-alias
+                | type-alias
+                | type-constraint
                 // | statement-group;
                 ;
 

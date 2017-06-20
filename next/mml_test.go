@@ -2764,6 +2764,62 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
+	}, {
+		msg: "type constraint",
+		text: `
+			type a fn ([]) int
+			fn a(l) len(l)
+		`,
+		nodes: []*Node{{
+			Name: "type-constraint",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "function-type",
+				Nodes: []*Node{{
+					Name: "arg-type",
+					Nodes: []*Node{{
+						Name: "list-type",
+					}},
+				}, {
+					Name: "int-type",
+				}},
+			}},
+		}, {
+			Name: "function-definition",
+			Nodes: []*Node{{
+				Name: "function-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}, {
+					Name: "function-application",
+					Nodes: []*Node{{
+						Name: "symbol",
+					}, {
+						Name: "symbol",
+					}},
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "type alias",
+		text: "type alias a int|bool|string",
+		nodes: []*Node{{
+			Name: "type-alias",
+			Nodes: []*Node{{
+				Name: "symbol",
+			}, {
+				Name: "int-type",
+			}, {
+				Name: "bool-type",
+			}, {
+				Name: "string-type",
+			}},
+		}},
+		ignorePosition: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
