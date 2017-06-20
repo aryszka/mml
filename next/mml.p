@@ -431,23 +431,39 @@ set (
         i j
 )
 */
-assignable:alias     = symbol-expression | indexer;
-assign-capture = assignable wscnl* ("=" wscnl*)? expression;
-assign-set:alias     = "set" wscnl* assign-capture;
-assign-equal   = assignable wscnl* "=" wscnl* expression;
+assignable:alias      = symbol-expression | indexer;
+assign-capture        = assignable wscnl* ("=" wscnl*)? expression;
+assign-set:alias      = "set" wscnl* assign-capture;
+assign-equal          = assignable wscnl* "=" wscnl* expression;
 assign-captures:alias = assign-capture (list-sep assign-capture)*;
-assign-group:alias         = "set" wscnl* "(" (wscnl | ",")* assign-captures? (wscnl | ",")* ")";
-assignment           = assign-set | assign-equal | assign-group;
+assign-group:alias    = "set" wscnl* "(" (wscnl | ",")* assign-captures? (wscnl | ",")* ")";
+assignment            = assign-set | assign-equal | assign-group;
 
-// value-capture:alias = symbol-expression wscnl* ("=" wscnl*)? expression;
-// value-definition = "let" wscnl* value-capture;
-// mutable-definition = "~" "let" wscnl* value-capture;
-// mutable-capture:alias = "~" wscnl* symbol-expression wscnl* ("=" wscnl*)? expression;
-// value-captures:alias           = value-capture (list-sep value-capture)*;
-// mixed-captures:alias     = (value-capture | mutable-capture) (list-sep (value-capture | mutable-capture))*;
-// value-definition-group   = "let" wscnl* "(" (wscnl | ",")* mixed-captures? (wscnl | ",")* ")";
-// mutable-definition-group = "let" wscnl* "~" wscnl* "(" (wscnl | ",")* captures? (wscnl | ",")* ")";
-// 
+/*
+let a = b
+let c d
+let ~ e = f
+let ~ g h
+let (
+        i = j
+        k l
+        ~ m = n
+        ~ o p
+)
+let ~ (
+        q = r
+        s t
+)
+*/
+value-capture-fact:alias = symbol-expression wscnl* ("=" wscnl*)? expression;
+value-capture = value-capture-fact;
+mutable-capture = "~" wscnl* value-capture-fact;
+value-definition = "let" wscnl* (value-capture | mutable-capture);
+value-captures:alias           = value-capture (list-sep value-capture)*;
+mixed-captures:alias     = (value-capture | mutable-capture) (list-sep (value-capture | mutable-capture))*;
+value-definition-group   = "let" wscnl* "(" (wscnl | ",")* mixed-captures? (wscnl | ",")* ")";
+mutable-definition-group = "let" wscnl* "~" wscnl* "(" (wscnl | ",")* value-captures? (wscnl | ",")* ")";
+
 // function-definition-fact:alias        = static-symbol wscnl* function-fact;
 // effect-definition-fact:alias          = "~" wscnl* function-definition-fact;
 // function-definition                   = "fn" wscnl* function-definition-fact;
@@ -462,14 +478,14 @@ assignment           = assign-set | assign-equal | assign-group;
 //                                         function-definition-facts
 //                                         (wscnl | ",")* ")";
 // 
-// definition = value-definition
-//            | mutable-definition
-//            | value-definition-group
-//            | mutable-definition-group
+definition:alias = value-definition
+           | value-definition-group
+           | mutable-definition-group
 //            | function-definition
 //            | effect-definition
 //            | function-definition-group
 //            | effect-definition-group;
+           ;
 
 // type-constraint = "type" wscnl* static-symbol wscnl* type-set;
 // type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;
@@ -485,7 +501,7 @@ statement:alias = send
                 | go
                 | loop
                 | assignment
-                // | definition
+                | definition
                 | expression
                 // | type-constraint
                 // | type-alias

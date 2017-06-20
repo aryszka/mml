@@ -2558,6 +2558,132 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
+	}, {
+		msg:  "define, eq",
+		text: "let a = b",
+		nodes: []*Node{{
+			Name: "value-definition",
+			Nodes: []*Node{{
+				Name: "value-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "define",
+		text: "let a b",
+		nodes: []*Node{{
+			Name: "value-definition",
+			Nodes: []*Node{{
+				Name: "value-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "define mutable, eq",
+		text: "let ~ a = b",
+		nodes: []*Node{{
+			Name: "value-definition",
+			Nodes: []*Node{{
+				Name: "mutable-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "define mutable",
+		text: "let ~ a b",
+		nodes: []*Node{{
+			Name: "value-definition",
+			Nodes: []*Node{{
+				Name: "mutable-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "mixed define group",
+		text: `let (
+			a = b
+			c d
+			~ e f
+			~ g h
+		)`,
+		nodes: []*Node{{
+			Name: "value-definition-group",
+			Nodes: []*Node{{
+				Name: "value-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "value-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "mutable-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "mutable-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "mutable define group",
+		text: `let ~ (
+			a = b
+			c d
+		)`,
+		nodes: []*Node{{
+			Name: "mutable-definition-group",
+			Nodes: []*Node{{
+				Name: "value-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "value-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
