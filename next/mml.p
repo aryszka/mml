@@ -504,7 +504,7 @@ definition:alias = value-definition
 type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;
 type-constraint = "type" wscnl* static-symbol wscnl* type-set;
 
-// statement-group = "(" wscnl* statement wscnl* ")";
+statement-group:alias = "(" wscnl* statement wscnl* ")";
 
 // TODO: parse fails by moving expression. Why?
 statement:alias = send
@@ -519,8 +519,7 @@ statement:alias = send
                 | expression
                 | type-alias
                 | type-constraint
-                // | statement-group;
-                ;
+                | statement-group;
 
 shebang-command  = [^\n]*;
 shebang          = "#!" shebang-command "\n";

@@ -2820,6 +2820,16 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
+	}, {
+		msg:  "statement group",
+		text: "(for {})",
+		nodes: []*Node{{
+			Name: "loop",
+			Nodes: []*Node{{
+				Name: "block",
+			}},
+		}},
+		ignorePosition: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
