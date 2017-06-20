@@ -464,28 +464,38 @@ mixed-captures:alias     = (value-capture | mutable-capture) (list-sep (value-ca
 value-definition-group   = "let" wscnl* "(" (wscnl | ",")* mixed-captures? (wscnl | ",")* ")";
 mutable-definition-group = "let" wscnl* "~" wscnl* "(" (wscnl | ",")* value-captures? (wscnl | ",")* ")";
 
-// function-definition-fact:alias        = static-symbol wscnl* function-fact;
-// effect-definition-fact:alias          = "~" wscnl* function-definition-fact;
-// function-definition                   = "fn" wscnl* function-definition-fact;
-// effect-definition                     = "fn" wscnl* effect-definition-fact;
-// function-definition-facts:alias       = function-definition-fact (list-sep function-definition-fact)*;
-// mixed-function-definition-facts:alias = (function-definition-fact | effect-definition-fact)
-//                                         (list-sep (function-definition-fact | effect-definition-fact))*;
-// function-definition-group             = "fn" wscnl* "(" (wscnl | ",")*
-//                                         mixed-function-definition-facts?
-//                                         (wscnl | ",")* ")";
-// effect-definition-group               = "fn" wscnl* "~" wscnl* "(" (wscnl | ",")*
-//                                         function-definition-facts
-//                                         (wscnl | ",")* ")";
-// 
+/*
+fn a() b
+fn ~ c() d
+fn (
+        e() f
+        ~ g() h
+)
+fn ~ (
+        i()
+        j()
+)
+*/
+function-definition-fact:alias        = static-symbol wscnl* function-fact;
+function-capture                   = function-definition-fact;
+effect-capture          = "~" wscnl* function-definition-fact;
+function-definition = "fn" wscnl* (function-capture | effect-capture);
+function-captures:alias       = function-capture (list-sep function-capture)*;
+mixed-function-captures:alias = (function-capture | effect-capture)
+                                        (list-sep (function-capture | effect-capture))*;
+function-definition-group             = "fn" wscnl* "(" (wscnl | ",")*
+                                        mixed-function-captures?
+                                        (wscnl | ",")* ")";
+effect-definition-group               = "fn" wscnl* "~" wscnl* "(" (wscnl | ",")*
+                                        function-captures?
+                                        (wscnl | ",")* ")";
+
 definition:alias = value-definition
            | value-definition-group
            | mutable-definition-group
-//            | function-definition
-//            | effect-definition
-//            | function-definition-group
-//            | effect-definition-group;
-           ;
+           | function-definition
+           | function-definition-group
+           | effect-definition-group;
 
 // type-constraint = "type" wscnl* static-symbol wscnl* type-set;
 // type-alias      = "type" wscnl* "alias" wscnl* static-symbol wscnl* type-set;

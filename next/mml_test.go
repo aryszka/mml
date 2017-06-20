@@ -2684,6 +2684,86 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
+	}, {
+		msg:  "define function",
+		text: "fn a() b",
+		nodes: []*Node{{
+			Name: "function-definition",
+			Nodes: []*Node{{
+				Name: "function-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg:  "define effect",
+		text: "fn ~ a() b",
+		nodes: []*Node{{
+			Name: "function-definition",
+			Nodes: []*Node{{
+				Name: "effect-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "define function group",
+		text: `fn (
+			a() b
+			~ c() d
+		)`,
+		nodes: []*Node{{
+			Name: "function-definition-group",
+			Nodes: []*Node{{
+				Name: "function-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "effect-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
+	}, {
+		msg: "define effect group",
+		text: `fn ~ (
+			a() b
+			c() d
+		)`,
+		nodes: []*Node{{
+			Name: "effect-definition-group",
+			Nodes: []*Node{{
+				Name: "function-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}, {
+				Name: "function-capture",
+				Nodes: []*Node{{
+					Name: "symbol",
+				}, {
+					Name: "symbol",
+				}},
+			}},
+		}},
+		ignorePosition: true,
 	}} {
 		t.Run(ti.msg, func(t *testing.T) {
 			n, err := s.Parse(bytes.NewBufferString(ti.text))
