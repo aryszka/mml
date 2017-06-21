@@ -34,6 +34,7 @@ var (
 	ErrInvalidCharacter    = errors.New("invalid character") // two use cases: utf8 and boot
 	ErrUnexpectedCharacter = errors.New("unexpected character")
 	ErrInvalidSyntax       = errors.New("invalid syntax")
+	ErrRootAlias           = errors.New("root node cannot be an alias")
 )
 
 func duplicateDefinition(name string) error {
@@ -122,6 +123,10 @@ func (s *Syntax) Init() error {
 
 	if s.root == nil {
 		return ErrNoParsersDefined
+	}
+
+	if s.root.commitType()&Alias != 0 {
+		return ErrRootAlias
 	}
 
 	var err error

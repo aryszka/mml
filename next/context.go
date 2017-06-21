@@ -127,18 +127,17 @@ func (c *context) fail(offset int) {
 }
 
 func (c *context) finalize() error {
+	if c.node.to < c.readOffset {
+		return ErrUnexpectedCharacter
+	}
+
 	if !c.eof {
-		if c.offset < c.readOffset || c.read() {
+		c.read()
+		if !c.eof {
 			if c.readErr != nil {
 				return c.readErr
 			}
 
-			return ErrUnexpectedCharacter
-		}
-
-		return c.readErr
-	} else {
-		if c.node.to < c.readOffset {
 			return ErrUnexpectedCharacter
 		}
 	}

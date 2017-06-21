@@ -37,7 +37,7 @@ float          = decimal-digit+ "." decimal-digit* exponent?
 // string example: "Hello, world!"
 // only \ and " need to be escaped, e.g. allows new lines
 // common escaped chars get unescaped, the rest gets unescaped to themselves
-string = "\"" ([^\\\"] | "\\" .)* "\"";
+string = "\"" ([^\\"] | "\\" .)* "\"";
 
 true       = "true";
 false      = "false";

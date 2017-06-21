@@ -16,7 +16,7 @@ char-range = class-char "-" class-char;
 char-class = "[" class-not? (class-char | char-range)* "]";
 
 // caution: newline is accepted
-sequence-char = [^\\\"] | "\\" .;
+sequence-char = [^\\"] | "\\" .;
 char-sequence = "\"" sequence-char* "\"";
 
 // TODO: this can be mixed up with sequence. Is it fine? fix this, see mml symbol

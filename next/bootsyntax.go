@@ -125,7 +125,7 @@ var bootDefinitions = [][]string{{
 }, {
 	"chars", "double-quote", "alias", "\\\"",
 }, {
-	"class", "not-char-sequence-control", "alias", "^\\\\\\\"",
+	"class", "not-char-sequence-control", "alias", "^\\\\\"",
 }, {
 	"choice", "sequence-char", "none", "not-char-sequence-control", "escaped-char",
 }, {

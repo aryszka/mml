@@ -1,57 +1,9 @@
 package next
 
-import (
-	"bytes"
-	"os"
-	"testing"
-	"time"
-)
+import "testing"
 
 func TestMML(t *testing.T) {
-	trace := NewTrace(0)
-
-	b, err := bootSyntax(trace)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	mml, err := os.Open("mml.p")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	defer mml.Close()
-
-	mmlDoc, err := b.Parse(mml)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	// trace = NewTrace(1)
-	s := NewSyntax(trace)
-	if err := define(s, mmlDoc); err != nil {
-		t.Error(err)
-		return
-	}
-
-	if err := s.Init(); err != nil {
-		t.Error(err)
-		return
-	}
-
-	start := time.Now()
-	defer func() { t.Log("\nTestMML, total duration", time.Since(start)) }()
-	for _, ti := range []struct {
-		msg            string
-		text           string
-		fail           bool
-		node           *Node
-		nodes          []*Node
-		ignorePosition bool
-	}{{
+	test(t, "mml.p", "mml", []testItem{{
 		msg:  "empty",
 		node: &Node{Name: "mml"},
 	}, {
@@ -2835,37 +2787,5 @@ func TestMML(t *testing.T) {
 			}},
 		}},
 		ignorePosition: true,
-	}} {
-		t.Run(ti.msg, func(t *testing.T) {
-			n, err := s.Parse(bytes.NewBufferString(ti.text))
-
-			if ti.fail && err == nil {
-				t.Error("failed to fail")
-				return
-			} else if !ti.fail && err != nil {
-				t.Error(err)
-				return
-			} else if ti.fail {
-				return
-			}
-
-			t.Log(n)
-
-			cn := checkNode
-			if ti.ignorePosition {
-				cn = checkNodeIgnorePosition
-			}
-
-			if ti.node != nil {
-				cn(t, n, ti.node)
-			} else {
-				cn(t, n, &Node{
-					Name:  "mml",
-					from:  0,
-					to:    len(ti.text),
-					Nodes: ti.nodes,
-				})
-			}
-		})
-	}
+	}})
 }
