@@ -204,5 +204,15 @@ func TestJSON(t *testing.T) {
 			}},
 		},
 		ignorePosition: true,
+	}, {
+		msg:  "bugfix, 100",
+		text: "100",
+		node: &Node{
+			Name: "json",
+			Nodes: []*Node{{
+				Name: "number",
+			}},
+		},
+		ignorePosition: true,
 	}})
 }
