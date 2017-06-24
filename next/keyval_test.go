@@ -83,6 +83,49 @@ func TestKeyVal(t *testing.T) {
 			}},
 		}},
 	}, {
+		msg: "key value pairs with a comment at the end of line",
+		text: `
+		        a key       = a value       # a comment
+		        another key = another value # another comment
+		`,
+		nodes: []*Node{{
+			Name: "key-val",
+			from: 11,
+			to:   32,
+			Nodes: []*Node{{
+				Name: "key",
+				from: 11,
+				to:   16,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 11,
+					to:   16,
+				}},
+			}, {
+				Name: "value",
+				from: 25,
+				to:   32,
+			}},
+		}, {
+			Name: "key-val",
+			from: 61,
+			to:   88,
+			Nodes: []*Node{{
+				Name: "key",
+				from: 61,
+				to:   72,
+				Nodes: []*Node{{
+					Name: "symbol",
+					from: 61,
+					to:   72,
+				}},
+			}, {
+				Name: "value",
+				from: 75,
+				to:   88,
+			}},
+		}},
+	}, {
 		msg:  "value without a key",
 		text: "= a value",
 		nodes: []*Node{{

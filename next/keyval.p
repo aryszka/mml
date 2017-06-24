@@ -2,7 +2,7 @@ ws:alias   = [ \b\f\r\t\v];
 wsnl:alias = ws | "\n";
 
 comment-line:alias = "#" [^\n]*;
-comment                = comment-line (ws* "\n" ws* comment-line)*;
+comment            = comment-line (ws* "\n" ws* comment-line)*;
 
 wsc:alias   = ws | comment-line;
 wsnlc:alias = wsnl | comment-line;
@@ -15,12 +15,15 @@ key-form:alias = symbol (ws* "." ws* symbol)*;
 key            = key-form;
 group-key      = (comment "\n" ws*)? "[" ws* key-form ws* "]";
 
-value   = ([^\\"\n=#] | "\\" .)* | quoted;
-key-val = (comment "\n" ws*)? (key | key? ws* "=" ws* value?);
+value-chars:alias = ([^\\"\n=# \b\f\r\t\v] | "\\" .)+;
+value             = value-chars (ws* value-chars)* | quoted;
+key-val           = (comment "\n" ws*)? (key | key? ws* "=" ws* value?);
 
 entry:alias = group-key | key-val;
-doc:root    = (entry comment-line? | wsnlc)*;
+doc:root    = (entry (ws* comment-line)? | wsnlc)*;
 
 // TODO: not tested
 // set as root for streaming:
-single-entry = (entry comment-line? | wsnlc* entry comment-line?) [];
+single-entry = (entry (ws* comment-line)?
+                | wsnlc* entry (ws* comment-line)?)
+               [];

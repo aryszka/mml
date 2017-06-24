@@ -420,7 +420,7 @@ loop-control:alias = break | continue;
 
 in-expression   = static-symbol wsnlc* "in" wsnlc* (expression | range-expression);
 loop-expression = expression | in-expression;
-loop            = "for" wsnlc* (block | (loop-expression wsnlc*)? block);
+loop            = "for" wsnlc* (block | loop-expression wsnlc* block);
 
 /*
 a = b

@@ -9,6 +9,8 @@ comment               = comment-segment (ws-no-nl* "\n"? ws-no-nl* comment-segme
 
 any-char = "."; // equivalent to [^]
 
+// TODO: document matching terminal: []
+
 // TODO: handle char class equivalences
 
 // TODO: enable streaming
