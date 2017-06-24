@@ -3,7 +3,7 @@ package next
 import "testing"
 
 func TestKeyVal(t *testing.T) {
-	testTrace(t, "keyval.p", "doc", 1, []testItem{{
+	test(t, "keyval.p", "doc", []testItem{{
 		msg: "empty",
 	}, {
 		msg:  "a comment",
