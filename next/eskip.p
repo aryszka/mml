@@ -26,7 +26,7 @@ float          = decimal-digit+ "." decimal-digit* exponent?
                | "." decimal-digit+ exponent?
                | decimal-digit+ exponent;
 
-number:alias = int | float;
+number:alias = "-"? (int | float);
 
 string = "\"" ([^\\"] | "\\" .)* "\"";
 regexp = "/" ([^\\/] | "\\" .)* "/";
@@ -47,11 +47,11 @@ shunt         = "<shunt>";
 loopback      = "<loopback>";
 backend:alias = address | shunt | loopback;
 
-expression = predicates (wsc* "->" filters)? wsc* "->" wsc* backend;
+expression = predicates (wsc* "->" wsc* filters)? wsc* "->" wsc* backend;
 
 id:alias   = symbol;
 definition = id wsc* ":" wsc* expression;
 
 free-sep          = (wsc | ";");
-sep               = free-sep* ";" free-sep*;
+sep               = wsc* ";" free-sep*;
 definitions:alias = free-sep* definition (sep definition)* free-sep*;
