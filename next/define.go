@@ -131,7 +131,7 @@ func defineClass(s *Syntax, name string, ct CommitType, n []*Node) error {
 		ranges [][]rune
 	)
 
-	if n[0].Name == "class-not" {
+	if len(n) > 0 && n[0].Name == "class-not" {
 		not, n = true, n[1:]
 	}
 

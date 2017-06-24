@@ -9,6 +9,12 @@ comment               = comment-segment (ws-no-nl* "\n"? ws-no-nl* comment-segme
 
 any-char = "."; // equivalent to [^]
 
+// TODO: handle char class equivalences
+
+// TODO: enable streaming
+
+// TODO: set route function in generated code?
+
 // caution: newline is accepted
 class-not  = "^";
 class-char = [^\\\[\]\^\-] | "\\" .;

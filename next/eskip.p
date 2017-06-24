@@ -2,11 +2,13 @@
 Eskip routing configuration format for Skipper: https://github.com/zalando/skipper
 */
 
+// TODO: definition with comment, doc = comment, or just replace comment
+
 eskip:root = (expression | definitions)?;
 
 comment-line:alias = "//" [^\n]*;
-spaces:alias       = [ \b\f\r\t\v];
-comment            = comment-line (spaces* "\n"? spaces* comment-line)*;
+space:alias        = [ \b\f\r\t\v];
+comment:alias      = comment-line (space* "\n" space* comment-line)*;
 
 wsc:alias = [ \b\f\n\r\t\v] | comment;
 

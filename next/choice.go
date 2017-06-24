@@ -152,10 +152,7 @@ func (p *choiceParser) parse(t Trace, c *context) {
 			foundMatch = true
 			// node.clear()
 			node = newNode(p.name, p.commit, c.offset, c.offset) // TODO: review caching conditions
-			t.Out2("node length", node.tokenLength(), c.node.tokenLength(), node.from, node.to,
-				c.node.from, c.node.to, string(c.tokens[c.offset]), c.offset, c.node.Name)
 			node.append(c.node)
-			t.Out2("node length", node.tokenLength(), c.node.tokenLength())
 
 			c.cache.set(node.from, p.name, node)
 			for _, i := range p.including {

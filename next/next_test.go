@@ -131,8 +131,8 @@ func checkNodeIgnorePosition(t *testing.T, left, right *Node) {
 	checkNodePosition(t, left, right, false)
 }
 
-func test(t *testing.T, file, rootName string, tests []testItem) {
-	s, err := testSyntax(file, 0)
+func testTrace(t *testing.T, file, rootName string, traceLevel int, tests []testItem) {
+	s, err := testSyntax(file, traceLevel)
 	if err != nil {
 		t.Error(err)
 		return
@@ -174,4 +174,8 @@ func test(t *testing.T, file, rootName string, tests []testItem) {
 			}
 		})
 	}
+}
+
+func test(t *testing.T, file, rootName string, tests []testItem) {
+	testTrace(t, file, rootName, 0, tests)
 }
