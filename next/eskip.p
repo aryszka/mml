@@ -32,7 +32,7 @@ string = "\"" ([^\\"] | "\\" .)* "\"";
 regexp = "/" ([^\\/] | "\\" .)* "/";
 symbol = [a-zA-Z_] [a-zA-z0-9_]*;
 
-arg:alias  = number | string |regexp;
+arg:alias  = number | string | regexp;
 args:alias = arg (wsc* "," wsc* arg)*;
 term:alias = symbol wsc* "(" wsc* args? wsc* ")";
 
@@ -52,6 +52,6 @@ expression = predicates (wsc* "->" wsc* filters)? wsc* "->" wsc* backend;
 id:alias   = symbol;
 definition = id wsc* ":" wsc* expression;
 
-free-sep          = (wsc | ";");
-sep               = wsc* ";" free-sep*;
+free-sep:alias    = (wsc | ";");
+sep:alias         = wsc* ";" free-sep*;
 definitions:alias = free-sep* definition (sep definition)* free-sep*;
