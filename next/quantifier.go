@@ -149,7 +149,7 @@ func (p *quantifierParser) parse(t Trace, c *context) {
 		}
 
 		p.item.parse(t, c)
-		if !c.match {
+		if !c.match || c.node.tokenLength() == 0 {
 			if node.nodeLength() >= p.min {
 				t.Out1("success, no more match")
 				c.cache.set(node.from, p.name, node)

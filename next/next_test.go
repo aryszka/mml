@@ -2,6 +2,7 @@ package next
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ type testItem struct {
 	ignorePosition bool
 }
 
-func testSyntax(file string, traceLevel int) (*Syntax, error) {
+func testSyntaxReader(r io.Reader, traceLevel int) (*Syntax, error) {
 	trace := NewTrace(0)
 
 	b, err := bootSyntax(trace)
@@ -24,14 +25,7 @@ func testSyntax(file string, traceLevel int) (*Syntax, error) {
 		return nil, err
 	}
 
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-
-	doc, err := b.Parse(f)
+	doc, err := b.Parse(r)
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +41,20 @@ func testSyntax(file string, traceLevel int) (*Syntax, error) {
 	}
 
 	return s, nil
+}
+
+func testSyntaxString(s string, traceLevel int) (*Syntax, error) {
+	return testSyntaxReader(bytes.NewBufferString(s), traceLevel)
+}
+
+func testSyntax(file string, traceLevel int) (*Syntax, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+	return testSyntaxReader(f, traceLevel)
 }
 
 func checkNodesPosition(t *testing.T, left, right []*Node, position bool) {
@@ -131,8 +139,8 @@ func checkNodeIgnorePosition(t *testing.T, left, right *Node) {
 	checkNodePosition(t, left, right, false)
 }
 
-func testTrace(t *testing.T, file, rootName string, traceLevel int, tests []testItem) {
-	s, err := testSyntax(file, traceLevel)
+func testReaderTrace(t *testing.T, r io.Reader, rootName string, traceLevel int, tests []testItem) {
+	s, err := testSyntaxReader(r, traceLevel)
 	if err != nil {
 		t.Error(err)
 		return
@@ -176,6 +184,557 @@ func testTrace(t *testing.T, file, rootName string, traceLevel int, tests []test
 	}
 }
 
+func testStringTrace(t *testing.T, s string, traceLevel int, tests []testItem) {
+	testReaderTrace(t, bytes.NewBufferString(s), "", traceLevel, tests)
+}
+
+func testString(t *testing.T, s string, tests []testItem) {
+	testStringTrace(t, s, 0, tests)
+}
+
+func testTrace(t *testing.T, file, rootName string, traceLevel int, tests []testItem) {
+	f, err := os.Open(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer f.Close()
+	testReaderTrace(t, f, rootName, traceLevel, tests)
+}
+
 func test(t *testing.T, file, rootName string, tests []testItem) {
 	testTrace(t, file, rootName, 0, tests)
+}
+
+func TestRecursion(t *testing.T) {
+	testString(
+		t,
+		`A = "a" | A "a"`,
+		[]testItem{{
+			msg:  "recursion in choice, right, left, commit",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				Nodes: []*Node{{
+					Name: "A",
+					Nodes: []*Node{{
+						Name: "A",
+					}},
+				}},
+			},
+			ignorePosition: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" | "a" A`,
+		[]testItem{{
+			msg:  "recursion in choice, right, right, commit",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				Nodes: []*Node{{
+					Name: "A",
+					Nodes: []*Node{{
+						Name: "A",
+					}},
+				}},
+			},
+			ignorePosition: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" A | "a"`,
+		[]testItem{{
+			msg:  "recursion in choice, left, right, commit",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				Nodes: []*Node{{
+					Name: "A",
+					Nodes: []*Node{{
+						Name: "A",
+					}},
+				}},
+			},
+			ignorePosition: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = A "a" | "a"`,
+		[]testItem{{
+			msg:  "recursion in choice, left, left, commit",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				Nodes: []*Node{{
+					Name: "A",
+					Nodes: []*Node{{
+						Name: "A",
+					}},
+				}},
+			},
+			ignorePosition: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A':alias = "a" | A' "a"; A = A'`,
+		[]testItem{{
+			msg:  "recursion in choice, right, left, alias",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}},
+	)
+
+	testString(
+		t,
+		`A':alias = "a" | "a" A'; A = A'`,
+		[]testItem{{
+			msg:  "recursion in choice, right, right, alias",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}},
+	)
+
+	testString(
+		t,
+		`A':alias = "a" A' | "a"; A = A'`,
+		[]testItem{{
+			msg:  "recursion in choice, left, right, alias",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}},
+	)
+
+	testString(
+		t,
+		`A':alias = A' "a" | "a"; A = A'`,
+		[]testItem{{
+			msg:  "recursion in choice, left, left, alias",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}},
+	)
+}
+
+func TestSequence(t *testing.T) {
+	testString(
+		t,
+		`AB = "a" | "a"? "a"? "b" "b"`,
+		[]testItem{{
+			msg:  "sequence with optional items",
+			text: "abb",
+			node: &Node{
+				Name: "AB",
+				to:   3,
+			},
+		}, {
+			msg:  "sequence with optional items, none",
+			text: "bb",
+			node: &Node{
+				Name: "AB",
+				to:   2,
+			},
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" | (A?)*`,
+		[]testItem{{
+			msg:  "sequence in choice with redundant quantifier",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				Nodes: []*Node{{
+					Name: "A",
+				}, {
+					Name: "A",
+				}, {
+					Name: "A",
+				}},
+			},
+			ignorePosition: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = ("a"*)*`,
+		[]testItem{{
+			msg:  "sequence with redundant quantifier",
+			text: "aaa",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}},
+	)
+}
+
+func TestQuantifiers(t *testing.T) {
+	testString(
+		t,
+		`A = "a" "b"{0} "a"`,
+		[]testItem{{
+			msg:  "zero",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero, fail",
+			text: "aba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{1} "a"`,
+		[]testItem{{
+			msg:  "one, missing",
+			text: "aa",
+			fail: true,
+		}, {
+			msg:  "one",
+			text: "aba",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}, {
+			msg:  "one, too much",
+			text: "abba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{3} "a"`,
+		[]testItem{{
+			msg:  "three, missing",
+			text: "abba",
+			fail: true,
+		}, {
+			msg:  "three",
+			text: "abbba",
+			node: &Node{
+				Name: "A",
+				to:   5,
+			},
+		}, {
+			msg:  "three, too much",
+			text: "abbbba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{0,1} "a"`,
+		[]testItem{{
+			msg:  "zero or one explicit, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or one explicit",
+			text: "aba",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}, {
+			msg:  "zero or one explicit, too much",
+			text: "abba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{,1} "a"`,
+		[]testItem{{
+			msg:  "zero or one explicit, omit zero, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or one explicit, omit zero",
+			text: "aba",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}, {
+			msg:  "zero or one explicit, omit zero, too much",
+			text: "abba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"? "a"`,
+		[]testItem{{
+			msg:  "zero or one explicit, shortcut, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or one explicit, shortcut",
+			text: "aba",
+			node: &Node{
+				Name: "A",
+				to:   3,
+			},
+		}, {
+			msg:  "zero or one explicit, shortcut, too much",
+			text: "abba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{0,3} "a"`,
+		[]testItem{{
+			msg:  "zero or three, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or three",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}, {
+			msg:  "zero or three",
+			text: "abbba",
+			node: &Node{
+				Name: "A",
+				to:   5,
+			},
+		}, {
+			msg:  "zero or three, too much",
+			text: "abbbba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{,3} "a"`,
+		[]testItem{{
+			msg:  "zero or three, omit zero, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or three, omit zero",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}, {
+			msg:  "zero or three, omit zero",
+			text: "abbba",
+			node: &Node{
+				Name: "A",
+				to:   5,
+			},
+		}, {
+			msg:  "zero or three, omit zero, too much",
+			text: "abbbba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{1,3} "a"`,
+		[]testItem{{
+			msg:  "one or three, missing",
+			text: "aa",
+			fail: true,
+		}, {
+			msg:  "one or three",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}, {
+			msg:  "one or three",
+			text: "abbba",
+			node: &Node{
+				Name: "A",
+				to:   5,
+			},
+		}, {
+			msg:  "one or three, too much",
+			text: "abbbba",
+			fail: true,
+		}},
+	)
+
+	testString(
+		t,
+		`A = "a" "b"{3,5} "a"`,
+		[]testItem{{
+			msg:  "three or five, missing",
+			text: "abba",
+			fail: true,
+		}, {
+			msg:  "three or five",
+			text: "abbbba",
+			node: &Node{
+				Name: "A",
+				to:   6,
+			},
+		}, {
+			msg:  "three or five",
+			text: "abbbbba",
+			node: &Node{
+				Name: "A",
+				to:   7,
+			},
+		}, {
+			msg:  "three or five, too much",
+			text: "abbbbbba",
+			fail: true,
+		}},
+	)
+
+	testStringTrace(
+		t,
+		`A = "a" "b"{0,} "a"`,
+		1,
+		[]testItem{{
+			msg:  "zero or more, explicit, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or more, explicit",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}},
+	)
+
+	testStringTrace(
+		t,
+		`A = "a" "b"* "a"`,
+		1,
+		[]testItem{{
+			msg:  "zero or more, shortcut, missing",
+			text: "aa",
+			node: &Node{
+				Name: "A",
+				to:   2,
+			},
+		}, {
+			msg:  "zero or more, shortcut",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}},
+	)
+
+	testStringTrace(
+		t,
+		`A = "a" "b"{1,} "a"`,
+		1,
+		[]testItem{{
+			msg:  "one or more, explicit, missing",
+			text: "aa",
+			fail: true,
+		}, {
+			msg:  "one or more, explicit",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}},
+	)
+
+	testStringTrace(
+		t,
+		`A = "a" "b"+ "a"`,
+		1,
+		[]testItem{{
+			msg:  "one or more, shortcut, missing",
+			text: "aa",
+			fail: true,
+		}, {
+			msg:  "one or more, shortcut",
+			text: "abba",
+			node: &Node{
+				Name: "A",
+				to:   4,
+			},
+		}},
+	)
+
+	testStringTrace(
+		t,
+		`A = "a" "b"{3,} "a"`,
+		1,
+		[]testItem{{
+			msg:  "three or more, explicit, missing",
+			text: "abba",
+			fail: true,
+		}, {
+			msg:  "three or more, explicit",
+			text: "abbbba",
+			node: &Node{
+				Name: "A",
+				to:   6,
+			},
+		}},
+	)
 }

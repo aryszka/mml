@@ -164,8 +164,10 @@ func (p *sequenceParser) parse(t Trace, c *context) {
 			return
 		}
 
-		t.Out2("appending sequence item", c.node.Name, len(c.node.Nodes))
-		node.append(c.node)
+		if c.node.tokenLength() > 0 {
+			t.Out2("appending sequence item", c.node.Name, len(c.node.Nodes))
+			node.append(c.node)
+		}
 	}
 
 	t.Out1("success, items parsed")

@@ -34,9 +34,12 @@ symbol = [^\\ \n\t\b\f\r\v/.\[\]\"{}\^+*?|():=;]+;
 
 group:alias = "(" wsc* expression wsc* ")";
 
-count            = [0-9]+;
+number:alias     = [0-9]+;
+count            = number;
 count-quantifier = "{" wsc* count wsc* "}";
-range-quantifier = "{" wsc* count wsc* "," wsc* count wsc* "}"; // TODO: make the counts optional
+range-from       = number;
+range-to         = number;
+range-quantifier = "{" wsc* range-from? wsc* "," wsc* range-to? wsc* "}";
 one-or-more      = "+";
 zero-or-more     = "*";
 zero-or-one      = "?";

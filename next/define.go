@@ -172,14 +172,23 @@ func defineQuantifier(s *Syntax, name string, ct CommitType, n *Node, q *Node) e
 
 		max = min
 	case "range-quantifier":
-		min, err = strconv.Atoi(q.Nodes[0].Text())
-		if err != nil {
-			return err
-		}
-
-		max, err = strconv.Atoi(q.Nodes[1].Text())
-		if err != nil {
-			return err
+		min = 0
+		max = -1
+		for _, rq := range q.Nodes {
+			switch rq.Name {
+			case "range-from":
+				min, err = strconv.Atoi(rq.Text())
+				if err != nil {
+					return err
+				}
+			case "range-to":
+				max, err = strconv.Atoi(rq.Text())
+				if err != nil {
+					return err
+				}
+			default:
+				return ErrInvalidSyntax
+			}
 		}
 	case "one-or-more":
 		min, max = 1, -1

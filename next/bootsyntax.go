@@ -153,9 +153,15 @@ var bootDefinitions = [][]string{{
 }, {
 	"class", "digit", "alias", "0-9",
 }, {
-	"quantifier", "count", "none", "digit", "1", "-1",
+	"quantifier", "number", "alias", "digit", "1", "-1",
+}, {
+	"sequence", "count", "none", "number",
 }, {
 	"sequence", "count-quantifier", "none", "open-brace", "wscs", "count", "wscs", "close-brace",
+}, {
+	"sequence", "range-from", "none", "number",
+}, {
+	"sequence", "range-to", "none", "number",
 }, {
 	"chars", "comma", "alias", ",",
 }, {
@@ -164,11 +170,11 @@ var bootDefinitions = [][]string{{
 	"none",
 	"open-brace",
 	"wscs",
-	"count",
+	"range-from",
 	"wscs",
 	"comma",
 	"wscs",
-	"count",
+	"range-to",
 	"close-brace",
 }, {
 	"chars", "one-or-more", "none", "+",
