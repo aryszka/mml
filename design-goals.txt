@@ -1,0 +1,145 @@
+[abstract quality tags]
+"easy"
+"simple"
+"stable"
+"fast"
+"readable"
+"familiar"
+
+[main goals]
+personal computing:
+- "easy", "familiar"
+- scripts, local automation
+- engineering/scientific/everyday calculator
+- prototyping
+command line applications:
+- "simple", "readable"
+- os integration: unix
+tooling for services:
+- "simple", "readable", "familiar"
+- scope: small supplementary tools
+- commands
+- small ephemeral services, web hooks
+- distributed environment
+- maybe non-goal, but even then good conceptual check
+web:
+- "stable", "readable"
+- scope in question
+- what not: frontend components, frameworks, backend/network infrastructure
+- what for sure: backend/frontend application logic, data access, presentation
+- what maybe: opinionated architecture, similar to Elm but for both backend and frontend and less strict, maybe
+  like: http://sam.js.org/
+- what probably: network APIs ("microservices")
+machine learning:
+- "easy", "familiar"
+- seems to fit by accident, to be evaluated
+
+(Note that the tag "fast" is not used.)
+
+[examples]
+examples for the main goals
+
+[non-goals]
+network infrastructure:
+- "simple", "stable", "fast"
+large service applications:
+- "stable", "readable"
+embedded:
+- "simple", "stable", "fast"
+mobile:
+- "stable", "readable"
+desktop applications:
+- "stable", "readable"
+
+[feature blocks]
+control
+syntax
+modules
+types
+backend
+data
+concurrency
+os
+io
+networking
+ffi
+tooling
+repl
+package management
+observability
+config
+deployment
+shareability
+formatting
+documentation
+
+[requirements]
+glue definitions to translate between the main goals and the feature requirements
+
+[requirement examples]
+detailed examples of the qualities of the main examples
+
+[personal computing]
+an alternative to python
+simply runnable and composable scripts
+reusable code
+strong network stack: client
+control without side effects for safe calculcations
+
+[tooling for services]
+stable modules
+strong network stack: client and server
+
+[web]
+stable modules
+strong network stack: client and server
+
+[machine learning]
+setting up models, not executing them. See the Tensorflow approach.
+control without side effects for safe precalculations
+
+[backend]
+Go: strong stdlib covering lot's of the use cases, GC, concurrency, deployment
+JS: required for the web
+interpreter
+own copy of Go
+node optional only
+
+[modules]
+stems from: personal computing, service tooling, web
+flexibility for personal computing: just scripts, but also components of multi-module
+stable version control for service tooling and web
+scripting:
+- one file one module
+- require instead of import
+personal computing like calculator/shell/repl need default imports, not necessarily with syntax support
+
+[concurrency]
+stems from: web and service tooling
+alternatives:
+- os threads, mutexes: too error prone and many aspects can be simulated by microthreads. But it's familiar.
+- csp: provides microthreads, communication model, and can be in a traditional threading model. But it's
+  unfamiliar, less and less however.
+- single threaded, non-blocking: limited and can be simulated with CSP, only solves data race but not
+  concurrency, leads to abuse of monadic structures like promises, limits deployability on multicore systems.
+  But it's familiar.
+- actors: it's unfamiliar. Simpler than CSP. Maybe not the most straightforward for web. Can be simulated by
+  CSP. May not play nice with types.
+Single-threaded non-blocking may need to be supported in case of the JS backend.
+CSP comes for free in case of the Go backend.
+CSP seem to support best for the goals, actors maybe ok. The downside is relative unfamiliarity.
+
+[tooling]
+log levels like an external process with filtering
+debugging:
+- taking the code, set break points, run in interpreter mode
+- only raises the size, so still with switch
+
+[package management]
+github based guix:
+- no need to implement
+- some familiarity
+- very powerful
+- generic artefacts
+scriptable in mml, but versioning of guix itself?
+or just declarative in mml
