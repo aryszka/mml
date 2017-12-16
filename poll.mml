@@ -1,0 +1,172 @@
+import "mml/time"
+
+export let (
+	full  0
+	inc   1
+	error 2
+)
+
+type alias (
+	let routes
+	let ids
+
+	routeUpdate {routes: routes, deletedIDs: $ids}
+	loadAll     fn ~ () routes|error
+	loadUpdate  fn ~ () routeUpdate|error
+
+	client {
+		loadAll:     loadAll
+		loadUpdate:  loadUpdate
+		pollTimeout: time.duration
+	}
+
+	update      {type: int, client: client}
+	fullUpdate  {update..., routes: routes}
+	incUpdate   {update..., routeUpdate...}
+	errorUpdate {update..., err: error}
+	updates     <fullUpdate|incUpdate|errorUpdate>
+)
+
+type pollClient fn ~ (updates, <>, client)
+
+export fn ~ pollClient(updates, quit, client) {
+	let (
+		initial 0
+		cont    1
+		stop    2
+	)
+
+	fn ~ send(message) select {
+		case updates <- message: cont
+		case <-quit: stop
+	}
+
+	fn ~ sendError(err) {
+		let nextState send({
+			type:   error
+			client: client
+			error:  err
+		})
+		return nextState == stop ? stop : initial
+	}
+
+	fn ~ loadSendInitial() {
+		let result client.loadAll()
+		if result error {
+			return sendError(result)
+		}
+
+		return send({
+			type:   full
+			client: client
+			routes: result
+		})
+	}
+
+	fn ~ loadSendUpdate() {
+		let result client.loadUpdate()
+		if result error {
+			return sendError(result)
+		}
+
+		if len(result.routes) > 0 || len(results.deletedIDs) > 0 {
+			return send({
+				type:       update
+				client:     client
+				routes:     result.routes
+				deletedIDs: result.deletedIDs
+			})
+		}
+
+		return cont
+	}
+
+	fn ~ delay() select {
+		case <-time.after(client.pollTimeout): cont
+		case <-quit: stop
+	}
+
+	let ~ state initial
+	for {
+		set state 
+			state == initial ?
+			loadSendInitial() :
+			loadSendUpdate()
+
+		if state == stop {
+			return
+		}
+
+		if delay() == stop {
+			return
+		}
+	}
+}
+
+test {
+	let (
+		testTimeout 30 * time.millisecond
+		emptyUpdate {routes: [], deletedIDs: []}
+	)
+
+	test "receive initial" {
+		let (
+			updates <>
+			quit    <>
+
+			routes [{
+				id: "a"
+			}, {
+				id: "b"
+			}, {
+				id: "c"
+			}]
+
+			client {
+				pollTimeout: 0
+				loadSendInitial: fn () routes
+				loadUpdate: fn () emptyUpdate
+			}
+		)
+
+		go pollClient(updates, quit, client)	
+		defer close(quit)
+
+		select {
+		case u <- updates:
+			switch {
+			u fullUpdate: return test.deepEq(u, routes)
+			default: return error("invalid result")
+			}
+		case <-time.after(testTimeout):
+			return error("timeout")
+		}
+	}
+
+	test "initial error" {
+		let (
+			updates <>
+			quit    <>
+
+			client {
+				pollTimeout: 0
+				loadSendInitial: fn () error("test")
+				loadUpdate: fn () emptyUpdate
+			}
+		)
+
+		go pollClient(updates, quit, client)	
+		defer close(quit)
+
+		select {
+		case u <- updates:
+			switch {
+			u errorUpdate:
+			default:
+				return error("invalid result")
+			}
+		case <-time.after(testTimeout):
+			return error("timeout")
+		}
+	}
+}
