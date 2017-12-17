@@ -1,0 +1,104 @@
+fn battleShips(ships, hits) {
+	require (
+		"mml/fmt"
+		"mml/ints"
+		"mml/strings"
+	)
+
+	fn parsePoint(pointString) {
+		if pointString string[:1] {
+			// the task description guarantees that this
+			// never happens but it wouldn't compile without
+			panic("invalid point string")
+		}
+
+		let (
+			xstring pointString[:len(pointString) - 1]
+			ystring pointString[len(pointString) - 1:]
+		)
+
+		let x ints.parse(xstring)
+		if x error {
+			// the task description guarantees that this
+			// never happens but it wouldn't compile without
+			panic("invalid point string")
+		}
+
+		let y strings.byte(ystring, 0) - strings.byte("A", 0)
+		return {x: x, y: y}
+	}
+
+	// returns mutable ship
+	fn parseShip(shipString) {
+		let pointStrings strings.split(shipString, " ")
+		if pointStrings ![:2] {
+			// the task description guarantees that this
+			// never happens but it wouldn't compile without
+			panic("invalid ship string")
+		}
+
+		return ~{
+			topLeft:     parsePoint(pointStrings[0])
+			bottomRight: parsePoint(pointStrings[1])
+			hits:        0
+			sunk:        false
+		}
+	}
+
+	fn parseShips(ships) {
+		if ships == "" {
+			return []
+		}
+
+		return map(parseShip, strings.split(ships, ","))
+	}
+
+	fn parseHits(hits) {
+		if hits == "" {
+			return []
+		}
+
+		return map(parsePoint, strings.split(hits, " "))
+	}
+
+	fn inShip(ship, hit)
+		hit.x >= ship.topLeft.x ||
+		hit.x <= ship.bottomRight.x ||
+		hit.y >= ship.topLeft.y ||
+		hit.y <= ship.bottomRight.y
+
+	fn shipSize(ship)
+		(ship.bottomRight.x - ship.topLeft.x + 1) *
+		(ship.bottomRight.y - ship.topLeft.y + 1)
+
+	// mutates ship
+	fn~ shipHit(ship, hit) {
+		if !inShip(ship, hit) {
+			return
+		}
+
+		set (
+			ship.hits++
+			ship.sunk ship.hits >= shipSize(ship)
+		)
+	}
+
+	let (
+		shipsParsed parseShips(ships)
+		hitsParsed  parseHits(hits)
+		hitCount    0
+		sunkCount   0
+	)
+
+	for ship in shipsParsed {
+		for hit in hitsParsed {
+			shipHit(ship, hit)
+		}
+	}
+
+	for ship in shipsParsed {
+		ship.sunk ? sunkCount++ : hitCount++
+	}
+
+	return fmt.sprint("%d,%d", sunkCount, hitCount)
+}

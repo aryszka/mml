@@ -1,0 +1,8 @@
+#text export freeText {
+Whatever may come here, there are no limitations.
+}
+
+#config
+[cache]
+size       = 1 << 32
+chunk-size = 1 << 23

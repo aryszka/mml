@@ -1,0 +1,139 @@
+#! /usr/bin/mmlscript
+
+/*
+I want to find a note taken in the topic of Kubernetes and I am sure that there is such a text file somewhere in
+my home directory. I am not sure if I wrote kube, Kube, kubernetes or Kubernetes, but I don't want to find notes
+with sudokube, MakubeX or anything else. I have a lot of notes with Kubernetes, and I want to list those that
+are closest to a date 9 months ago, and they're max 14 months old. I want to prioritize them by the frequency
+they mention Kubernetes. I also want to prioritize those notes whose path contains something with Kubernetes,
+and those, too, that are in my ~/Work or ~/doc directory. And of course I don't want to list code or config
+files, and I know that I use C, Go, JS, mml, Haskell, Elm, and I probably have some Python scripts on my disk
+from so many lucky friends of mine, too, and there can be config files of JSON and unfortunately YAML, too.
+*/
+
+/*
+When I just think about this problem, it is trivial in my brain, and, officially, Bash can do this for me with a
+single line, but I just know that I would spend the rest of the afternoon writing that Bash line.
+
+Normally, Python would be the next candidate to solve this problem, but I just don't do Python, because... I
+don't know, it's just not my style. But I do mml, and it promises to be good at similar problems as Python. So I
+either just write an mml script or solve the problem in the mml REPL.
+*/
+
+/*
+Experiment results: errors and side effect make it harder, tricky require doesn't solve operators. Maybe require
+and all the operators need to be patched in these scenarios. What to do with infinite loops?
+
+Problem:
+
+```
+for {
+	if http.get("url").status != 200 {
+		break
+	}
+}
+```
+
+Can it be solved with lazy evaluation?
+
+```
+fn a() {
+	if http.get("url").status != 200 {
+		return
+	}
+
+	a()
+}
+a()
+```
+
+Problem:
+
+Cannot pass a function with a side effect as an argument that expects a function without side effects.
+
+Can this also be solved with lazy evaluation?
+
+Question:
+
+if it is only about the errors, is it worth it?
+*/
+
+require (
+	"list"
+	"math"
+	"path"
+	"regexp"
+	"script"
+	"strings"
+	"struct"
+	"time"
+)
+
+let os script.requireModule("os")
+
+let (
+	nineMonthAgo    time.add(time.now(), -14 * 30 * time.Day)
+	matchExpression "[^a-zA-Z]kube(rnetes)?"
+	findKube        regexp.mustCompile(matchExpression)
+	matchKube       regexp.mustCompile("^" + matchExpression + "$")
+)
+
+
+fn codeFile(f) list.some(
+	eq(path.extension(f.path))
+	["c", "h", "go", "js", "mml", "hs", "elm", "json", "yaml", "yml"]
+)
+
+fn old(f) time.less(f.date, nineMonthAgo)
+
+fn ~ (
+	containsKube(f) f -> os.read -> strings.toLower -> findKube.match
+	fileMatch(f)    !f.isDir && !old(f) && !codeFile(f) && containsKube(f)
+)
+
+fn ~ findFiles(dir) {
+	let (
+		files        os.readDir(dir)
+		matches      list.effect.filter(fileMatch, files)
+		dirs         list.filter(struct.get("isDir"), files)
+		childMatches list.cat(list.effect.map(findFiles, dirs)...)
+	)
+
+	return [matches..., childMatches...]
+}
+
+fn lessByDate(left, right) {
+	fn diff(f) f.date -> time.sub(nineMonthAgo) -> math.abs
+	return diff(left) < diff(right)
+}
+
+fn ~ lessByFrequency(left, right)
+	len(findKube.all(os.read(left))) >
+	len(findKube.all(os.read(right)))
+
+fn lessByKubeInPath(left, right) {
+	fn count(p) fold(
+		fn (tag, count) matchKube.match(tag) ? count + 1 : count
+		0
+		strings.split(strings.toLower(p), "/")
+	)
+	return count(left.path) > count(right.path)
+}
+
+fn lessByTopDir(left, right) {
+	fn hasTopDir(p) {
+		let topDir path.dirs(p)[0]
+		return topDir == "Work" || topDir == "dir"
+	}
+
+	return hasTopDir(left.path) && !hasTopDir(right.path)
+}
+
+fn ~ sort list.effect.quickSort(
+	fn (left, right) list.effect.some(
+		fn (less) less(left, right)
+		[lessByDate, lessByFrequency, lessByKubeInPath, lessByTopDir]
+	)
+)
+
+"~" -> findFiles -> sort -> list.effect.map(println)

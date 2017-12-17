@@ -1,0 +1,32 @@
+require (
+	"mml/net/http"
+	"mml/encoding/json"
+)
+
+fn processRecord(record, totals) {
+	totals...
+	[record.name]: totals {[record.name]} ?
+		totals[record.name] + record.value :
+		record.value
+	sum: totals {sum} ?
+		totals.sum + record.value :
+		record.value
+}
+
+let mapping {username: "name"}
+
+type (
+	alias records [{name: string, value: int}]
+	report fn (string)
+)
+
+fn ~ report(url) {
+	let records http.getDecode(json.decodeMapping(mapping))
+	if records error {
+		return records
+	} else if records !records {
+		return error("invalid json result")
+	}
+
+	return records -> fold(processRecord, {})
+}

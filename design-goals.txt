@@ -1,10 +1,35 @@
 [abstract quality tags]
-"easy"
-"simple"
-"stable"
-"fast"
-"readable"
-"familiar"
+
+The following tags are assigned to a use case, when the value referenced by the tag is so important for the
+given use case that it is worth to trade in the other values to some degree. Maximum 3 tags can be selected for
+a use case. Not selecting any tags doesn't mean that nothing is important but that everything is equally
+important.
+
+- "easy":     I just want to see this code here working.
+- "simple":   The combined cognitive load caused by a problem should be proportional to its complexity.
+- "safe":     We want all the possible automated safety guards.
+- "fast":     Time and space are expensive.
+- "readable": The code tells a story.
+- "familiar": There is a normal way of how ifs, fors, operators and functions should look.
+
+Values identified but not addressed:
+- "portable": We use different platforms.
+- "modular":  considered to be required by all
+- compact:   too much convoluted by easy, simple, familiar and especially readable
+- automated: ??? considered 
+
+[current scores]
+
+# ..
+
+The expected most important values based on contemporary public discussions: safe, readable, fast.
+
+[influencing languages]
+Go: stdlib covers modern needs
+ES5: possible to understand the underlying control structure
+Scheme: even more possible to understand the underlying control structure
+Elm: pace of development due to safety
+Python: very easy to address simple problems
 
 [main goals]
 personal computing:
@@ -12,8 +37,9 @@ personal computing:
 - scripts, local automation
 - engineering/scientific/everyday calculator
 - prototyping
+- repl
 command line applications:
-- "simple", "readable"
+- "simple", "familiar"
 - os integration: unix
 tooling for services:
 - "simple", "readable", "familiar"
@@ -23,16 +49,18 @@ tooling for services:
 - distributed environment
 - maybe non-goal, but even then good conceptual check
 web:
-- "stable", "readable"
+- "safe", "readable"
 - scope in question
 - what not: frontend components, frameworks, backend/network infrastructure
 - what for sure: backend/frontend application logic, data access, presentation
 - what maybe: opinionated architecture, similar to Elm but for both backend and frontend and less strict, maybe
   like: http://sam.js.org/
 - what probably: network APIs ("microservices")
-machine learning:
+science:
 - "easy", "familiar"
-- seems to fit by accident, to be evaluated
+- again: why python
+- expected to be important in the near future, especially modelling
+- e.g: machine learning, jupyter scripting, simulations
 
 (Note that the tag "fast" is not used.)
 
@@ -41,15 +69,19 @@ examples for the main goals
 
 [non-goals]
 network infrastructure:
-- "simple", "stable", "fast"
+- "simple", "safe", "fast"
 large service applications:
-- "stable", "readable"
+- "safe", "readable"
 embedded:
-- "simple", "stable", "fast"
+- "simple", "safe", "fast"
 mobile:
-- "stable", "readable"
+- "safe", "readable"
 desktop applications:
-- "stable", "readable"
+- "safe", "readable"
+operating systems:
+- "fast", "simple"
+language runtimes, compilers, parsers:
+- "fast"
 
 [feature blocks]
 control
@@ -63,15 +95,19 @@ os
 io
 networking
 ffi
+stdlib
+observability
+testing
 tooling
 repl
 package management
-observability
 config
 deployment
 shareability
-formatting
+environment
 documentation
+formatting
+conventions
 
 [requirements]
 glue definitions to translate between the main goals and the feature requirements
@@ -97,6 +133,55 @@ strong network stack: client and server
 [machine learning]
 setting up models, not executing them. See the Tensorflow approach.
 control without side effects for safe precalculations
+
+[control]
+functional? not pure but a part of it is
+function composition, primitive cases rounded up to something hopefully exact
+functions start from their lambda form and can be captured in references and have a shortcut form
+imperative/declarative
+lexical scoping
+applicative order
+references
+copy on pass
+tail call optimization
+mutability/immutability explicit
+function arguments always immutable
+read-only reflection
+functions: first-class, variadic, partial application
+only fixed, built-in data types
+definition order
+equal by reference except: int, float, string
+garbage collection
+cases of impure functions
+only panics:
+- close of closed channel
+- send to closed channel
+- division by zero
+- out of memory
+- stack overflow
+statements and expressions
+no hoisting: clear mind model and no conflict with repl
+loops
+return
+repl support: e.g. delete any definition
+exceptions: pros and cons?
+simple: every operator has a function equivalent, every builtin function can be first class function
+
+[syntax]
+whitespace almost doesn't matter
+no custom operators, all of them have function form
+
+[data]
+a string is stuff of a certain length. Some strings represent text
+
+[types]
+inferred, provide motivation to rely on it
+only constraints
+limited dependent typing instead of full pattern matching
+no custom types, neither data or algebraic
+function type: argument names are not part of it
+different namespace like a different langauge
+some notion of shapes
 
 [backend]
 Go: strong stdlib covering lot's of the use cases, GC, concurrency, deployment
@@ -129,11 +214,31 @@ Single-threaded non-blocking may need to be supported in case of the JS backend.
 CSP comes for free in case of the Go backend.
 CSP seem to support best for the goals, actors maybe ok. The downside is relative unfamiliarity.
 
+[stdlib]
+modern problems faced during the use cases, even things like oauth
+serialization support in structs
+support web with pure framework
+support scripting with error handling, maybe a withError function is enough
+
 [tooling]
 log levels like an external process with filtering
 debugging:
 - taking the code, set break points, run in interpreter mode
 - only raises the size, so still with switch
+automation: should be open and economical. minimize resources, e.g. when only an IDE or a docker image can
+execute is wrong. automation should be part of the build and not the editing. the output of automation should
+not be part of the code in the version control only the automation instructions. automation should be compatible
+with other automations of the application source. good example: part of the go tools, go run for project
+scripting. Bad examples: another part of the go tools, e.g. go doc, or how go get and go generate work together,
+go vendoring, npm shrinknwrapping, npm nested modules, copy-pasted makefiles between projects, scripts inside
+configuration files. Very bad example: Java IDE generated Spring XMLs in the repo.
+The reason for wrong automation solutions was often unforeseen requirements. Given tools not supported some
+needs. To limit the effect of the unforeseen requirements, step back in time and investigate the reasons for
+these bad automation solutions and try to create a system where they can be avoided. E.g. avoid full declarative
+DSLs for configuration, they will need scripting very soon. Scripting will need modules very soon. Use a
+language, mml should be its own project automation language.
+Avoid computer data formats as human input: JSON, YAML.
+Investigate why make prevails.
 
 [package management]
 github based guix:
@@ -143,3 +248,11 @@ github based guix:
 - generic artefacts
 scriptable in mml, but versioning of guix itself?
 or just declarative in mml
+
+[conventions]
+everything is camel case
+invest in names: short but expressive, the gist of the covered concept
+in case of naming conflicts, truncate instead of decorate
+fun is welcome but be aware that even jokes can get tiring
+single formatter but not mandatory
+tabs, out of respect to the heros of the golden era of computing
