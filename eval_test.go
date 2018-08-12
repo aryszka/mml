@@ -1,0 +1,571 @@
+package mml
+
+import (
+	"reflect"
+	"testing"
+)
+
+func testEnvEq(left, right *env) bool {
+	return true
+}
+
+func testEq(left, right interface{}) bool {
+	switch lt := left.(type) {
+	case list:
+		rt := right.(list)
+
+		if lt.mutable != rt.mutable {
+			return false
+		}
+
+		if len(lt.values) != len(rt.values) {
+			return false
+		}
+
+		for i := range lt.values {
+			if lt.values[i] != rt.values[i] {
+				return false
+			}
+		}
+
+		return true
+	case structure:
+		rt := right.(structure)
+
+		if lt.mutable != rt.mutable {
+			return false
+		}
+
+		if len(lt.values) != len(rt.values) {
+			return false
+		}
+
+		for k := range lt.values {
+			if lt.values[k] != rt.values[k] {
+				return false
+			}
+		}
+
+		return true
+	case chan interface{}:
+		rt := right.(chan interface{})
+		return reflect.ValueOf(lt).Cap() == reflect.ValueOf(rt).Cap()
+	case statementList:
+		rt := right.(statementList)
+		if len(lt.statements) != len(rt.statements) {
+			return false
+		}
+
+		for i := range lt.statements {
+			if !testEq(lt.statements[i], rt.statements[i]) {
+				return false
+			}
+		}
+
+		return true
+	case function:
+		rt := right.(function)
+
+		if lt.effect != rt.effect {
+			return false
+		}
+
+		if len(lt.params) != len(rt.params) {
+			return false
+		}
+
+		for i := range lt.params {
+			if lt.params[i] != rt.params[i] {
+				return false
+			}
+		}
+
+		if lt.collectParam != rt.collectParam {
+			return false
+		}
+
+		if !testEq(lt.statement, rt.statement) {
+			return false
+		}
+
+		if !testEnvEq(lt.env, rt.env) {
+			return false
+		}
+
+		return true
+	default:
+		return left == right
+	}
+}
+
+func testEvalStatement(text string, value interface{}) func(*testing.T) {
+	return func(t *testing.T) {
+		c, err := parseStatement(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		v, err := eval(newEnv(), c)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !testEq(v, value) {
+			t.Errorf("got: %v, expected: %v", v, value)
+		}
+	}
+}
+
+func TestEval(t *testing.T) {
+	t.Run("empty module, whitespace", func(t *testing.T) {
+		m, err := parseModule("  \t ")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = evalModule(newEnv(), m)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("integer", func(t *testing.T) {
+		t.Run("octal", testEvalStatement("052", 42))
+		t.Run("decimal", testEvalStatement("42", 42))
+		t.Run("hexa", testEvalStatement("0x2a", 42))
+	})
+
+	t.Run("float", func(t *testing.T) {
+		t.Run("float", testEvalStatement("42.42", 42.42))
+		t.Run("leading zero", testEvalStatement("0.42", .42))
+		t.Run("no leading zero", testEvalStatement(".42", .42))
+		t.Run("exponent lower", testEvalStatement("42e85", 42e85))
+		t.Run("exponent upper", testEvalStatement("42E85", 42e85))
+		t.Run("exponent +", testEvalStatement("42e+85", 42e85))
+		t.Run("exponent -", testEvalStatement("42e-85", 42e-85))
+		t.Run("exponent leading zero", testEvalStatement("0.42e-85", .42e-85))
+		t.Run("exponent no leading zero", testEvalStatement(".42e-85", .42e-85))
+	})
+
+	t.Run("string", func(t *testing.T) {
+		t.Run("string", testEvalStatement(`"Hello, world!"`, "Hello, world!"))
+		t.Run("string multiline", testEvalStatement("\"Hello,\nworld!\"", "Hello,\nworld!"))
+		t.Run("string escaped multiline", testEvalStatement("\"Hello,\\nworld!\"", "Hello,\nworld!"))
+		t.Run("string escaped", testEvalStatement("\"\\\"Hello, world!\\\"\"", `"Hello, world!"`))
+	})
+
+	t.Run("bool", func(t *testing.T) {
+		t.Run("true", testEvalStatement("true", true))
+		t.Run("false", testEvalStatement("false", false))
+	})
+
+	t.Run("list", func(t *testing.T) {
+		t.Run("empty", testEvalStatement("[]", list{}))
+		t.Run("simple values", testEvalStatement("[1, 2, 3]", list{values: []interface{}{1, 2, 3}}))
+		t.Run("spread", testEvalStatement(
+			"[1, 2, [3, 4]..., 5]",
+			list{values: []interface{}{1, 2, 3, 4, 5}},
+		))
+	})
+
+	t.Run("mutable list", func(t *testing.T) {
+		t.Run("empty", testEvalStatement("~[]", list{mutable: true}))
+		t.Run("simple values", testEvalStatement(
+			"~[1, 2, 3]",
+			list{mutable: true, values: []interface{}{1, 2, 3}},
+		))
+		t.Run("spread", testEvalStatement(
+			"~[1, 2, [3, 4]..., 5]",
+			list{mutable: true, values: []interface{}{1, 2, 3, 4, 5}},
+		))
+	})
+
+	t.Run("struct", func(t *testing.T) {
+		t.Run("empty", testEvalStatement("{}", structure{}))
+		t.Run("simple", testEvalStatement(
+			"{foo: 1, bar: 2, baz: 3}",
+			structure{values: map[string]interface{}{
+				"foo": 1,
+				"bar": 2,
+				"baz": 3,
+			}},
+		))
+		t.Run("string key", testEvalStatement(
+			`{"foo": 42}`,
+			structure{values: map[string]interface{}{
+				"foo": 42,
+			}},
+		))
+		t.Run("expression key", testEvalStatement(
+			`{["foo"]: 42}`,
+			structure{values: map[string]interface{}{
+				"foo": 42,
+			}},
+		))
+		t.Run("spread", testEvalStatement(
+			"{foo: 1, bar: 2, {baz: 3, qux: 4}..., quux: 5}",
+			structure{values: map[string]interface{}{
+				"foo":  1,
+				"bar":  2,
+				"baz":  3,
+				"qux":  4,
+				"quux": 5,
+			}},
+		))
+	})
+
+	t.Run("mutable struct", func(t *testing.T) {
+		t.Run("empty", testEvalStatement("~{}", structure{mutable: true}))
+		t.Run("simple", testEvalStatement(
+			"~{foo: 1, bar: 2, baz: 3}",
+			structure{
+				mutable: true,
+				values: map[string]interface{}{
+					"foo": 1,
+					"bar": 2,
+					"baz": 3,
+				},
+			},
+		))
+		t.Run("string key", testEvalStatement(
+			`~{"foo": 42}`,
+			structure{
+				mutable: true,
+				values: map[string]interface{}{
+					"foo": 42,
+				},
+			},
+		))
+		t.Run("expression key", testEvalStatement(
+			`~{["foo"]: 42}`,
+			structure{
+				mutable: true,
+				values: map[string]interface{}{
+					"foo": 42,
+				},
+			},
+		))
+		t.Run("spread", testEvalStatement(
+			"~{foo: 1, bar: 2, {baz: 3, qux: 4}..., quux: 5}",
+			structure{
+				mutable: true,
+				values: map[string]interface{}{
+					"foo":  1,
+					"bar":  2,
+					"baz":  3,
+					"qux":  4,
+					"quux": 5,
+				},
+			},
+		))
+	})
+
+	t.Run("channel", func(t *testing.T) {
+		t.Run("unbuffered", testEvalStatement("<>", make(chan interface{})))
+		t.Run("buffered", testEvalStatement("<42>", make(chan interface{}, 42)))
+	})
+
+	t.Run("function", func(t *testing.T) {
+		t.Run("no params, void", testEvalStatement(
+			"fn () {;}",
+			function{statement: statementList{}},
+		))
+		t.Run("no params, expression", testEvalStatement(
+			"fn () 42",
+			function{statement: 42},
+		))
+		t.Run("no params, block", testEvalStatement(
+			"fn () { return 42 }",
+			function{statement: statementList{statements: []interface{}{ret{value: 42}}}},
+		))
+		t.Run("void", testEvalStatement(
+			"fn (foo, bar, baz) {;}",
+			function{
+				statement: statementList{},
+				params:    []string{"foo", "bar", "baz"},
+			},
+		))
+		t.Run("expression", testEvalStatement(
+			"fn (foo, bar, baz) 42",
+			function{
+				params:    []string{"foo", "bar", "baz"},
+				statement: 42,
+			},
+		))
+		t.Run("block", testEvalStatement(
+			"fn (foo, bar, baz) { return 42 }",
+			function{
+				params:    []string{"foo", "bar", "baz"},
+				statement: statementList{statements: []interface{}{ret{value: 42}}},
+			},
+		))
+		t.Run("collect, void", testEvalStatement(
+			"fn (foo, bar, baz, ...qux) {;}",
+			function{
+				statement:    statementList{},
+				params:       []string{"foo", "bar", "baz"},
+				collectParam: "qux",
+			},
+		))
+		t.Run("collect, expression", testEvalStatement(
+			"fn (foo, bar, baz, ...qux) 42",
+			function{
+				params:       []string{"foo", "bar", "baz"},
+				collectParam: "qux",
+				statement:    42,
+			},
+		))
+		t.Run("collect, block", testEvalStatement(
+			"fn (foo, bar, baz, ...qux) { return 42 }",
+			function{
+				params:       []string{"foo", "bar", "baz"},
+				collectParam: "qux",
+				statement:    statementList{statements: []interface{}{ret{value: 42}}},
+			},
+		))
+		t.Run("struct", testEvalStatement(
+			"fn () {}",
+			function{
+				statement: structure{},
+			},
+		))
+	})
+
+	t.Run("effect", func(t *testing.T) {
+		t.Run("no params, void", testEvalStatement(
+			"fn~ () {;}",
+			function{statement: statementList{}, effect: true},
+		))
+		t.Run("no params, expression", testEvalStatement(
+			"fn~ () 42",
+			function{effect: true, statement: 42},
+		))
+		t.Run("no params, block", testEvalStatement(
+			"fn~ () { return 42 }",
+			function{
+				effect:    true,
+				statement: statementList{statements: []interface{}{ret{value: 42}}},
+			},
+		))
+		t.Run("void", testEvalStatement(
+			"fn~ (foo, bar, baz) {;}",
+			function{
+				statement: statementList{},
+				effect:    true,
+				params:    []string{"foo", "bar", "baz"},
+			},
+		))
+		t.Run("expression", testEvalStatement(
+			"fn~ (foo, bar, baz) 42",
+			function{
+				effect:    true,
+				params:    []string{"foo", "bar", "baz"},
+				statement: 42,
+			},
+		))
+		t.Run("block", testEvalStatement(
+			"fn~ (foo, bar, baz) { return 42 }",
+			function{
+				effect:    true,
+				params:    []string{"foo", "bar", "baz"},
+				statement: statementList{statements: []interface{}{ret{value: 42}}},
+			},
+		))
+		t.Run("collect, void", testEvalStatement(
+			"fn~ (foo, bar, baz, ...qux) {;}",
+			function{
+				statement:    statementList{},
+				effect:       true,
+				params:       []string{"foo", "bar", "baz"},
+				collectParam: "qux",
+			},
+		))
+		t.Run("collect, expression", testEvalStatement(
+			"fn~ (foo, bar, baz, ...qux) 42",
+			function{
+				effect:       true,
+				params:       []string{"foo", "bar", "baz"},
+				collectParam: "qux",
+				statement:    42,
+			},
+		))
+		t.Run("collect, block", testEvalStatement(
+			"fn~ (foo, bar, baz, ...qux) { return 42 }",
+			function{
+				effect:       true,
+				params:       []string{"foo", "bar", "baz"},
+				collectParam: "qux",
+				statement:    statementList{statements: []interface{}{ret{value: 42}}},
+			},
+		))
+		t.Run("struct", testEvalStatement(
+			"fn~ () {}",
+			function{
+				effect:    true,
+				statement: structure{},
+			},
+		))
+	})
+
+	t.Run("indexer expression", func(t *testing.T) {
+		t.Run("expression indexer", func(t *testing.T) {
+			t.Run("list", func(t *testing.T) {
+				t.Run("index", testEvalStatement("[1, 2, 3][1]", 2))
+				t.Run("range", func(t *testing.T) {
+					t.Run("full", testEvalStatement(
+						"[1, 2, 3, 4, 5][2:4]",
+						list{values: []interface{}{3, 4}},
+					))
+					t.Run("from", testEvalStatement(
+						"[1, 2, 3, 4, 5][2:]",
+						list{values: []interface{}{3, 4, 5}},
+					))
+					t.Run("to", testEvalStatement(
+						"[1, 2, 3, 4, 5][:4]",
+						list{values: []interface{}{1, 2, 3, 4}},
+					))
+					t.Run("reslice", testEvalStatement(
+						"[1, 2, 3, 4, 5][:]",
+						list{values: []interface{}{1, 2, 3, 4, 5}},
+					))
+				})
+			})
+			t.Run("struct", testEvalStatement(`{foo: 1, bar: 2, baz: 3}["bar"]`, 2))
+		})
+		t.Run("symbol indexer", testEvalStatement("{foo: 1, bar: 2, baz: 3}.bar", 2))
+	})
+
+	t.Run("function application", func(t *testing.T) {
+		t.Run("void", testEvalStatement("fn () {;}()", nil))
+		t.Run("partial", testEvalStatement(
+			"fn (a, b, c) {;}(42)",
+			function{
+				params:    []string{"a", "b", "c"},
+				args:      []interface{}{42},
+				statement: statementList{},
+			},
+		))
+		t.Run("simple value", testEvalStatement("(fn () 42)()", 42))
+		t.Run("argument", testEvalStatement("(fn (a, b, c) a)(1, 2, 3)", 1))
+		t.Run("collect", testEvalStatement(
+			"(fn (a, b, ...c) c)(1, 2, 3, 4, 5)",
+			list{values: []interface{}{3, 4, 5}},
+		))
+		t.Run("spread", testEvalStatement(
+			"(fn (a, b, c) c)([1, 2, 3]...)",
+			3,
+		))
+		t.Run("collect and spread", testEvalStatement(
+			"(fn (a, b, ...c) c)(1, [2, 3, 4]..., 5)",
+			list{values: []interface{}{3, 4, 5}},
+		))
+		t.Run("statement list", func(t *testing.T) {
+			t.Run("empty, void", testEvalStatement("fn () {;}()", nil))
+			t.Run("partial", testEvalStatement(
+				"fn (a, b, c) { a; b; return c }(42)",
+				function{
+					params: []string{"a", "b", "c"},
+					args:   []interface{}{42},
+					statement: statementList{statements: []interface{}{
+						symbol{name: "a"},
+						symbol{name: "b"},
+						ret{value: symbol{name: "c"}},
+					}},
+				},
+			))
+			t.Run("void", testEvalStatement("fn (a, b, c) { a; b; c }(1, 2, 3)", nil))
+			t.Run("simple value", testEvalStatement("fn (a, b, c) { a; b; c; return 42 }(1, 2, 3)", 42))
+			t.Run("argument", testEvalStatement("fn (a, b, c) { a; b; return c }(1, 2, 3)", 3))
+			t.Run("collect", testEvalStatement(
+				"(fn (a, b, ...c) { a; b; return c })(1, 2, 3, 4, 5)",
+				list{values: []interface{}{3, 4, 5}},
+			))
+			t.Run("spread", testEvalStatement(
+				"(fn (a, b, c) { a; b; return c })([1, 2, 3]...)",
+				3,
+			))
+			t.Run("collect and spread", testEvalStatement(
+				"(fn (a, b, ...c) { a; b; return c })(1, [2, 3, 4]..., 5)",
+				list{values: []interface{}{3, 4, 5}},
+			))
+		})
+	})
+
+	t.Run("operator", func(t *testing.T) {
+		t.Run("unary", testEvalStatement("^2", -3))
+		t.Run("binary", testEvalStatement("3 & 7", 3))
+		t.Run("binary, chained", testEvalStatement("3 & 7 & 5", 1))
+		t.Run("precedence", testEvalStatement("3 * 4 - 2 * 5", 2))
+		t.Run("grouping", testEvalStatement("3 * (4 - 2) * 5", 30))
+	})
+
+	t.Run("function chaining", testEvalStatement(
+		`[1, 2, 3]
+		 -> fn (l) l
+		 -> fn (l) (fn (a, b, c) c)(l...)
+		 -> fn (x) x`,
+		3,
+	))
+
+	t.Run("ternay expression", func(t *testing.T) {
+		t.Run("true", testEvalStatement("true ? 42 : 36", 42))
+		t.Run("false", testEvalStatement("false ? 42 : 36", 36))
+	})
+
+	t.Run("if", func(t *testing.T) {
+		t.Run("simple", testEvalStatement(
+			`fn () {
+				if true {
+					return 42
+				}
+
+				return 36
+			}()`,
+			42,
+		))
+		t.Run("false", testEvalStatement(
+			`fn () {
+				if false {
+					return 42
+				}
+
+				return 36
+			}()`,
+			36,
+		))
+		t.Run("else", testEvalStatement(
+			`fn () {
+				if false {
+					return 42
+				} else {
+					return 36
+				}
+			}()`,
+			36,
+		))
+		t.Run("else if", testEvalStatement(
+			`fn () {
+				if false {
+					return 42
+				} else if true {
+					return 36
+				} else {
+					return 24
+				}
+			}()`,
+			36,
+		))
+		t.Run("else if, false", testEvalStatement(
+			`fn () {
+				if false {
+					return 42
+				} else if false {
+					return 36
+				}
+
+				return 24
+			}()`,
+			24,
+		))
+	})
+}

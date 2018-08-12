@@ -1,37 +1,23 @@
-SOURCES = $(shell find . -name '*.go')
-NEXT_SOURCES = $(shell find next -name '*.go')
+SOURCES = $(shell find . -name "*.go") syntax.treerack
 
-default: build
+deps:
+	go get github.com/aryszka/treerack/...
 
-next: build-next
+check-syntax: syntax.treerack
+	treerack check-syntax syntax.treerack
 
-imports:
-	@goimports -w $(SOURCES)
+parser/parser.go: check-syntax
+	@mkdir -p parser
+	treerack generate \
+		-export \
+		-package-name parser \
+		-syntax syntax.treerack \
+		> parser/parser.go
 
-build: $(SOURCES)
-	go build ./...
+gen-parser: parser/parser.go
 
-build-next: $(NEXT_SOURCES)
-	go build ./next
+check: $(SOURCES) gen-parser
+	go test ./...
 
-install: $(SOURCES)
-	go install ./cmd/mml
-
-check: build shortcheck
-	# no race here
-	# go test ./... -race
-
-check-next: next shortcheck-next
-	# no race here
-	# go test ./... -race
-
-shortcheck: build
-	go test ./... -test.short -run ^Test
-
-shortcheck-next: next
-	go test ./next -test.short -run ^Test
-
-fmt: $(SOURCES)
-	@gofmt -w -s $(SOURCES)
-
-precommit: build shortcheck fmt
+fmt:
+	go fmt ./...
