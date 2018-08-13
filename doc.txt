@@ -1,0 +1,11 @@
+[parser]
+- tokenization and tree parsing separate
+- tokens always first, e.g. with tokens -, <, <- and symbol, and parsing rules expression = [symbol],
+  receive = (<- expression), less-operation (expression < expression) and negative-value = (- expression), the
+  sequence a<-b won't parse as a less then minus b, because <- will be parsed as its own token
+- simple tokens
+- more complext tokens
+
+buzz:
+- simple user interface for parsing
+- can be used as a prototyping parser to test dsl concepts before implementing a specialized parser

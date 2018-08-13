@@ -1,0 +1,67 @@
+// TODO:
+// - how can one ensure the types of the handled values?
+// - maybe setters can behave like multiple definitions
+
+fn syncedVar(init) {
+	let buf <1>
+	buf <- init
+	return {
+		get: fn ~ () {
+			let v <-buf
+			buf <- v
+			return v
+		}
+		set: fn ~ (next) {
+			<-buf
+			buf <- next
+		}
+		setChecked: fn ~ (current, next) {
+			let v <-buf
+			if v != current {
+				buf <- v
+				return false
+			}
+
+			buf <- next
+			return true
+		}
+	}
+}
+
+let sv syncedVar(42)
+sv.get() -> inc(1) -> println // will fail now
+
+fn syncedMap() {
+	let buf <1>
+	buf <- ~{}
+	return {
+		get: fn ~ (key) {
+			let (
+				m <-buf
+				v m[key]
+			)
+
+			buf <- m
+			return v
+		}
+		set: fn ~ (key, val) {
+			let m <-buf
+			set m[key] val
+			buf <- m
+		}
+		setChecked: fn ~ (key, current, next) {
+			let (
+				m <-buf
+				v m[key]
+			)
+
+			if v != current {
+				buf <- m
+				return false
+			}
+
+			m[key] = next
+			return true
+		}
+	}
+}
