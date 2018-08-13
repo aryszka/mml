@@ -1,35 +1,59 @@
+Design Manifesto
+
+WARNING: this document contains non-scientific reasoning on purpose.
+
+This is in some cases due to the deliberately chosen approach to writing this document, and in some cases due to
+the authors' total lack of knowledge in the related area of sciences. We don't think that this is fine, but it
+helped us to shape the ideas in this document. We're open to argue about the content of this document and we
+welcome proofs or disproofs and any improvements. We also hope that on the long term, with contributors from
+different backgrounds in human knowledge, this document can reach a state where it can be considered as logical
+reasoning.
+
 [abstract quality tags]
 
-The following tags are assigned to a use case, when the value referenced by the tag is so important for the
-given use case that it is worth to trade in the other values to some degree. Maximum 3 tags can be selected for
-a use case. Not selecting any tags doesn't mean that nothing is important but that everything is equally
-important.
+The tag is so important for the given use case that it is worth to trade in the other values to some degree.
+Order all of them for each use case.
 
-- "easy":     I just want to see this code here working.
-- "simple":   The combined cognitive load caused by a problem should be proportional to its complexity.
-- "safe":     We want all the possible automated safety guards.
-- "fast":     Time and space are expensive.
-- "readable": The code tells a story.
-- "familiar": There is a normal way of how ifs, fors, operators and functions should look.
+- "easy":         I just want to see this code here working.
+- "familiar":     There is a normal way of how ifs, fors, operators and functions should look.
+- "fast":         Time and space are expensive.
+- "readable":     The code tells a story.
+- "safe":         We want all the possible automated safety guards.
+- "shared":       Somebody already solved this problem, I solve another, and let anybody solve a third one.
+- "simple":       The combined cognitive load caused by a problem should be proportional to its complexity.
+- "instrumented": We're not done yet with some code in some files. (TODO: need a better label for tooled)
 
-Values identified but not addressed:
-- "portable": We use different platforms.
-- "modular":  considered to be required by all
-- compact:   too much convoluted by easy, simple, familiar and especially readable
-- automated: ??? considered 
+Values considered non-negotiable:
+
+- "structured": I built my favorite toy from lego blocks, and then just couldn't quit building ever since.
+- "friendly":   We want to be able to work together with anybody.
+
+Trying to find the primary values that form a binding between humans and PL. E.g. "I can write large stable
+applications with this PL because it has classes." can be a valid statement, but it's not a primary value, and
+probably boiles down to the values of: "safe" and maybe even "familiar". On the other hand, there are values
+that people may look for that cannot be derived from the identified ones. E.g. "makes me feel smart" can be
+easily such a value. Or less cheekily, "compact" can be a value that can be important and doesn't necessarily
+derives from the combination of "easy", "readable", "simple", and "shared" (*). We still left these out, and who
+knows how many others. Therefore, our classification is imperfect and opinionated, but it's a classification and
+it's ours.
+
+In our view, "readable" includes "expressive".
 
 [current scores]
 
-# ..
-
-The expected most important values based on contemporary public discussions: safe, readable, fast.
-
 [influencing languages]
-Go: stdlib covers modern needs
+C: as a language of unix. Empirical examples, of how the culture can go very good or very bad. Originally, C had
+a clear purpose as the language of unix.
+Go: stdlib covers modern needs. The example of the step-back
 ES5: possible to understand the underlying control structure
 Scheme: even more possible to understand the underlying control structure
 Elm: pace of development due to safety
 Python: very easy to address simple problems
+Rust: strictness with simple syntax support
+D: familiarity and some modern features
+
+[main goals]
+inclusivity: spoken language, physical skills, intellectual orientation
 
 [main goals]
 personal computing:
@@ -108,6 +132,7 @@ environment
 documentation
 formatting
 conventions
+accessibility
 
 [requirements]
 glue definitions to translate between the main goals and the feature requirements
@@ -121,6 +146,8 @@ simply runnable and composable scripts
 reusable code
 strong network stack: client
 control without side effects for safe calculcations
+bash targets a single system, the word has changed
+multiple backends, maybe even android?
 
 [tooling for services]
 stable modules
@@ -135,7 +162,7 @@ setting up models, not executing them. See the Tensorflow approach.
 control without side effects for safe precalculations
 
 [control]
-functional? not pure but a part of it is
+functional? Not pure but a part of it is. Functional is better composable.
 function composition, primitive cases rounded up to something hopefully exact
 functions start from their lambda form and can be captured in references and have a shortcut form
 imperative/declarative
@@ -166,13 +193,24 @@ return
 repl support: e.g. delete any definition
 exceptions: pros and cons?
 simple: every operator has a function equivalent, every builtin function can be first class function
+let, set have no return values
 
 [syntax]
 whitespace almost doesn't matter
 no custom operators, all of them have function form
+faster parser can enable more aids, but can be in conflict with other values. Double syntax?
 
 [data]
 a string is stuff of a certain length. Some strings represent text
+numbers: only float and int, to save features. Empirically, in the targeted use cases, successful applications
+were written with even less detailed numeric data types. Arithmetics bit operators allowed on ints, the ints
+package contains additional functions that represent the binary bit operators.
+JS backend can have differences for efficiency, finalized during implementation.
+bool: switches and serialization, not an int
+structs: both data structures and dictionaries. string as key seems to be enough empirically, simplifies things.
+hashing of references may come at the cost of setting rules on equality. against simple.
+lists: opaque. can't change length of mutable.
+immutable/mutable structs/lists
 
 [types]
 inferred, provide motivation to rely on it
@@ -182,6 +220,17 @@ no custom types, neither data or algebraic
 function type: argument names are not part of it
 different namespace like a different langauge
 some notion of shapes
+C is an example worth bearing in mind
+non-restricted: * or _ or just nothing for return values?
+ranges as types?
+lookup the old notes: "function is function, data is data", data and behavior
+explain polymorphism
+how about the interfaces that are accepted, but are epxected to be used from the stdlib or from the community?
+avoid dependency injection descriptions just like in Go. Not only don't introduce interfaces when not wanting
+multiple implementations, but only introduce functions or no higher-order functions
+observation: all pure functions are constructors. Also no default values
+types introduce coupling in later phases of a program in their lifecycle
+custom types limit polymorphism
 
 [backend]
 Go: strong stdlib covering lot's of the use cases, GC, concurrency, deployment
@@ -189,6 +238,7 @@ JS: required for the web
 interpreter
 own copy of Go
 node optional only
+android? a more open mobile platform?
 
 [modules]
 stems from: personal computing, service tooling, web
@@ -228,10 +278,11 @@ debugging:
 automation: should be open and economical. minimize resources, e.g. when only an IDE or a docker image can
 execute is wrong. automation should be part of the build and not the editing. the output of automation should
 not be part of the code in the version control only the automation instructions. automation should be compatible
-with other automations of the application source. good example: part of the go tools, go run for project
-scripting. Bad examples: another part of the go tools, e.g. go doc, or how go get and go generate work together,
-go vendoring, npm shrinknwrapping, npm nested modules, copy-pasted makefiles between projects, scripts inside
-configuration files. Very bad example: Java IDE generated Spring XMLs in the repo.
+with other automations of the application source. good example: part of the go tools (self contained), go run
+for project scripting. Bad examples: another part of the go tools, e.g. go doc, or how go get and go generate
+work together, go vendoring, npm shrinknwrapping, npm nested modules, copy-pasted makefiles between projects,
+scripts inside configuration files. Very bad example: Java IDE generated Spring XMLs in the repo, editor
+settings as part of the code.
 The reason for wrong automation solutions was often unforeseen requirements. Given tools not supported some
 needs. To limit the effect of the unforeseen requirements, step back in time and investigate the reasons for
 these bad automation solutions and try to create a system where they can be avoided. E.g. avoid full declarative
@@ -239,6 +290,8 @@ DSLs for configuration, they will need scripting very soon. Scripting will need 
 language, mml should be its own project automation language.
 Avoid computer data formats as human input: JSON, YAML.
 Investigate why make prevails.
+Accessiblity. What's better: provide or integrate? Too far away error messages can be problematic.
+tooling is also relative, don't apply biases about assumed default or given tools: languages, accessiblity
 
 [package management]
 github based guix:
@@ -248,11 +301,17 @@ github based guix:
 - generic artefacts
 scriptable in mml, but versioning of guix itself?
 or just declarative in mml
+can guix be in conflict with good automation? is what's on the system a different question?
 
 [conventions]
+it's culture, Mikkamakka
 everything is camel case
 invest in names: short but expressive, the gist of the covered concept
 in case of naming conflicts, truncate instead of decorate
 fun is welcome but be aware that even jokes can get tiring
 single formatter but not mandatory
 tabs, out of respect to the heros of the golden era of computing
+what's possible should not be considered bad
+a single letter variable in chinese taking assumptions from the initializing type: can sound better, can sound
+worse, can sound rude, too. These things need to be learned, yet.
+strict formatter: firendly with blind people who never see the code

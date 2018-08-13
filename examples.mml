@@ -332,6 +332,19 @@ fn findEven(numbers) {
 
 // --
 
+let (
+	a f(x)
+	b g(a)
+	c h(b)
+)
+
+let c h(g(f(x)))
+let c fn(x) { let a f(x); let b g(a); h(b) }(x)
+
+let c x -> f -> g -> h
+
+// --
+
 type findEven fn ([int]) int
 fn findEven(numbers) {
 	numbers -> find(isEven) -> numberOrZero
@@ -644,3 +657,7 @@ a -> g -> f
 
 let type maybe just a | nothing
 let type money dollar int | euro int
+
+// --
+
+fn hasWhitespace list.some(fn (def) def.commitType & Whitespace != 0)
