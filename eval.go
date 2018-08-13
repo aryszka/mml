@@ -15,6 +15,8 @@ var (
 	errNotAFunction                = errors.New("not a function")
 	errInvalidArgument             = errors.New("invalid argument")
 	errExpectedBoolean             = errors.New("expected boolean")
+	errInvalidSwitchExpression     = errors.New("invalid switch expression")
+	errInvalidCaseExpression       = errors.New("invalid case expression")
 )
 
 func evalSymbol(e *env, s symbol) (interface{}, error) {
@@ -228,29 +230,24 @@ func evalIndexer(e *env, i indexer) (interface{}, error) {
 	}
 }
 
-func evalStatementList(e *env, s statementList) (r ret, err error) {
-	var (
-		v interface{}
-		ok bool
-	)
-
+func evalStatementList(e *env, s statementList) (interface{}, error) {
 	for _, si := range s.statements {
-		switch sit := si.(type) {
-		case ret:
-			r.value, err = eval(e, sit.value)
-			return
-		default:
-			if v, err = eval(e, si); err != nil {
-				return
-			}
+		if r, ok := si.(ret); ok {
+			siv, err := eval(e, r.value)
+			return ret{value: siv}, err
+		}
 
-			if r, ok = v.(ret); ok {
-				return
-			}
+		siv, err := eval(e, si)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := siv.(ret); ok {
+			return siv, nil
 		}
 	}
 
-	return
+	return nil, nil
 }
 
 func evalExpressionOrStatementList(e *env, v interface{}) (interface{}, error) {
@@ -606,6 +603,48 @@ func evalCond(e *env, t cond) (interface{}, error) {
 	return evalExpressionOrStatementList(e, t.alternative)
 }
 
+func evalSwitch(e *env, s switchStatement) (interface{}, error) {
+	var (
+		exp, cexp    interface{}
+		err          error
+		cexpCond, ok bool
+	)
+
+	if s.expression != nil {
+		if exp, err = eval(e, s.expression); err != nil {
+			return nil, errInvalidSwitchExpression
+		}
+	}
+
+	for _, c := range s.cases {
+		if cexp, err = eval(e, c.expression); err != nil {
+			return nil, err
+		}
+
+		if cexp == nil {
+			return nil, errInvalidCaseExpression
+		}
+
+		if exp == nil {
+			if cexpCond, ok = cexp.(bool); !ok {
+				return nil, errInvalidCaseExpression
+			}
+		}
+
+		if exp == nil && !cexpCond {
+			continue
+		}
+
+		if exp != nil && exp != cexp {
+			continue
+		}
+
+		return evalStatementList(e, c.statements)
+	}
+
+	return evalStatementList(e, s.defaultStatements)
+}
+
 func eval(e *env, code interface{}) (interface{}, error) {
 	switch v := code.(type) {
 	case int:
@@ -636,6 +675,8 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return evalBinary(e, v)
 	case cond:
 		return evalCond(e, v)
+	case switchStatement:
+		return evalSwitch(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}

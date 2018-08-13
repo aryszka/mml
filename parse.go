@@ -24,6 +24,10 @@ func parseInt(ast *parser.Node) int {
 		base = 16
 		t = t[2:]
 	case strings.HasPrefix(t, "0"):
+		if t == "0" {
+			return 0
+		}
+
 		base = 8
 		t = t[1:]
 	default:
@@ -324,7 +328,7 @@ func parseChaining(ast *parser.Node) interface{} {
 		f := parse(n[0])
 		a = functionApplication{
 			function: f,
-			args: []interface{}{a},
+			args:     []interface{}{a},
 		}
 
 		n = n[1:]
@@ -333,37 +337,117 @@ func parseChaining(ast *parser.Node) interface{} {
 
 func parserTernary(ast *parser.Node) cond {
 	return cond{
-		condition: parse(ast.Nodes[0]),
-		consequent: parse(ast.Nodes[1]),
+		condition:   parse(ast.Nodes[0]),
+		consequent:  parse(ast.Nodes[1]),
 		alternative: parse(ast.Nodes[2]),
 	}
 }
 
 func parseIf(ast *parser.Node) cond {
 	n := ast.Nodes
-	c := cond{
-		condition: parse(n[0]),
-		consequent: parse(n[1]),
-	}
-	n = n[2:]
-
-	cc := &c
-	for len(n) > 0 {
-		if len(n) == 1 {
-			cc.alternative = parse(n[0])
-			return c
+	var c *cond
+	for {
+		if len(n) == 0 {
+			return *c
 		}
 
-		ccc := cond{
-			condition: parse(n[0]),
+		if len(n) == 1 {
+			c.alternative = parse(n[0])
+			return *c
+		}
+
+		cc := cond{
+			condition:  parse(n[0]),
 			consequent: parse(n[1]),
 		}
-		cc.alternative = ccc
+
+		if c != nil {
+			c.alternative = cc
+		}
+
+		c = &cc
 		n = n[2:]
-		cc = &ccc
+	}
+}
+
+func parseSwitch(ast *parser.Node) switchStatement {
+	var (
+		s                 switchStatement
+		sc                switchCase
+		nodes             []*parser.Node
+		current           []*parser.Node
+		isDefault         bool
+		expression        *parser.Node
+		cases             [][]*parser.Node
+		defaultStatements []*parser.Node
+	)
+
+	nodes = ast.Nodes
+
+	switch nodes[0].Name {
+	case "case", "default":
+	default:
+		expression, nodes = nodes[0], nodes[1:]
 	}
 
-	return c
+	for _, n := range nodes {
+		switch n.Name {
+		case "case":
+			if len(current) > 0 {
+				if isDefault {
+					defaultStatements = current
+				} else {
+					cases = append(cases, current)
+				}
+			}
+
+			current = []*parser.Node{n.Nodes[0]}
+			isDefault = false
+		case "default":
+			if len(current) > 0 && !isDefault {
+				cases = append(cases, current)
+			}
+
+			current = nil
+			isDefault = true
+		default:
+			current = append(current, n)
+		}
+	}
+
+	if len(current) > 0 {
+		if isDefault {
+			defaultStatements = current
+		} else {
+			cases = append(cases, current)
+		}
+	}
+
+	if expression != nil {
+		s.expression = parse(expression)
+	}
+
+	for _, c := range cases {
+		sc.expression = parse(c[0])
+		sc.statements = statementList{}
+		for _, cs := range c[1:] {
+			sc.statements.statements = append(
+				sc.statements.statements,
+				parse(cs),
+			)
+		}
+
+		s.cases = append(s.cases, sc)
+	}
+
+	for _, si := range defaultStatements {
+		s.defaultStatements.statements = append(
+			s.defaultStatements.statements,
+			parse(si),
+		)
+	}
+
+	return s
 }
 
 func parse(ast *parser.Node) interface{} {
@@ -422,6 +506,8 @@ func parse(ast *parser.Node) interface{} {
 		return parserTernary(ast)
 	case "if":
 		return parseIf(ast)
+	case "switch":
+		return parseSwitch(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}

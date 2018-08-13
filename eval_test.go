@@ -568,4 +568,63 @@ func TestEval(t *testing.T) {
 			24,
 		))
 	})
+
+	t.Run("switch", func(t *testing.T) {
+		t.Run("empty", testEvalStatement(
+			"fn () { switch { default: }; return 42 }()",
+			42,
+		))
+		t.Run("default only", testEvalStatement(
+			"fn () { switch { default: return 42 }; return 36 }()",
+			42,
+		))
+		t.Run("cases only", testEvalStatement(
+			"fn () { switch { case false: return 42; case true: return 36; } }()",
+			36,
+		))
+		t.Run("cases and default", testEvalStatement(
+			`fn () {
+				switch {
+				case false: return 42
+				case true: return 36
+				default: return 24
+				}
+			}()`,
+			36,
+		))
+		t.Run("cases and default, choose default", testEvalStatement(
+			`fn () {
+				switch {
+				case false: return 42
+				case false: return 36
+				default: return 24
+				}
+			}()`,
+			24,
+		))
+		t.Run("expression", func(t *testing.T) {
+			t.Run("empty", testEvalStatement(
+				"fn () { switch 1 { default: }; return 42 }()",
+				42,
+			))
+			t.Run("default only", testEvalStatement(
+				"fn () { switch 1 { default: return 42 }; return 36 }()",
+				42,
+			))
+			t.Run("cases only", testEvalStatement(
+				"fn () { switch 1 { case 1: return 42; case 2: return 36; } }()",
+				42,
+			))
+			t.Run("cases and default, choose default", testEvalStatement(
+				`fn () {
+					switch 0 {
+					case 1: return 42
+					case 2: return 36
+					default: return 24
+					}
+				}()`,
+				24,
+			))
+		})
+	})
 }

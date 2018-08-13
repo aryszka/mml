@@ -105,6 +105,17 @@ type cond struct {
 	condition, consequent, alternative interface{}
 }
 
+type switchCase struct {
+	expression interface{}
+	statements statementList
+}
+
+type switchStatement struct {
+	expression        interface{}
+	cases             []switchCase
+	defaultStatements statementList
+}
+
 type controlStatement int
 
 const (
