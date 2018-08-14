@@ -116,6 +116,13 @@ type switchStatement struct {
 	defaultStatements statementList
 }
 
+type controlStatement int
+
+const (
+	breakStatement controlStatement = iota
+	continueStatement
+)
+
 type rangeOver struct {
 	symbol     string
 	expression interface{}
@@ -126,12 +133,15 @@ type loop struct {
 	body       statementList
 }
 
-type controlStatement int
+type definition struct {
+	mutable    bool
+	symbol     string
+	expression interface{}
+}
 
-const (
-	breakStatement controlStatement = iota
-	continueStatement
-)
+type definitionList struct {
+	definitions []definition
+}
 
 type module struct {
 	text       string

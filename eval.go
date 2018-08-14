@@ -867,6 +867,26 @@ func evalLoop(e *env, l loop) (interface{}, error) {
 	return evalConditionalLoop(e, l)
 }
 
+func evalDefinition(e *env, d definition) (interface{}, error) {
+	v, err := eval(e, d.expression)
+	if err != nil {
+		return nil, err
+	}
+
+	e.define(d.symbol, v)
+	return nil, nil
+}
+
+func evalDefinitionList(e *env, d definitionList) (interface{}, error) {
+	for _, di := range d.definitions {
+		if _, err := eval(e, di); err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
+}
+
 func eval(e *env, code interface{}) (interface{}, error) {
 	switch v := code.(type) {
 	case int:
@@ -903,6 +923,10 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return code, nil
 	case loop:
 		return evalLoop(e, v)
+	case definition:
+		return evalDefinition(e, v)
+	case definitionList:
+		return evalDefinitionList(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}

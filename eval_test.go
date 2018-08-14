@@ -27,8 +27,6 @@ func testEq(left, right interface{}) bool {
 				return false
 			}
 		}
-
-		return true
 	case structure:
 		rt := right.(structure)
 
@@ -45,8 +43,6 @@ func testEq(left, right interface{}) bool {
 				return false
 			}
 		}
-
-		return true
 	case chan interface{}:
 		rt := right.(chan interface{})
 		return reflect.ValueOf(lt).Cap() == reflect.ValueOf(rt).Cap()
@@ -61,8 +57,6 @@ func testEq(left, right interface{}) bool {
 				return false
 			}
 		}
-
-		return true
 	case function:
 		rt := right.(function)
 
@@ -91,11 +85,27 @@ func testEq(left, right interface{}) bool {
 		if !testEnvEq(lt.env, rt.env) {
 			return false
 		}
+	case functionApplication:
+		rt := right.(functionApplication)
 
-		return true
+		if !testEq(lt.function, rt.function) {
+			return false
+		}
+
+		if len(lt.args) != len(rt.args) {
+			return false
+		}
+
+		for i := range lt.args {
+			if !testEq(lt.args[i], rt.args[i]) {
+				return false
+			}
+		}
 	default:
 		return left == right
 	}
+
+	return true
 }
 
 func testEvalStatement(text string, value interface{}) func(*testing.T) {
@@ -782,5 +792,126 @@ func TestEval(t *testing.T) {
 			}()`,
 			42,
 		))
+	})
+
+	t.Run("define", func(t *testing.T) {
+		t.Run("value", func(t *testing.T) {
+			t.Run("immutable", testEvalStatement("fn () { let a 42; return a }()", 42))
+			t.Run("mutable", testEvalStatement("fn () { let a 42; return a }()", 42))
+		})
+		t.Run("value group", func(t *testing.T) {
+			t.Run("immutable", testEvalStatement(
+				`fn () {
+					let (
+						a 42
+						b 36
+					)
+
+					return b - a
+				}()`,
+				-6,
+			))
+			t.Run("mutable", testEvalStatement(
+				`fn () {
+					let ~ (
+						a 42
+						b 36
+					)
+
+					return b - a
+				}()`,
+				-6,
+			))
+			t.Run("mixed", testEvalStatement(
+				`fn () {
+					let (
+						  a 42
+						~ b 36
+					)
+
+					return b - a
+				}()`,
+				-6,
+			))
+		})
+		t.Run("function", func(t *testing.T) {
+			t.Run("pure", testEvalStatement(
+				"fn () { fn square(x) x * x; return square }()",
+				function{
+					params: []string{"x"},
+					statement: binary{
+						op:    mul,
+						left:  symbol{name: "x"},
+						right: symbol{name: "x"},
+					},
+				},
+			))
+			t.Run("mutable", testEvalStatement(
+				"fn () { fn ~ printSquare(x) print(x * x); return printSquare }()",
+				function{
+					effect: true,
+					params: []string{"x"},
+					statement: functionApplication{
+						function: symbol{name: "print"},
+						args: []interface{}{
+							binary{
+								op:    mul,
+								left:  symbol{name: "x"},
+								right: symbol{name: "x"},
+							},
+						},
+					},
+				},
+			))
+		})
+		t.Run("function group", func(t *testing.T) {
+			t.Run("pure", testEvalStatement(
+				`fn () {
+					fn (
+						a () 42,
+						b (x) 36,
+						c (x) 24,
+					)
+					
+					return c
+				}()`,
+				function{
+					params:    []string{"x"},
+					statement: 24,
+				},
+			))
+			t.Run("effect", testEvalStatement(
+				`fn () {
+					fn ~ (
+						a () 42,
+						b (x) 36,
+						c (x) 24,
+					)
+					
+					return c
+				}()`,
+				function{
+					effect:    true,
+					params:    []string{"x"},
+					statement: 24,
+				},
+			))
+			t.Run("mixed", testEvalStatement(
+				`fn () {
+					fn (
+						  a () 42,
+						~ b (x) 36,
+						~ c (x) 24,
+					)
+					
+					return c
+				}()`,
+				function{
+					effect:    true,
+					params:    []string{"x"},
+					statement: 24,
+				},
+			))
+		})
 	})
 }

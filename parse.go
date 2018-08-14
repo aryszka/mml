@@ -180,26 +180,31 @@ func parseStatementList(ast *parser.Node) statementList {
 	return statementList{statements: s}
 }
 
-func parseFunction(ast *parser.Node) (f function) {
-	last := len(ast.Nodes) - 1
-	params := ast.Nodes[:last]
-	value := ast.Nodes[last]
+func parseFunctionFact(n []*parser.Node) function {
+	var f function
+	last := len(n) - 1
+	params := n[:last]
+	value := n[last]
 
 	if len(params) > 0 {
 		lastArg := len(params) - 1
 		if params[lastArg].Name == "collect-argument" {
-			f.collectParam = params[lastArg].Nodes[0].Text()
+			f.collectParam = parse(params[lastArg].Nodes[0]).(symbol).name
 			params = params[:lastArg]
 		}
 	}
 
 	f.params = make([]string, len(params))
 	for i := range params {
-		f.params[i] = params[i].Text()
+		f.params[i] = parse(params[i]).(symbol).name
 	}
 
 	f.statement = parse(value)
-	return
+	return f
+}
+
+func parseFunction(ast *parser.Node) (f function) {
+	return parseFunctionFact(ast.Nodes)
 }
 
 func parseEffect(ast *parser.Node) function {
@@ -241,7 +246,7 @@ func parseExpressionIndexer(ast *parser.Node) indexer {
 
 func parseSymbolIndexer(ast *parser.Node) indexer {
 	e := parse(ast.Nodes[0])
-	k := ast.Nodes[1].Text()
+	k := parse(ast.Nodes[1]).(symbol).name
 	return indexer{expression: e, index: k}
 }
 
@@ -490,7 +495,8 @@ func parseRangeOver(ast *parser.Node) interface{} {
 	return rangeOver{symbol: s, expression: exp}
 }
 
-func parseLoop(ast *parser.Node) (l loop) {
+func parseLoop(ast *parser.Node) loop {
+	var l loop
 	n := ast.Nodes
 
 	if len(n) == 2 {
@@ -504,7 +510,75 @@ func parseLoop(ast *parser.Node) (l loop) {
 	}
 
 	l.body = parseStatementList(n[0])
-	return
+	return l
+}
+
+func parseValueCapture(ast *parser.Node) definition {
+	return definition{
+		symbol:     parse(ast.Nodes[0]).(symbol).name,
+		expression: parse(ast.Nodes[1]),
+	}
+}
+
+func parseMutableCapture(ast *parser.Node) definition {
+	d := parseValueCapture(ast)
+	d.mutable = true
+	return d
+}
+
+func parseValueDefinition(ast *parser.Node) interface{} {
+	return parse(ast.Nodes[0])
+}
+
+func parseDefinitions(ast *parser.Node) definitionList {
+	var d definitionList
+	for _, n := range ast.Nodes {
+		d.definitions = append(d.definitions, parse(n).(definition))
+	}
+
+	return d
+}
+
+func parseMutableDefinitions(ast *parser.Node) definitionList {
+	d := parseDefinitions(ast)
+	for i := range d.definitions {
+		d.definitions[i].mutable = true
+	}
+
+	return d
+}
+
+func parseFunctionCapture(ast *parser.Node) definition {
+	symbol := parse(ast.Nodes[0]).(symbol).name
+	function := parseFunctionFact(ast.Nodes[1:])
+	return definition{
+		symbol:     symbol,
+		expression: function,
+	}
+}
+
+func parseEffectCapture(ast *parser.Node) definition {
+	d := parseFunctionCapture(ast)
+	f := d.expression.(function)
+	f.effect = true
+	d.expression = f
+	return d
+}
+
+func parseFunctionDefinition(ast *parser.Node) interface{} {
+	return parse(ast.Nodes[0])
+}
+
+func parseEffectDefinitions(ast *parser.Node) definitionList {
+	d := parseDefinitions(ast)
+	for i := range d.definitions {
+		f := d.definitions[i].expression.(function)
+		f.effect = true
+		d.definitions[i].expression = f
+
+	}
+
+	return d
 }
 
 func parse(ast *parser.Node) interface{} {
@@ -569,6 +643,26 @@ func parse(ast *parser.Node) interface{} {
 		return parseRangeOver(ast)
 	case "loop":
 		return parseLoop(ast)
+	case "value-capture":
+		return parseValueCapture(ast)
+	case "mutable-capture":
+		return parseMutableCapture(ast)
+	case "value-definition":
+		return parseValueDefinition(ast)
+	case "value-definition-group":
+		return parseDefinitions(ast)
+	case "mutable-definition-group":
+		return parseMutableDefinitions(ast)
+	case "function-capture":
+		return parseFunctionCapture(ast)
+	case "effect-capture":
+		return parseEffectCapture(ast)
+	case "function-definition":
+		return parseFunctionDefinition(ast)
+	case "function-definition-group":
+		return parseDefinitions(ast)
+	case "effect-definition-group":
+		return parseEffectDefinitions(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}
