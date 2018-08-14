@@ -95,8 +95,17 @@ func parseString(ast *parser.Node) string {
 	return unescape(t[1 : len(t)-1])
 }
 
-func parseSymbol(ast *parser.Node) symbol {
-	return symbol{name: ast.Text()}
+func parseSymbol(ast *parser.Node) interface{} {
+	t := ast.Text()
+	switch t {
+	case "break":
+		return breakStatement
+	case "continue":
+		return continueStatement
+	// TODO: all the keywords
+	default:
+		return symbol{name: t}
+	}
 }
 
 func parseSpread(ast *parser.Node) spread {
@@ -429,10 +438,10 @@ func parseSwitch(ast *parser.Node) switchStatement {
 
 	for _, c := range cases {
 		sc.expression = parse(c[0])
-		sc.statements = statementList{}
+		sc.body = statementList{}
 		for _, cs := range c[1:] {
-			sc.statements.statements = append(
-				sc.statements.statements,
+			sc.body.statements = append(
+				sc.body.statements,
 				parse(cs),
 			)
 		}
@@ -448,6 +457,54 @@ func parseSwitch(ast *parser.Node) switchStatement {
 	}
 
 	return s
+}
+
+func parseRangeOver(ast *parser.Node) interface{} {
+	n := ast.Nodes
+	if len(n) == 0 {
+		return rangeOver{}
+	}
+
+	var s string
+	if n[0].Name == "symbol" {
+		sv := parseSymbol(n[0])
+		ss, ok := sv.(symbol)
+		if !ok {
+			panic("keyword, TODO")
+		}
+
+		s = ss.name
+		n = n[1:]
+	}
+
+	if len(n) == 0 {
+		return rangeOver{symbol: s}
+	}
+
+	exp := parse(n[0])
+	if rt, ok := exp.(rangeExpression); ok && len(n) > 1 {
+		rt.to = parse(n[1]).(rangeExpression).to
+		exp = rt
+	}
+
+	return rangeOver{symbol: s, expression: exp}
+}
+
+func parseLoop(ast *parser.Node) (l loop) {
+	n := ast.Nodes
+
+	if len(n) == 2 {
+		l.expression = parse(n[0])
+		n = n[1:]
+
+		var emptyRange rangeOver
+		if l.expression == emptyRange {
+			l.expression = nil
+		}
+	}
+
+	l.body = parseStatementList(n[0])
+	return
 }
 
 func parse(ast *parser.Node) interface{} {
@@ -508,6 +565,10 @@ func parse(ast *parser.Node) interface{} {
 		return parseIf(ast)
 	case "switch":
 		return parseSwitch(ast)
+	case "range-over-expression":
+		return parseRangeOver(ast)
+	case "loop":
+		return parseLoop(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}

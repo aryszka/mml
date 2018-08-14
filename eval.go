@@ -17,9 +17,11 @@ var (
 	errExpectedBoolean             = errors.New("expected boolean")
 	errInvalidSwitchExpression     = errors.New("invalid switch expression")
 	errInvalidCaseExpression       = errors.New("invalid case expression")
+	errInvalidLoopExpression       = errors.New("invalid loop expression")
 )
 
 func evalSymbol(e *env, s symbol) (interface{}, error) {
+	// TODO: handle _
 	return e.lookup(s.name)
 }
 
@@ -125,7 +127,7 @@ func evalStruct(e *env, s structure) (result structure, err error) {
 }
 
 func evalFunction(e *env, f function) function {
-	f.env = e.clone()
+	f.env = e.extend()
 	return f
 }
 
@@ -240,6 +242,10 @@ func evalStatementList(e *env, s statementList) (interface{}, error) {
 		siv, err := eval(e, si)
 		if err != nil {
 			return nil, err
+		}
+
+		if siv == breakStatement || siv == continueStatement {
+			return siv, nil
 		}
 
 		if _, ok := siv.(ret); ok {
@@ -378,9 +384,9 @@ func evalIntBinaryChecked(op binaryOperator, left, right int) (interface{}, erro
 	case less:
 		return left < right, nil
 	case lessOrEq:
-		return left > right, nil
-	case greater:
 		return left <= right, nil
+	case greater:
+		return left > right, nil
 	case greaterOrEq:
 		return left >= right, nil
 	default:
@@ -562,16 +568,33 @@ func evalBoolBinary(e *env, b binary) (bool, error) {
 	}
 }
 
+func evalEqNotEq(e *env, b binary) (interface{}, error) {
+	left, err := eval(e, b.left)
+	if err != nil {
+		return nil, err
+	}
+
+	right, err := eval(e, b.right)
+	if err != nil {
+		return nil, err
+	}
+
+	switch b.op {
+	case eq:
+		return left == right, nil
+	default:
+		return left != right, nil
+	}
+}
+
 func evalBinary(e *env, b binary) (interface{}, error) {
 	switch b.op {
 	case binaryAnd, binaryOr, xor, andNot, lshift, rshift:
 		return evalIntBinary(e, b)
 	case mul, div, mod, sub:
 		return evalIntFloatBinary(e, b)
-	case eq:
-		return b.left == b.right, nil
-	case notEq:
-		return b.left != b.right, nil
+	case eq, notEq:
+		return evalEqNotEq(e, b)
 	case add, less, lessOrEq, greater, greaterOrEq:
 		return evalIntFloatStringBinary(e, b)
 	case logicalAnd, logicalOr:
@@ -582,6 +605,8 @@ func evalBinary(e *env, b binary) (interface{}, error) {
 }
 
 func evalCond(e *env, t cond) (interface{}, error) {
+	e = e.extend()
+
 	c, err := eval(e, t.condition)
 	if err != nil {
 		return nil, err
@@ -609,6 +634,8 @@ func evalSwitch(e *env, s switchStatement) (interface{}, error) {
 		err          error
 		cexpCond, ok bool
 	)
+
+	e = e.extend()
 
 	if s.expression != nil {
 		if exp, err = eval(e, s.expression); err != nil {
@@ -639,10 +666,205 @@ func evalSwitch(e *env, s switchStatement) (interface{}, error) {
 			continue
 		}
 
-		return evalStatementList(e, c.statements)
+		return evalStatementList(e, c.body)
 	}
 
 	return evalStatementList(e, s.defaultStatements)
+}
+
+func evalLoopBody(e *env, s statementList) (interface{}, error, bool) {
+	v, err := evalStatementList(e, s)
+	if err != nil {
+		return nil, err, true
+	}
+
+	if v == breakStatement {
+		return nil, nil, true
+	}
+
+	if v == continueStatement {
+		return nil, nil, false
+	}
+
+	if _, ok := v.(ret); ok {
+		return v, nil, true
+	}
+
+	return nil, nil, false
+}
+
+func evalUnconditionalLoop(e *env, l loop) (interface{}, error) {
+	e = e.extend()
+	for {
+		if v, err, r := evalLoopBody(e, l.body); err != nil || r {
+			return v, err
+		}
+	}
+
+	return nil, nil
+}
+
+func evalConditionalLoop(e *env, l loop) (interface{}, error) {
+	ee := e.extend()
+	for {
+		expv, err := eval(e, l.expression)
+		if err != nil {
+			return nil, err
+		}
+
+		expvb, ok := expv.(bool)
+		if !ok {
+			return nil, errExpectedBoolean
+		}
+
+		if !expvb {
+			break
+		}
+
+		if v, err, r := evalLoopBody(ee, l.body); err != nil || r {
+			return v, err
+		}
+	}
+
+	return nil, nil
+}
+
+func evalRangeArgument(e *env, a interface{}) (int, error) {
+	v, err := eval(e, a)
+	if err != nil {
+		return 0, err
+	}
+
+	i, ok := v.(int)
+	if !ok {
+		return 0, errInvalidArgument
+	}
+
+	return i, nil
+}
+
+func evalNumericLoop(e *env, symbol string, r rangeExpression, s statementList) (interface{}, error) {
+	var (
+		v                 interface{}
+		err               error
+		from, to, counter int
+		stop              bool
+	)
+
+	if r.from != nil {
+		if from, err = evalRangeArgument(e, r.from); err != nil {
+			return nil, err
+		}
+	}
+
+	if r.to != nil {
+		if to, err = evalRangeArgument(e, r.to); err != nil {
+			return nil, err
+		}
+	}
+
+	counter = from
+	e = e.extend()
+	if symbol != "" {
+		if err = e.define(symbol, counter); err != nil {
+			return nil, err
+		}
+	}
+
+	for {
+		if r.to != nil && counter >= to {
+			return nil, nil
+		}
+
+		if v, err, stop = evalLoopBody(e, s); err != nil || stop {
+			return v, err
+		}
+
+		counter++
+		if symbol != "" {
+			if err = e.set(symbol, counter); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func evalListLoop(e *env, symbol string, l list, s statementList) (interface{}, error) {
+	l, err := evalList(e, l)
+	if err != nil {
+		return nil, err
+	}
+
+	e = e.extend()
+	if symbol != "" {
+		e.define(symbol, nil)
+	}
+
+	for _, i := range l.values {
+		if symbol != "" {
+			e.set(symbol, i)
+		}
+
+		if v, err, r := evalLoopBody(e, s); err != nil || r {
+			return v, err
+		}
+	}
+
+	return nil, nil
+}
+
+func evalStructLoop(e *env, symbol string, str structure, s statementList) (interface{}, error) {
+	str, err := evalStruct(e, str)
+	if err != nil {
+		return nil, err
+	}
+
+	e = e.extend()
+	if symbol != "" {
+		e.define(symbol, nil)
+	}
+
+	for _, i := range str.values {
+		if symbol != "" {
+			e.set(symbol, i)
+		}
+
+		if v, err, r := evalLoopBody(e, s); err != nil || r {
+			return v, err
+		}
+	}
+
+	return nil, nil
+}
+
+func evalRangeLoop(e *env, r rangeOver, s statementList) (interface{}, error) {
+	if re, ok := r.expression.(rangeExpression); ok || r.symbol != "" && r.expression == nil {
+		return evalNumericLoop(e, r.symbol, re, s)
+	}
+
+	if l, ok := r.expression.(list); ok {
+		return evalListLoop(e, r.symbol, l, s)
+	}
+
+	if str, ok := r.expression.(structure); ok {
+		return evalStructLoop(e, r.symbol, str, s)
+	}
+
+	return nil, errInvalidLoopExpression
+}
+
+func evalLoop(e *env, l loop) (interface{}, error) {
+	if l.expression == nil {
+		return evalUnconditionalLoop(e, l)
+	}
+
+	if r, ok := l.expression.(rangeOver); ok {
+		return evalRangeLoop(e, r, l.body)
+	}
+
+	return evalConditionalLoop(e, l)
 }
 
 func eval(e *env, code interface{}) (interface{}, error) {
@@ -677,6 +899,10 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return evalCond(e, v)
 	case switchStatement:
 		return evalSwitch(e, v)
+	case controlStatement:
+		return code, nil
+	case loop:
+		return evalLoop(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}

@@ -107,13 +107,23 @@ type cond struct {
 
 type switchCase struct {
 	expression interface{}
-	statements statementList
+	body       statementList
 }
 
 type switchStatement struct {
 	expression        interface{}
 	cases             []switchCase
 	defaultStatements statementList
+}
+
+type rangeOver struct {
+	symbol     string
+	expression interface{}
+}
+
+type loop struct {
+	expression interface{}
+	body       statementList
 }
 
 type controlStatement int

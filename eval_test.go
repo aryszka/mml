@@ -627,4 +627,160 @@ func TestEval(t *testing.T) {
 			))
 		})
 	})
+
+	t.Run("loop", func(t *testing.T) {
+		t.Run("simple", testEvalStatement("fn () { for { return 42 } }()", 42))
+		t.Run("true", testEvalStatement("fn () { for true { return 42 }; return 36 }()", 42))
+		t.Run("false", testEvalStatement("fn () { for false { return 42 }; return 36 }()", 36))
+		t.Run("range", func(t *testing.T) {
+			t.Run("range only", func(t *testing.T) {
+				t.Run("closed", testEvalStatement(
+					`fn () {
+						for 0:3 {
+							return 42
+						}
+
+						return 36
+					}()`,
+					42,
+				))
+				t.Run("from 0", testEvalStatement(
+					`fn () {
+						for : {
+							return 42
+						}
+
+						return 36
+					}()`,
+					42,
+				))
+				t.Run("from", testEvalStatement(
+					`fn () {
+						for 1: {
+							return 42
+						}
+
+						return 36
+					}()`,
+					42,
+				))
+				t.Run("to", testEvalStatement(
+					`fn () {
+						for :2 {
+							return 42
+						}
+
+						return 36
+					}()`,
+					42,
+				))
+			})
+			t.Run("named", func(t *testing.T) {
+				t.Run("closed", testEvalStatement(
+					`fn () {
+						for a in 0:3 {
+							if a == 2 {
+								return a
+							}
+						}
+
+						return 42
+					}()`,
+					2,
+				))
+				t.Run("from 0", testEvalStatement(
+					`fn () {
+						for a in : {
+							if a == 2 {
+								return a
+							}
+						}
+
+						return 42
+					}()`,
+					2,
+				))
+				t.Run("from", testEvalStatement(
+					`fn () {
+						for a in 1: {
+							if a == 2 {
+								return a
+							}
+						}
+
+						return 42
+					}()`,
+					2,
+				))
+				t.Run("to", testEvalStatement(
+					`fn () {
+						for a in :3 {
+							if a == 2 {
+								return a
+							}
+						}
+
+						return 42
+					}()`,
+					2,
+				))
+			})
+		})
+		t.Run("range list", testEvalStatement(
+			`fn () {
+				for a in [0, 1, 2] {
+					if a == 2 {
+						return a
+					}
+				}
+
+				return 42
+			}()`,
+			2,
+		))
+		t.Run("range struct", testEvalStatement(
+			`fn () {
+				for a in {foo: 0, bar: 1, baz: 2} {
+					if a == 2 {
+						return a
+					}
+				}
+
+				return 42
+			}()`,
+			2,
+		))
+		t.Run("break", testEvalStatement(
+			`fn () {
+				for a in [0, 1, 2] {
+					if a > 0 {
+						break
+					}
+
+					if a > 1 {
+						return a
+					}
+				}
+
+				return 42
+			}()`,
+			42,
+		))
+		t.Run("continue", testEvalStatement(
+			`fn () {
+				for a in [0, 1, 2] {
+					if a > 0 {
+						continue
+					}
+
+					if a > 1 {
+						return a
+					}
+				}
+
+				return 42
+			}()`,
+			42,
+		))
+	})
 }
