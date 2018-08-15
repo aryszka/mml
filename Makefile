@@ -13,6 +13,7 @@ parser/parser.go: check-syntax
 		-package-name parser \
 		-syntax syntax.treerack \
 		> parser/parser.go
+	go fmt ./parser
 
 gen-parser: parser/parser.go
 
