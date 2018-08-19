@@ -914,4 +914,44 @@ func TestEval(t *testing.T) {
 			))
 		})
 	})
+
+	t.Run("assign", func(t *testing.T) {
+		t.Run("symbol", testEvalStatement(
+			"fn () { let ~ a 42; set a 36; return a }()",
+			36,
+		))
+		t.Run("indexer", testEvalStatement(
+			"fn () { let a ~[1, 2, 3]; set a[1] 42; return a[1] }()",
+			42,
+		))
+		t.Run("indexer, eq", testEvalStatement(
+			"fn () { let a ~[1, 2, 3]; a[1] = 42; return a[1] }()",
+			42,
+		))
+		t.Run("struct key", testEvalStatement(
+			`fn () { let a ~{foo: 1, bar: 2, baz: 3}; set a["foo"] 42; return a.foo }()`,
+			42,
+		))
+		t.Run("symbol indexer", testEvalStatement(
+			"fn () { let a ~{foo: 1, bar: 2, baz: 3}; set a.foo 42; return a.foo }()",
+			42,
+		))
+		t.Run("group", testEvalStatement(
+			`fn () {
+				let (
+					~ a 42
+					  b "foo"
+				)
+
+				set (
+					a    ~{foo: 42, b: 36}
+					a[b] 36
+					a.b  24
+				)
+
+				return [a.foo, a.b]
+			}()`,
+			list{values: []interface{}{36, 24}},
+		))
+	})
 }

@@ -188,7 +188,7 @@ func parseFunctionFact(n []*parser.Node) function {
 
 	if len(params) > 0 {
 		lastArg := len(params) - 1
-		if params[lastArg].Name == "collect-argument" {
+		if params[lastArg].Name == "collect-parameter" {
 			f.collectParam = parse(params[lastArg].Nodes[0]).(symbol).name
 			params = params[:lastArg]
 		}
@@ -581,6 +581,38 @@ func parseEffectDefinitions(ast *parser.Node) definitionList {
 	return d
 }
 
+func parseAssignCaptures(n []*parser.Node) []assign {
+	if len(n) == 0 {
+		return nil
+	}
+
+	capture := parse(n[0])
+	switch ct := capture.(type) {
+	case symbol:
+	case indexer:
+		switch ct.index.(type) {
+		case rangeExpression:
+			panic("not assignable, TODO")
+		}
+	default:
+		panic("not assignable, TODO")
+	}
+
+	value := parse(n[1])
+
+	return append(
+		[]assign{{
+			capture: capture,
+			value:   value,
+		}},
+		parseAssignCaptures(n[2:])...,
+	)
+}
+
+func parseAssign(ast *parser.Node) assignList {
+	return assignList{assignments: parseAssignCaptures(ast.Nodes)}
+}
+
 func parse(ast *parser.Node) interface{} {
 	switch ast.Name {
 	case "int":
@@ -663,6 +695,8 @@ func parse(ast *parser.Node) interface{} {
 		return parseDefinitions(ast)
 	case "effect-definition-group":
 		return parseEffectDefinitions(ast)
+	case "assignment":
+		return parseAssign(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}

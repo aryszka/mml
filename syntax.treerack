@@ -49,17 +49,17 @@ mutable-struct     = "~" nl* struct-fact;
 
 channel = "<>" | "<" nl* expression nl* ">";
 
-argument-list:alias = symbol (list-sep symbol)*;
-collect-argument    = "..." nl* symbol;
-return              = "return" (nl* expression)?;
-block               = "{" sep? statement-list? sep? "}";
-function-fact:alias = "(" list-sep?
-                      argument-list?
-                      (list-sep collect-argument)?
-                      list-sep? ")" nl*
-                      (simple-statement | block);
-function            = "fn" nl* function-fact;
-effect              = "fn" nl* "~" nl* function-fact;
+parameter-list:alias = symbol (list-sep symbol)*;
+collect-parameter    = "..." nl* symbol;
+return               = "return" (nl* expression)?;
+block                = "{" sep? statement-list? sep? "}";
+function-fact:alias  = "(" list-sep?
+                       parameter-list?
+                       (list-sep collect-parameter)?
+                       list-sep? ")" nl*
+                       (simple-statement | block);
+function             = "fn" nl* function-fact;
+effect               = "fn" nl* "~" nl* function-fact;
 
 range-from  = expression;
 range-to    = expression;
@@ -119,7 +119,7 @@ logical-or    = "||";
 
 chain:alias = "->";
 
-unary-operator:alias = plus | minus | binary-not;
+unary-operator:alias = plus | minus | binary-not | logical-not;
 unary-expression     = unary-operator primary-expression;
 
 binary-op0:alias = binary-and | and-not | lshift | rshift | mul | div | mod;
@@ -168,12 +168,12 @@ switch             = "switch" nl* expression? nl* "{" sep?
                      ((case-line | default-line) (sep (case-line | default-line | statement))*)?
                      sep? "}";
 
-receive                 = "<-" primary-expression;
+receive                 = "<<>" primary-expression;
 receive-definition      = "let" nl* symbol nl* receive;
 receive-assignment      = "set" nl* symbol nl* receive;
 receive-statement:alias = receive-definition
                         | receive-assignment;
-send                    = primary-expression "<-" primary-expression;
+send                    = primary-expression "<<>" primary-expression;
 communication:alias     = receive | receive-statement | send;
 
 select-case            = "case" nl* communication nl* ":";
@@ -186,19 +186,16 @@ select                 = "select" nl* "{" sep?
 go    = "go" nl* function-application;
 defer = "defer" nl* function-application;
 
-break                 = "break";
-continue              = "continue";
 range-over-expression = symbol nl* "in" nl* (expression | range) | range;
 loop-expression:alias = expression | range-over-expression;
-loop                  = "for" (nl* loop-expression)? nl* block;
+loop                  = "for" ((nl* loop-expression)? nl* block | nl* block);
 
-assignable:alias          = symbol | simple-indexer | symbol-indexer;
-assign-capture            = assignable (nl* "=")? nl* expression;
+assign-capture:alias      = primary-expression (nl* "=")? nl* expression;
 assign-capture-list:alias = assign-capture (list-sep assign-capture)*;
 assign-set:alias          = "set" nl* assign-capture;
-assign-equal:alias        = assignable nl* "=" nl* expression;
-assign-group:alias        = "set" nl* "(" list-sep? assign-capture-list? list-sep? ")";
-assignment                = assign-set | assign-equal | assign-group;
+assign-eq:alias           = primary-expression nl* "=" nl* expression;
+assign-group:alias        = "set" nl* "(" (list-sep assign-capture-list)? list-sep? ")";
+assignment                = assign-set | assign-eq | assign-group;
 
 value-capture-fact:alias = symbol (nl* "=")? nl* expression;
 value-capture            = value-capture-fact;
@@ -230,8 +227,9 @@ definition:alias = value-definition
                  | function-definition-group
                  | effect-definition-group;
 
+require-inline                = ".";
 require-fact                  = string
-                              | (symbol | ".") (nl* "=")? nl* string;
+                              | (symbol | require-inline) (nl* "=")? nl* string;
 require-fact-list:alias       = require-fact (list-sep require-fact)*;
 require-statement:alias       = "require" nl* require-fact;
 require-statement-group:alias = "require" nl* "(" list-sep?
@@ -253,8 +251,6 @@ statement:alias              = simple-statement
                              | if
                              | switch
                              | select
-                             | break
-                             | continue
                              | loop
                              | definition
                              | require

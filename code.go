@@ -143,6 +143,15 @@ type definitionList struct {
 	definitions []definition
 }
 
+type assign struct {
+	capture interface{}
+	value   interface{}
+}
+
+type assignList struct {
+	assignments []assign
+}
+
 type module struct {
 	text       string
 	shebang    string

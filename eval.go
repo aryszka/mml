@@ -18,6 +18,7 @@ var (
 	errInvalidSwitchExpression     = errors.New("invalid switch expression")
 	errInvalidCaseExpression       = errors.New("invalid case expression")
 	errInvalidLoopExpression       = errors.New("invalid loop expression")
+	errInvalidAssignTarget         = errors.New("invalid assign target")
 )
 
 func evalSymbol(e *env, s symbol) (interface{}, error) {
@@ -887,6 +888,69 @@ func evalDefinitionList(e *env, d definitionList) (interface{}, error) {
 	return nil, nil
 }
 
+func evalIndexerAssign(e *env, i indexer, v interface{}) (interface{}, error) {
+	ee, err := eval(e, i.expression)
+	if err != nil {
+		return nil, err
+	}
+
+	switch eee := ee.(type) {
+	case list:
+		ii, err := evalListIndex(e, i.index)
+		if err != nil {
+			return nil, err
+		}
+
+		eee.values[ii] = v
+		return nil, nil
+	case structure:
+		k, err := eval(e, i.index)
+		if err != nil {
+			return nil, err
+		}
+
+		ks, ok := k.(string)
+		if !ok {
+			return nil, errInvalidStructKey
+		}
+
+		eee.values[ks] = v
+		return nil, nil
+	default:
+		return nil, errUnexpectedIndexerExpression
+	}
+}
+
+func evalAssign(e *env, a assign) (interface{}, error) {
+	v, err := eval(e, a.value)
+	if err != nil {
+		return nil, err
+	}
+
+	switch c := a.capture.(type) {
+	case symbol:
+		if err := e.set(c.name, v); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	case indexer:
+		return evalIndexerAssign(e, c, v)
+	default:
+		return nil, errInvalidAssignTarget
+	}
+}
+
+func evalAssignList(e *env, a assignList) (interface{}, error) {
+	for _, ai := range a.assignments {
+		if _, err := evalAssign(e, ai); err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
+}
+
 func eval(e *env, code interface{}) (interface{}, error) {
 	switch v := code.(type) {
 	case int:
@@ -927,6 +991,8 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return evalDefinition(e, v)
 	case definitionList:
 		return evalDefinitionList(e, v)
+	case assignList:
+		return evalAssignList(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}
