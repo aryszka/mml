@@ -168,12 +168,12 @@ switch             = "switch" nl* expression? nl* "{" sep?
                      ((case-line | default-line) (sep (case-line | default-line | statement))*)?
                      sep? "}";
 
-receive                 = "<<>" primary-expression;
+receive                 = "<<" primary-expression;
 receive-definition      = "let" nl* symbol nl* receive;
 receive-assignment      = "set" nl* symbol nl* receive;
 receive-statement:alias = receive-definition
                         | receive-assignment;
-send                    = primary-expression "<<>" primary-expression;
+send                    = primary-expression "<<" primary-expression;
 communication:alias     = receive | receive-statement | send;
 
 select-case            = "case" nl* communication nl* ":";
@@ -239,15 +239,14 @@ require                       = require-statement | require-statement-group;
 
 export = "export" nl* definition;
 
-simple-statement:alias       = expression
-                             | send
+simple-statement:alias       = send
                              | go
                              | defer
                              | assignment
-                             | simple-statement-group;
+                             | simple-statement-group
+                             | expression;
 simple-statement-group:alias = "(" nl* simple-statement nl* ")";
-statement:alias              = simple-statement
-                             | return
+statement:alias              = return
                              | if
                              | switch
                              | select
@@ -255,7 +254,8 @@ statement:alias              = simple-statement
                              | definition
                              | require
                              | export
-                             | statement-group;
+                             | statement-group
+                             | simple-statement;
 statement-group:alias        = "(" nl* statement nl* ")";
 
 sep:alias            = (";" | nl)+;

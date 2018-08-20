@@ -19,6 +19,8 @@ var (
 	errInvalidCaseExpression       = errors.New("invalid case expression")
 	errInvalidLoopExpression       = errors.New("invalid loop expression")
 	errInvalidAssignTarget         = errors.New("invalid assign target")
+	errExpectedChannel             = errors.New("expected channel")
+	errExpectedFunctionApplication = errors.New("expected function application")
 )
 
 func evalSymbol(e *env, s symbol) (interface{}, error) {
@@ -951,6 +953,49 @@ func evalAssignList(e *env, a assignList) (interface{}, error) {
 	return nil, nil
 }
 
+func evalChan(e *env, v interface{}) (chan interface{}, error) {
+	c, err := eval(e, v)
+	if err != nil {
+		return nil, err
+	}
+
+	cc, ok := c.(chan interface{})
+	if !ok {
+		return nil, errExpectedChannel
+	}
+
+	return cc, nil
+}
+
+func evalSend(e *env, s send) (interface{}, error) {
+	c, err := evalChan(e, s.channel)
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := eval(e, s.value)
+	if err != nil {
+		return nil, err
+	}
+
+	c <- v
+	return nil, nil
+}
+
+func evalReceive(e *env, r receive) (interface{}, error) {
+	c, err := evalChan(e, r.channel)
+	if err != nil {
+		return nil, err
+	}
+
+	return <-c, err
+}
+
+func evalGo(e *env, g goStatement) (interface{}, error) {
+	go evalFunctionApplication(e, g.application)
+	return nil, nil
+}
+
 func eval(e *env, code interface{}) (interface{}, error) {
 	switch v := code.(type) {
 	case int:
@@ -993,6 +1038,12 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return evalDefinitionList(e, v)
 	case assignList:
 		return evalAssignList(e, v)
+	case send:
+		return evalSend(e, v)
+	case receive:
+		return evalReceive(e, v)
+	case goStatement:
+		return evalGo(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}

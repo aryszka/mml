@@ -613,6 +613,23 @@ func parseAssign(ast *parser.Node) assignList {
 	return assignList{assignments: parseAssignCaptures(ast.Nodes)}
 }
 
+func parseSend(ast *parser.Node) send {
+	return send{
+		channel: parse(ast.Nodes[0]),
+		value:   parse(ast.Nodes[1]),
+	}
+}
+
+func parseReceive(ast *parser.Node) receive {
+	return receive{channel: parse(ast.Nodes[0])}
+}
+
+func parseGo(ast *parser.Node) goStatement {
+	return goStatement{
+		application: parse(ast.Nodes[0]).(functionApplication),
+	}
+}
+
 func parse(ast *parser.Node) interface{} {
 	switch ast.Name {
 	case "int":
@@ -697,6 +714,12 @@ func parse(ast *parser.Node) interface{} {
 		return parseEffectDefinitions(ast)
 	case "assignment":
 		return parseAssign(ast)
+	case "send":
+		return parseSend(ast)
+	case "receive":
+		return parseReceive(ast)
+	case "go":
+		return parseGo(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}

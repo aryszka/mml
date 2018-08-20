@@ -954,4 +954,15 @@ func TestEval(t *testing.T) {
 			list{values: []interface{}{36, 24}},
 		))
 	})
+
+	t.Run("go", func(t *testing.T) {
+		t.Run("send and receive", testEvalStatement(
+			`fn () {
+				let c <>
+				go (fn() c << 42)()
+				return <<c
+			}()`,
+			42,
+		))
+	})
 }

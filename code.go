@@ -152,6 +152,19 @@ type assignList struct {
 	assignments []assign
 }
 
+type send struct {
+	channel interface{}
+	value   interface{}
+}
+
+type receive struct {
+	channel interface{}
+}
+
+type goStatement struct {
+	application functionApplication
+}
+
 type module struct {
 	text       string
 	shebang    string
