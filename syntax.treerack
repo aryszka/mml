@@ -168,12 +168,12 @@ switch             = "switch" nl* expression? nl* "{" sep?
                      ((case-line | default-line) (sep (case-line | default-line | statement))*)?
                      sep? "}";
 
-receive                 = "<<" primary-expression;
+receive                 = "<~" primary-expression;
 receive-definition      = "let" nl* symbol nl* receive;
 receive-assignment      = "set" nl* symbol nl* receive;
 receive-statement:alias = receive-definition
                         | receive-assignment;
-send                    = primary-expression "<<" primary-expression;
+send                    = primary-expression "<~" primary-expression;
 communication:alias     = receive | receive-statement | send;
 
 select-case            = "case" nl* communication nl* ":";

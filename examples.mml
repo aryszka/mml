@@ -28,10 +28,12 @@ fn~ makeRequestSafe() {
 }
 
 fn~ makeRequestSafe() {
-	defer recover(handleError)
+	defer recover(fn (err) {;})
 	let rsp http.request("http://localhost:9090")
 	defer rsp.close()
 	handleResponse(rsp)
 }
 
-for let a in b 
+for a in b 
+
+fn fib(n) n <= 1 ? 1 : fib(n - 1) + fib(n)

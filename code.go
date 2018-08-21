@@ -1,5 +1,7 @@
 package mml
 
+type primitive func(*env) (interface{}, error)
+
 type symbol struct {
 	name string
 }
@@ -36,12 +38,14 @@ type statementList struct {
 }
 
 type function struct {
+	primitive    primitive
 	effect       bool
 	params       []string
 	args         []interface{}
 	collectParam string
 	statement    interface{}
 	env          *env
+	syntax       string
 }
 
 type rangeExpression struct {
@@ -162,6 +166,15 @@ type receive struct {
 }
 
 type goStatement struct {
+	application functionApplication
+}
+
+type deferred struct {
+	function function
+	args     []interface{}
+}
+
+type deferStatement struct {
 	application functionApplication
 }
 

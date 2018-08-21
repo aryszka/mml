@@ -1,6 +1,9 @@
 package mml
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	errUnsupportedCode             = errors.New("unsupported code")
@@ -12,6 +15,7 @@ var (
 	errInvalidListIndex            = errors.New("invalid list index")
 	errMissingStructKey            = errors.New("missing struct key")
 	errTooManyArgs                 = errors.New("too many args")
+	errNotEnoughArgs               = errors.New("not enough args")
 	errNotAFunction                = errors.New("not a function")
 	errInvalidArgument             = errors.New("invalid argument")
 	errExpectedBoolean             = errors.New("expected boolean")
@@ -22,6 +26,10 @@ var (
 	errExpectedChannel             = errors.New("expected channel")
 	errExpectedFunctionApplication = errors.New("expected function application")
 )
+
+func evalError(err error) {
+	panic(err)
+}
 
 func evalSymbol(e *env, s symbol) (interface{}, error) {
 	// TODO: handle _
@@ -268,25 +276,121 @@ func evalExpressionOrStatementList(e *env, v interface{}) (interface{}, error) {
 	}
 }
 
-func evalFunctionApplication(e *env, fa functionApplication) (interface{}, error) {
-	fe, err := eval(e, fa.function)
+func evalFunctionApplicationArgs(e *env, fa functionApplication) (f function, a []interface{}, err error) {
+	var (
+		ok bool
+		fe interface{}
+	)
+
+	fe, err = eval(e, fa.function)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	f, ok := fe.(function)
-	if !ok {
-		return nil, errNotAFunction
+	if f, ok = fe.(function); !ok {
+		err = errNotAFunction
+		return
 	}
 
-	a, err := evalExpressionList(e, fa.args)
-	if err != nil {
-		return nil, err
+	if a, err = evalExpressionList(e, fa.args); err != nil {
+		return
 	}
 
 	a = append(f.args, a...)
 	if len(a) > len(f.params) && f.collectParam == "" {
-		return nil, errTooManyArgs
+		err = errTooManyArgs
+		return
+	}
+
+	return
+}
+
+func toErr(err interface{}) error {
+	if err == nil {
+		return nil
+	}
+
+	if eerr, ok := err.(error); ok {
+		return eerr
+	} else {
+		return fmt.Errorf("%v", err)
+	}
+}
+
+func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, error) {
+	v := func() interface{} {
+		for i, p := range f.params {
+			if err := f.env.define(p, a[i]); err != nil {
+				f.env.pendingErr = err
+				return nil
+			}
+		}
+
+		if f.collectParam != "" {
+			if err := f.env.define(f.collectParam, list{values: a[len(f.params):]}); err != nil {
+				f.env.pendingErr = err
+				return nil
+			}
+		}
+
+		if f.primitive != nil {
+			defer func() {
+				if err := toErr(recover()); err != nil {
+					f.env.pendingErr = err
+				}
+			}()
+
+			v, err := f.primitive(f.env)
+			if err != nil {
+				f.env.pendingErr = err
+			}
+
+			return v
+		}
+
+		defer func() {
+			if err := toErr(recover()); err != nil {
+				f.env.pendingErr = err
+			}
+
+			for i := len(f.env.deferred) - 1; i >= 0; i-- {
+				d := f.env.deferred[i]
+				d.function.env.applyContext(f.env)
+				if _, err := evalExecuteFunctionApplication(d.function, d.args); err != nil {
+					f.env.pendingErr = err
+					return
+				}
+
+				d.function.env.releaseContext(f.env)
+			}
+		}()
+
+		v, err := evalExpressionOrStatementList(f.env, f.statement)
+		if err != nil {
+			f.env.pendingErr = err
+			return nil
+		}
+
+		if r, ok := v.(ret); ok {
+			return r.value
+		}
+
+		return v
+	}()
+
+	err := f.env.pendingErr
+	f.env.pendingErr = nil
+	if pe, ok := v.(errPanic); ok {
+		v = pe.value
+	}
+
+	return v, err
+}
+
+func evalFunctionApplication(e *env, fa functionApplication) (interface{}, error) {
+	f, a, err := evalFunctionApplicationArgs(e, fa)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(a) < len(f.params) {
@@ -294,28 +398,10 @@ func evalFunctionApplication(e *env, fa functionApplication) (interface{}, error
 		return f, nil
 	}
 
-	for i, p := range f.params {
-		if err := f.env.define(p, a[i]); err != nil {
-			return nil, err
-		}
-	}
-
-	if f.collectParam != "" {
-		if err := f.env.define(f.collectParam, list{values: a[len(f.params):]}); err != nil {
-			return nil, err
-		}
-	}
-
-	v, err := evalExpressionOrStatementList(f.env, f.statement)
-	if err != nil {
-		return nil, err
-	}
-
-	if r, ok := v.(ret); ok {
-		return r.value, nil
-	}
-
-	return v, nil
+	f.env.applyContext(e)
+	v, err := evalExecuteFunctionApplication(f, a)
+	f.env.releaseContext(e)
+	return v, err
 }
 
 func evalUnary(e *env, u unary) (interface{}, error) {
@@ -992,7 +1078,34 @@ func evalReceive(e *env, r receive) (interface{}, error) {
 }
 
 func evalGo(e *env, g goStatement) (interface{}, error) {
-	go evalFunctionApplication(e, g.application)
+	f, a, err := evalFunctionApplicationArgs(e, g.application)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(a) < len(f.params) {
+		return nil, errNotEnoughArgs
+	}
+
+	go func() {
+		if _, err := evalExecuteFunctionApplication(f, a); err != nil {
+			evalError(err)
+		}
+	}()
+	return nil, nil
+}
+
+func evalDefer(e *env, d deferStatement) (interface{}, error) {
+	f, a, err := evalFunctionApplicationArgs(e, d.application)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(a) < len(f.params) {
+		return nil, errNotEnoughArgs
+	}
+
+	e.addDefer(deferred{function: f, args: a})
 	return nil, nil
 }
 
@@ -1005,6 +1118,8 @@ func eval(e *env, code interface{}) (interface{}, error) {
 	case string:
 		return code, nil
 	case bool:
+		return code, nil
+	case error:
 		return code, nil
 	case symbol:
 		return evalSymbol(e, v)
@@ -1044,11 +1159,21 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return evalReceive(e, v)
 	case goStatement:
 		return evalGo(e, v)
+	case deferStatement:
+		return evalDefer(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}
 }
 
-func evalModule(e *env, m module) error {
-	return nil
+func evalStatement(e *env, s interface{}) interface{} {
+	v, err := eval(e, s)
+	if err != nil {
+		evalError(err)
+	}
+
+	return v
+}
+
+func evalModule(e *env, m module) {
 }

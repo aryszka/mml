@@ -133,10 +133,7 @@ func TestEval(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = evalModule(newEnv(), m)
-		if err != nil {
-			t.Fatal(err)
-		}
+		evalModule(newEnv(), m)
 	})
 
 	t.Run("integer", func(t *testing.T) {
@@ -499,6 +496,15 @@ func TestEval(t *testing.T) {
 				list{values: []interface{}{3, 4, 5}},
 			))
 		})
+		t.Run("lexical scope", testEvalStatement(
+			`fn () {
+				let ~ foo 36
+				fn apply(f, a) f(a)
+				apply(fn (a) set foo a, 42)
+				return foo
+			}()`,
+			42,
+		))
 	})
 
 	t.Run("operator", func(t *testing.T) {
@@ -847,7 +853,7 @@ func TestEval(t *testing.T) {
 				},
 			))
 			t.Run("mutable", testEvalStatement(
-				"fn () { fn ~ printSquare(x) print(x * x); return printSquare }()",
+				"fn () { fn~ printSquare(x) print(x * x); return printSquare }()",
 				function{
 					effect: true,
 					params: []string{"x"},
@@ -882,7 +888,7 @@ func TestEval(t *testing.T) {
 			))
 			t.Run("effect", testEvalStatement(
 				`fn () {
-					fn ~ (
+					fn~ (
 						a () 42,
 						b (x) 36,
 						c (x) 24,
@@ -955,14 +961,49 @@ func TestEval(t *testing.T) {
 		))
 	})
 
-	t.Run("go", func(t *testing.T) {
-		t.Run("send and receive", testEvalStatement(
-			`fn () {
-				let c <>
-				go (fn() c << 42)()
-				return <<c
+	t.Run("control", func(t *testing.T) {
+		t.Run("go", testEvalStatement(
+			`fn~ () {
+				let numbers <>
+				go fn~ () { numbers <~ 42 }()
+				return <~numbers
 			}()`,
 			42,
+		))
+		t.Run("defer", testEvalStatement(
+			`fn () {
+				let ~ a 24
+				fn~ () {
+					defer fn~ () { set a 42 }()
+					set a 36
+				}()
+
+				return a
+			}()`,
+			42,
+		))
+		t.Run("recover", testEvalStatement(
+			`fn () {
+				fn~ () {
+					defer recover(fn (_) {;})
+					return 42 / 0
+				}()
+
+				return 42
+			}()`,
+			42,
+		))
+		t.Run("panic", testEvalStatement(
+			`fn () {
+				let ~ foo "foo"
+				fn~ () {
+					defer recover(fn (err) set foo err)
+					panic("bar")
+				}()
+
+				return foo
+			}()`,
+			"bar",
 		))
 	})
 }

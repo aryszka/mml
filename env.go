@@ -3,8 +3,10 @@ package mml
 import "errors"
 
 type env struct {
-	parent *env
-	values map[string]interface{}
+	parent     *env
+	values     map[string]interface{}
+	deferred   []deferred
+	pendingErr error
 }
 
 var (
@@ -12,8 +14,15 @@ var (
 	errSymbolMissing = errors.New("symbol missing")
 )
 
+var global *env
+
 func newEnv() *env {
-	return &env{values: make(map[string]interface{})}
+	v := make(map[string]interface{})
+	e := &env{values: v}
+	global = e
+	v["recover"] = recoverFunction(e)
+	v["panic"] = panicFunction(e)
+	return e
 }
 
 func (e *env) extend() *env {
@@ -55,4 +64,18 @@ func (e *env) set(name string, value interface{}) error {
 
 	e.values[name] = value
 	return nil
+}
+
+func (e *env) addDefer(d deferred) {
+	e.deferred = append(e.deferred, d)
+}
+
+func (e *env) applyContext(ctx *env) {
+	if ctx.pendingErr != nil {
+		e.pendingErr = ctx.pendingErr
+	}
+}
+
+func (e *env) releaseContext(ctx *env) {
+	ctx.pendingErr = e.pendingErr
 }

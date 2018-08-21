@@ -1151,7 +1151,7 @@ func Parse(r io.Reader) (*Node, error) {
 	var p509 = sequenceParser{id: 509, commit: 64, name: "send", ranges: [][]int{{1, 1}, {0, -1}, {1, 1}, {0, -1}, {1, 1}}, generalizations: []int{790, 211, 510, 800}}
 	var p508 = sequenceParser{id: 508, commit: 10, allChars: true, ranges: [][]int{{1, 1}, {1, 1}, {1, 1}, {1, 1}}}
 	var p506 = charParser{id: 506, chars: []rune{60}}
-	var p507 = charParser{id: 507, chars: []rune{60}}
+	var p507 = charParser{id: 507, chars: []rune{126}}
 	p508.items = []parser{&p506, &p507}
 	p509.items = []parser{&p280, &p832, &p508, &p832, &p280}
 	var p553 = sequenceParser{id: 553, commit: 64, name: "go", ranges: [][]int{{1, 1}, {0, 1}, {0, -1}, {1, 1}}, generalizations: []int{790, 211, 800}}
@@ -1365,7 +1365,7 @@ func Parse(r io.Reader) (*Node, error) {
 	var p486 = sequenceParser{id: 486, commit: 64, name: "receive", ranges: [][]int{{1, 1}, {0, -1}, {1, 1}}, generalizations: []int{280, 388, 346, 347, 348, 349, 350, 351, 510, 573, 566, 800}}
 	var p485 = sequenceParser{id: 485, commit: 10, allChars: true, ranges: [][]int{{1, 1}, {1, 1}, {1, 1}, {1, 1}}}
 	var p483 = charParser{id: 483, chars: []rune{60}}
-	var p484 = charParser{id: 484, chars: []rune{60}}
+	var p484 = charParser{id: 484, chars: []rune{126}}
 	p485.items = []parser{&p483, &p484}
 	p486.items = []parser{&p485, &p832, &p280}
 	var p279 = sequenceParser{id: 279, commit: 66, name: "expression-group", ranges: [][]int{{1, 1}, {0, 1}, {0, -1}, {1, 1}, {0, 1}, {0, -1}, {1, 1}}, generalizations: []int{280, 388, 346, 347, 348, 349, 350, 351, 573, 566, 800}}

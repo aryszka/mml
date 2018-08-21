@@ -1,7 +1,10 @@
 SOURCES = $(shell find . -name "*.go") syntax.treerack
 
+build:
+	go build ./...
+
 deps:
-	go get ./...
+	@go get ./...
 
 check-syntax: syntax.treerack
 	treerack check-syntax syntax.treerack

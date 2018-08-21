@@ -630,6 +630,12 @@ func parseGo(ast *parser.Node) goStatement {
 	}
 }
 
+func parseDefer(ast *parser.Node) deferStatement {
+	return deferStatement{
+		application: parse(ast.Nodes[0]).(functionApplication),
+	}
+}
+
 func parse(ast *parser.Node) interface{} {
 	switch ast.Name {
 	case "int":
@@ -720,6 +726,8 @@ func parse(ast *parser.Node) interface{} {
 		return parseReceive(ast)
 	case "go":
 		return parseGo(ast)
+	case "defer":
+		return parseDefer(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}
