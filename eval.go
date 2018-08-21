@@ -358,7 +358,6 @@ func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, e
 				d.function.env.applyContext(f.env)
 				if _, err := evalExecuteFunctionApplication(d.function, d.args); err != nil {
 					f.env.pendingErr = err
-					return
 				}
 
 				d.function.env.releaseContext(f.env)
