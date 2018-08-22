@@ -268,8 +268,8 @@ func TestEval(t *testing.T) {
 	})
 
 	t.Run("channel", func(t *testing.T) {
-		t.Run("unbuffered", testEvalStatement("<>", make(chan interface{})))
-		t.Run("buffered", testEvalStatement("<42>", make(chan interface{}, 42)))
+		t.Run("unbuffered", testEvalStatement("chan()", make(chan interface{})))
+		t.Run("buffered", testEvalStatement("bufchan(42)", make(chan interface{}, 42)))
 	})
 
 	t.Run("function", func(t *testing.T) {
@@ -964,9 +964,9 @@ func TestEval(t *testing.T) {
 	t.Run("control", func(t *testing.T) {
 		t.Run("go", testEvalStatement(
 			`fn~ () {
-				let numbers <>
-				go fn~ () { numbers <~ 42 }()
-				return <~numbers
+				let numbers chan()
+				go fn~ () { send numbers 42 }()
+				return receive numbers
 			}()`,
 			42,
 		))
@@ -983,7 +983,7 @@ func TestEval(t *testing.T) {
 			42,
 		))
 		t.Run("recover", testEvalStatement(
-			`fn () {
+			`fn~ () {
 				fn~ () {
 					defer recover(fn (_) {;})
 					return 42 / 0
@@ -994,7 +994,7 @@ func TestEval(t *testing.T) {
 			42,
 		))
 		t.Run("panic", testEvalStatement(
-			`fn () {
+			`fn~ () {
 				let ~ foo "foo"
 				fn~ () {
 					defer recover(fn (err) set foo err)

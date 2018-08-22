@@ -14,14 +14,13 @@ var (
 	errSymbolMissing = errors.New("symbol missing")
 )
 
-var global *env
-
 func newEnv() *env {
 	v := make(map[string]interface{})
 	e := &env{values: v}
-	global = e
 	v["recover"] = recoverFunction(e)
 	v["panic"] = panicFunction(e)
+	v["chan"] = channel(e)
+	v["bufchan"] = bufferedChannel(e)
 	return e
 }
 
@@ -70,7 +69,7 @@ func (e *env) addDefer(d deferred) {
 	e.deferred = append(e.deferred, d)
 }
 
-func (e *env) applyContext(ctx *env) {
+func (e *env) injectContext(ctx *env) {
 	if ctx.pendingErr != nil {
 		e.pendingErr = ctx.pendingErr
 	}

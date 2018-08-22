@@ -47,8 +47,6 @@ struct-fact:alias  = "{" list-sep? entry-list? list-sep? "}";
 struct             = struct-fact;
 mutable-struct     = "~" nl* struct-fact;
 
-channel = "<>" | "<" nl* expression nl* ">";
-
 parameter-list:alias = symbol (list-sep symbol)*;
 collect-parameter    = "..." nl* symbol;
 return               = "return" (nl* expression)?;
@@ -77,18 +75,17 @@ primary-expression:alias = int
                          | float
                          | string
                          | bool
+                         | receive
                          | symbol
                          | list
                          | mutable-list
                          | struct
                          | mutable-struct
-                         | channel
                          | function
                          | effect
                          | expression-indexer
                          | symbol-indexer
                          | function-application
-                         | receive
                          | expression-group;
 
 binary-not = "^";
@@ -168,12 +165,12 @@ switch             = "switch" nl* expression? nl* "{" sep?
                      ((case-line | default-line) (sep (case-line | default-line | statement))*)?
                      sep? "}";
 
-receive                 = "<~" primary-expression;
+receive                 = "receive" primary-expression;
 receive-definition      = "let" nl* symbol nl* receive;
 receive-assignment      = "set" nl* symbol nl* receive;
 receive-statement:alias = receive-definition
                         | receive-assignment;
-send                    = primary-expression "<~" primary-expression;
+send                    = "send" primary-expression primary-expression;
 communication:alias     = receive | receive-statement | send;
 
 select-case            = "case" nl* communication nl* ":";

@@ -48,3 +48,27 @@ func panicFunction(e *env) function {
 		env:       e,
 	}
 }
+
+func channel(e *env) function {
+	return function{
+		primitive: func(*env) (interface{}, error) { return make(chan interface{}), nil },
+		env:       e,
+	}
+}
+
+func createBufferedChannel(e *env) (interface{}, error) {
+	size, err := eval(e, symbol{name: "size"})
+	if err != nil {
+		return nil, err
+	}
+
+	return make(chan interface{}, size.(int)), nil
+}
+
+func bufferedChannel(e *env) function {
+	return function{
+		primitive: createBufferedChannel,
+		params:    []string{"size"},
+		env:       e,
+	}
+}

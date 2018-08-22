@@ -37,3 +37,49 @@ fn~ makeRequestSafe() {
 for a in b 
 
 fn fib(n) n <= 1 ? 1 : fib(n - 1) + fib(n)
+
+// --
+
+// Why no null? Depends on what we want to do with the result. Let's consider the use case of finding something
+// in a list.
+
+// use case:
+let null {}
+fn find(cond, l) len(l) == 0 ? null : cond(l[0]) ? l[0] : find(cond, l[1:])
+
+// use it for something:
+fn~ printFirstEven(l) {
+	let result find(even, l)
+	if result == null {
+		println("not found")
+		return
+	}
+
+	println(result)
+}
+
+// in MML:
+fn find(cond, l) len(l) == 0 ? [] : cond(l[0]) ? l : find(cond, l[1:])
+
+// use it for something:
+fn~ printFirstEven(l) {
+	let result find(even, l)
+	if len(result) == 0 {
+		println("not found")
+		return
+	}
+
+	println(result[0])
+}
+
+// or rather the whole thing in a more MML like style:
+fn~ printFirstEven(l) {
+	for n in l {
+		if even(n) {
+			println(n)
+			return
+		}
+	}
+
+	println("not found")
+}

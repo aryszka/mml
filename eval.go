@@ -355,7 +355,7 @@ func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, e
 
 			for i := len(f.env.deferred) - 1; i >= 0; i-- {
 				d := f.env.deferred[i]
-				d.function.env.applyContext(f.env)
+				d.function.env.injectContext(f.env)
 				if _, err := evalExecuteFunctionApplication(d.function, d.args); err != nil {
 					f.env.pendingErr = err
 				}
@@ -397,7 +397,7 @@ func evalFunctionApplication(e *env, fa functionApplication) (interface{}, error
 		return f, nil
 	}
 
-	f.env.applyContext(e)
+	f.env.injectContext(e)
 	v, err := evalExecuteFunctionApplication(f, a)
 	f.env.releaseContext(e)
 	return v, err
@@ -1091,6 +1091,7 @@ func evalGo(e *env, g goStatement) (interface{}, error) {
 			evalError(err)
 		}
 	}()
+
 	return nil, nil
 }
 
