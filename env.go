@@ -19,8 +19,8 @@ func newEnv() *env {
 	e := &env{values: v}
 	v["recover"] = recoverFunction(e)
 	v["panic"] = panicFunction(e)
-	v["chan"] = channel(e)
-	v["bufchan"] = bufferedChannel(e)
+	v["chan"] = makeChannel(e)
+	v["bufchan"] = makeBufferedChannel(e)
 	return e
 }
 
