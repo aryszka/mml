@@ -159,14 +159,6 @@ func parseMutableStruct(ast *parser.Node) structure {
 	return s
 }
 
-func parseChannel(ast *parser.Node) chan interface{} {
-	if len(ast.Nodes) == 0 {
-		return make(chan interface{})
-	}
-
-	return make(chan interface{}, parse(ast.Nodes[0]).(int))
-}
-
 func parseReturn(ast *parser.Node) ret {
 	return ret{value: parse(ast.Nodes[0])}
 }
@@ -664,8 +656,6 @@ func parse(ast *parser.Node) interface{} {
 		return parseStruct(ast)
 	case "mutable-struct":
 		return parseMutableStruct(ast)
-	case "channel":
-		return parseChannel(ast)
 	case "return":
 		return parseReturn(ast)
 	case "block":

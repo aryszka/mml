@@ -51,7 +51,7 @@ func panicFunction(e *env) function {
 
 func makeChannel(e *env) function {
 	return function{
-		primitive: func(*env) (interface{}, error) { return make(chan interface{}), nil },
+		primitive: func(*env) (interface{}, error) { return newChan(defaultScheduler, 0), nil },
 		env:       e,
 	}
 }
@@ -62,7 +62,7 @@ func createBufferedChannel(e *env) (interface{}, error) {
 		return nil, err
 	}
 
-	return make(chan interface{}, size.(int)), nil
+	return newChan(defaultScheduler, size.(int)), nil
 }
 
 func makeBufferedChannel(e *env) function {

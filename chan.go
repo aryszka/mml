@@ -54,6 +54,8 @@ var (
 	errCloseNil        = errors.New("closing nil channel")
 )
 
+var defaultScheduler = newScheduler()
+
 func newScheduler() *scheduler {
 	s := &scheduler{
 		communication: make(chan *communication),
@@ -283,12 +285,13 @@ func newChan(s *scheduler, capacity int) *channel {
 	}
 }
 
-func (c *channel) send(v interface{}) {
+func (c *channel) send(v interface{}) error {
 	if c == nil {
 		select {}
 	}
 
-	selectItem(c.scheduler, sendItem(c, v))
+	response := selectItem(c.scheduler, sendItem(c, v))
+	return response.err
 }
 
 func (c *channel) receive() (interface{}, bool) {
@@ -307,12 +310,13 @@ func (c *channel) len() int {
 
 func (c *channel) cap() int { return c.capacity }
 
-func (c *channel) close() {
+func (c *channel) close() error {
 	if c == nil {
-		panic(errCloseNil)
+		return errCloseNil
 	}
 
-	selectItem(c.scheduler, closeItem(c))
+	response := selectItem(c.scheduler, closeItem(c))
+	return response.err
 }
 
 func selectItem(s *scheduler, items ...*communicationItem) *communicationItem {
@@ -338,10 +342,5 @@ func selectItem(s *scheduler, items ...*communicationItem) *communicationItem {
 	}
 
 	s.communication <- comm
-	response := <-comm.done
-	if response.err != nil {
-		panic(response.err)
-	}
-
-	return response
+	return <-comm.done
 }

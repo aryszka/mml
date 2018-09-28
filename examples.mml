@@ -83,3 +83,10 @@ fn~ printFirstEven(l) {
 
 	println("not found")
 }
+
+// need to detect on receive when it is closed, or not use close():
+let c bufchan(1)
+send c 42
+close(c)
+let ftytwo receive c
+let closed receive c

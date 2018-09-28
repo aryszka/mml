@@ -347,13 +347,9 @@ func TestAxioms(t *testing.T) {
 		c := newChan(s, 0)
 		c.close()
 
-		defer func() {
-			if err := recover(); err != errSendingOnClosed {
-				t.Fatal("failed to panic")
-			}
-		}()
-
-		c.send(42)
+		if err := c.send(42); err != errSendingOnClosed {
+			t.Fatal("failed to panic")
+		}
 	})
 
 	t.Run("receive from a closed channel", func(t *testing.T) {
@@ -375,24 +371,15 @@ func TestAxioms(t *testing.T) {
 		c := newChan(s, 0)
 		c.close()
 
-		defer func() {
-			if err := recover(); err != errCloseClosed {
-				t.Fatal("failed to panic")
-			}
-		}()
-
-		c.close()
+		if err := c.close(); err != errCloseClosed {
+			t.Fatal("failed to panic")
+		}
 	})
 
 	t.Run("close of a nil channel", func(t *testing.T) {
 		var c *channel
-
-		defer func() {
-			if err := recover(); err != errCloseNil {
-				t.Fatal("failed to panic")
-			}
-		}()
-
-		c.close()
+		if err := c.close(); err != errCloseNil {
+			t.Fatal("failed to panic")
+		}
 	})
 }

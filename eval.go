@@ -1038,13 +1038,13 @@ func evalAssignList(e *env, a assignList) (interface{}, error) {
 	return nil, nil
 }
 
-func evalChan(e *env, v interface{}) (chan interface{}, error) {
+func evalChan(e *env, v interface{}) (*channel, error) {
 	c, err := eval(e, v)
 	if err != nil {
 		return nil, err
 	}
 
-	cc, ok := c.(chan interface{})
+	cc, ok := c.(*channel)
 	if !ok {
 		return nil, errExpectedChannel
 	}
@@ -1063,7 +1063,7 @@ func evalSend(e *env, s send) (interface{}, error) {
 		return nil, err
 	}
 
-	c <- v
+	c.send(v)
 	return nil, nil
 }
 
@@ -1073,7 +1073,8 @@ func evalReceive(e *env, r receive) (interface{}, error) {
 		return nil, err
 	}
 
-	return <-c, err
+	v, _ := c.receive()
+	return v, nil
 }
 
 func evalGo(e *env, g goStatement) (interface{}, error) {

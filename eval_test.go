@@ -101,6 +101,12 @@ func testEq(left, right interface{}) bool {
 				return false
 			}
 		}
+	case *channel:
+		rt := right.(*channel)
+		return lt.scheduler == rt.scheduler &&
+			lt.capacity == rt.capacity &&
+			len(lt.buffer) == len(rt.buffer) &&
+			lt.closed == rt.closed
 	default:
 		return left == right
 	}
@@ -268,8 +274,8 @@ func TestEval(t *testing.T) {
 	})
 
 	t.Run("channel", func(t *testing.T) {
-		t.Run("unbuffered", testEvalStatement("chan()", make(chan interface{})))
-		t.Run("buffered", testEvalStatement("bufchan(42)", make(chan interface{}, 42)))
+		t.Run("unbuffered", testEvalStatement("chan()", newChan(defaultScheduler, 0)))
+		t.Run("buffered", testEvalStatement("bufchan(42)", newChan(defaultScheduler, 42)))
 	})
 
 	t.Run("function", func(t *testing.T) {
