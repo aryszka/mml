@@ -178,6 +178,17 @@ type deferStatement struct {
 	application functionApplication
 }
 
+type selectCase struct {
+	expression interface{}
+	body       statementList
+}
+
+type selectStatement struct {
+	cases             []selectCase
+	hasDefault        bool
+	defaultStatements statementList
+}
+
 type module struct {
 	text       string
 	shebang    string

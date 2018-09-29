@@ -1012,4 +1012,18 @@ func TestEval(t *testing.T) {
 			"bar",
 		))
 	})
+
+	t.Run("select", testEvalStatement(
+		`fn~ () {
+			let c bufchan(1)
+			send c 42
+			select {
+			case v receive c:
+				return v
+			default:
+				return 0
+			}
+		}()`,
+		42,
+	))
 }

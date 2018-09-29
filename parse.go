@@ -628,6 +628,82 @@ func parseDefer(ast *parser.Node) deferStatement {
 	}
 }
 
+func parseReceiveDefinition(ast *parser.Node) definition {
+	return parseValueCapture(ast)
+}
+
+func parseSelect(ast *parser.Node) selectStatement {
+	var (
+		s                 selectStatement
+		sc                selectCase
+		nodes             []*parser.Node
+		current           []*parser.Node
+		isDefault         bool
+		hasDefault        bool
+		cases             [][]*parser.Node
+		defaultStatements []*parser.Node
+	)
+
+	nodes = ast.Nodes
+
+	for _, n := range nodes {
+		switch n.Name {
+		case "select-case":
+			if len(current) > 0 {
+				if isDefault {
+					defaultStatements = current
+				} else {
+					cases = append(cases, current)
+				}
+			}
+
+			current = []*parser.Node{n.Nodes[0]}
+			isDefault = false
+		case "default":
+			if len(current) > 0 && !isDefault {
+				cases = append(cases, current)
+			}
+
+			current = nil
+			isDefault = true
+			hasDefault = true
+		default:
+			current = append(current, n)
+		}
+	}
+
+	if len(current) > 0 {
+		if isDefault {
+			defaultStatements = current
+		} else {
+			cases = append(cases, current)
+		}
+	}
+
+	for _, c := range cases {
+		sc.expression = parse(c[0])
+		sc.body = statementList{}
+		for _, cs := range c[1:] {
+			sc.body.statements = append(
+				sc.body.statements,
+				parse(cs),
+			)
+		}
+
+		s.cases = append(s.cases, sc)
+	}
+
+	s.hasDefault = hasDefault
+	for _, si := range defaultStatements {
+		s.defaultStatements.statements = append(
+			s.defaultStatements.statements,
+			parse(si),
+		)
+	}
+
+	return s
+}
+
 func parse(ast *parser.Node) interface{} {
 	switch ast.Name {
 	case "int":
@@ -718,6 +794,10 @@ func parse(ast *parser.Node) interface{} {
 		return parseGo(ast)
 	case "defer":
 		return parseDefer(ast)
+	case "receive-definition":
+		return parseReceiveDefinition(ast)
+	case "select":
+		return parseSelect(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}

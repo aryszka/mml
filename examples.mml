@@ -84,9 +84,37 @@ fn~ printFirstEven(l) {
 	println("not found")
 }
 
+// --
+
 // need to detect on receive when it is closed, or not use close():
 let c bufchan(1)
 send c 42
 close(c)
 let ftytwo receive c
 let closed receive c
+
+let (
+	closed {}
+	feed chan()
+	response chan()
+)
+
+go fn () {
+	let ~ sum 0
+	for {
+		let v receive feed
+		if v == closed {
+			send response sum
+			return
+		}
+
+		set sum sum + v
+	}
+}()
+
+for v in [1, 2, 3] {
+	send feed v
+}
+
+send feed closed
+println(receive response)

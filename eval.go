@@ -1110,6 +1110,73 @@ func evalDefer(e *env, d deferStatement) (interface{}, error) {
 	return nil, nil
 }
 
+func evalSelect(e *env, s selectStatement) (interface{}, error) {
+	e = e.extend()
+
+	var items []*communicationItem
+	cases := make(map[*communicationItem]selectCase)
+	for _, c := range s.cases {
+		var item *communicationItem
+		switch ct := c.expression.(type) {
+		case receive:
+			ch, err := evalChan(e, ct.channel)
+			if err != nil {
+				return nil, err
+			}
+
+			item = receiveItem(ch)
+		case send:
+			ch, err := evalChan(e, ct.channel)
+			if err != nil {
+				return nil, err
+			}
+
+			v, err := eval(e, ct.value)
+			if err != nil {
+				return nil, err
+			}
+
+			item = sendItem(ch, v)
+		case definition:
+			ch, err := evalChan(e, ct.expression.(receive).channel)
+			if err != nil {
+				return nil, err
+			}
+
+			item = receiveItem(ch)
+		}
+
+		items = append(items, item)
+		cases[item] = c
+	}
+
+	var d *communicationItem
+	if s.hasDefault {
+		d = defaultItem()
+		items = append(items, d)
+	}
+
+	item := selectItem(defaultScheduler, items...)
+	if item.err != nil {
+		return nil, item.err
+	}
+
+	var sl statementList
+	if item == d {
+		sl = s.defaultStatements
+	} else {
+		sc := cases[item]
+		sl = sc.body
+		if d, ok := sc.expression.(definition); ok {
+			if err := e.define(d.symbol, item.value); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return evalStatementList(e, sl)
+}
+
 func eval(e *env, code interface{}) (interface{}, error) {
 	switch v := code.(type) {
 	case int:
@@ -1162,6 +1229,8 @@ func eval(e *env, code interface{}) (interface{}, error) {
 		return evalGo(e, v)
 	case deferStatement:
 		return evalDefer(e, v)
+	case selectStatement:
+		return evalSelect(e, v)
 	default:
 		return nil, errUnsupportedCode
 	}
