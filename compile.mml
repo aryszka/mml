@@ -1,0 +1,108 @@
+fn (
+	fold(f, i, l)  len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
+	foldr(f, i, l) len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
+	map(m, l)      fold(fn (c, r) [r..., m(c)], [], l)
+	ifErr(mod, f)  fn~ (a) mod(isError(a)) ? f(a) : a
+)
+
+let (
+	passErr ifErr(not)
+	onlyErr ifErr(yes)
+)
+
+fn~ (
+	readAll(input) input(-1)
+	read(input)    input -> readAll -> passErr(parse)
+)
+
+fn escape(s) {
+	if s == "" {
+		return ""
+	}
+
+	fn isEscape(c) {
+		switch c {
+		case "\b":
+		case "\f":
+		case "\n":
+		case "\r":
+		case "\t":
+		case "\v":
+		default:
+			return false
+		}
+
+		return true
+	}
+
+	let ~ first s[0]
+	if isEscape(first) {
+		first = "\\" + first
+	}
+
+	return first + escape(s[1:])
+}
+
+fn join(j, s) {
+	if len(s) == 0 {
+		return ""
+	}
+
+	if len(s) == 1 {
+		return s[0]
+	}
+
+	return s[0] + j + join(j, s[1:])
+}
+
+fn joinTwo(j, left, right) join(j, [left, right])
+
+let (
+	compileInt   string
+	compileFloat string
+	compileBool  string
+)
+
+fn (
+	compileString(s)     format("\"%s\"", escape(s))
+	compileSymbol(s)     s.name
+	compileStatements(s) s -> map(compile) -> foldr(joinTwo(";"), "")
+	compileModule(m)     compileStatements(m.statements)
+)
+
+fn compile(code) {
+	switch {
+	case isInt(code):
+		return compileInt(code)
+	case isFloat(code):
+		return compileFloat(code)
+	case isString(code):
+		return compileString(code)
+	case isBool(code):
+		return compileBool(code)
+	}
+
+	switch code.type {
+	case "symbol":
+		return compileSymbol(code)
+	case "module":
+		return compileModule(code)
+	default:
+		return error("unsupported code")
+	}
+}
+
+let write stdout
+
+// TODO: should be a builtin fake function
+fn log(...a) {
+	a -> map(string) -> join(" ") -> stderr
+	"\n" -> stderr
+	return a[len(a) - 1]
+}
+
+let result stdin
+-> read
+-> passErr(compile)
+-> passErr(write)
+-> onlyErr(log)

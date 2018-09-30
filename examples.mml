@@ -118,3 +118,20 @@ for v in [1, 2, 3] {
 
 send feed closed
 println(receive response)
+
+// --
+
+#! /usr/bin/mml
+
+require (
+	. "os"
+	. "mml"
+)
+
+for {
+	stdin
+	-> read
+	-> eval
+	-> passErr(write(stdout))
+	-> onlyErr(write(stderr))
+}

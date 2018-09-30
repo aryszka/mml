@@ -160,7 +160,12 @@ func parseMutableStruct(ast *parser.Node) structure {
 }
 
 func parseReturn(ast *parser.Node) ret {
-	return ret{value: parse(ast.Nodes[0])}
+	var value interface{}
+	if len(ast.Nodes) > 0 {
+		value = parse(ast.Nodes[0])
+	}
+
+	return ret{value: value}
 }
 
 func parseStatementList(ast *parser.Node) statementList {
@@ -525,7 +530,12 @@ func parseValueDefinition(ast *parser.Node) interface{} {
 func parseDefinitions(ast *parser.Node) definitionList {
 	var d definitionList
 	for _, n := range ast.Nodes {
-		d.definitions = append(d.definitions, parse(n).(definition))
+		c := parse(n)
+		if _, ok := c.(comment); ok {
+			continue
+		}
+
+		d.definitions = append(d.definitions, c.(definition))
 	}
 
 	return d
@@ -706,6 +716,8 @@ func parseSelect(ast *parser.Node) selectStatement {
 
 func parse(ast *parser.Node) interface{} {
 	switch ast.Name {
+	case "line-comment-content":
+		return comment{}
 	case "int":
 		return parseInt(ast)
 	case "float":
@@ -799,6 +811,7 @@ func parse(ast *parser.Node) interface{} {
 	case "select":
 		return parseSelect(ast)
 	default:
+		println(ast.Name)
 		panic(errUnexpectedParserResult)
 	}
 }

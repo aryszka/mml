@@ -511,6 +511,21 @@ func TestEval(t *testing.T) {
 			}()`,
 			42,
 		))
+		t.Run("return nothing", testEvalStatement(
+			`fn () {
+				fn~ foo() {
+					for i in 0:2 {
+						if i == 1 {
+							return
+						}
+					}
+				}
+
+				foo()
+				return 42
+			}()`,
+			42,
+		))
 	})
 
 	t.Run("operator", func(t *testing.T) {

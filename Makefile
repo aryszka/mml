@@ -3,6 +3,9 @@ SOURCES = $(shell find . -name "*.go") syntax.treerack
 build:
 	go build ./...
 
+install:
+	go install ./...
+
 deps:
 	@go get ./...
 

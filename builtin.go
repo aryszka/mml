@@ -1,6 +1,11 @@
 package mml
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+)
 
 type errPanic struct {
 	value interface{}
@@ -70,5 +75,240 @@ func makeBufferedChannel(e *env) function {
 		primitive: createBufferedChannel,
 		params:    []string{"size"},
 		env:       e,
+	}
+}
+
+func makeYes(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			return eval(e, symbol{name: "a"})
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func makeNot(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			return a == false, err
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func makeParse(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			return structure{}, nil
+		},
+		params: []string{"doc"},
+		env:    e,
+	}
+}
+
+func makeStdin(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			l, err := eval(e, symbol{name: "len"})
+			if err != nil {
+				return nil, err
+			}
+
+			ll := l.(int)
+			if ll < 0 {
+				b, err := ioutil.ReadAll(os.Stdin)
+				return string(b), err
+			}
+
+			b := make([]byte, l.(int))
+			_, err = os.Stdin.Read(b)
+			return string(b), err
+		},
+		params: []string{"len"},
+		env:    e,
+	}
+}
+
+func makeIOWriter(e *env, w io.Writer) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			s, err := eval(e, symbol{name: "s"})
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = w.Write([]byte(s.(string)))
+			return nil, err
+		},
+		params: []string{"s"},
+		env:    e,
+	}
+}
+
+func makeStdout(e *env) function {
+	return makeIOWriter(e, os.Stdout)
+}
+
+func makeStderr(e *env) function {
+	return makeIOWriter(e, os.Stderr)
+}
+
+func makeIsError(e *env) function {
+	return function{
+		primitive: func(*env) (interface{}, error) {
+			return false, nil
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func parseForMML(e *env) (interface{}, error) {
+	doc, err := eval(e, symbol{name: "doc"})
+	if err != nil {
+		return nil, err
+	}
+
+	code, err := parseModule(doc.(string))
+	if err != nil {
+		return nil, err
+	}
+
+	return codeMML(code), nil
+}
+
+func makeParseForMML(e *env) function {
+	return function{
+		primitive: parseForMML,
+		params:    []string{"doc"},
+		env:       e,
+	}
+}
+
+func toString(e *env) (interface{}, error) {
+	println("in the string")
+	a, err := eval(e, symbol{name: "a"})
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprint(a), nil
+}
+
+func makeString(e *env) function {
+	return function{
+		primitive: toString,
+		params:    []string{"a"},
+		env:       e,
+	}
+}
+
+func makeFormat(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			f, err := eval(e, symbol{name: "f"})
+			if err != nil {
+				return nil, err
+			}
+
+			args, err := eval(e, symbol{name: "args"})
+			if err != nil {
+				return nil, err
+			}
+
+			return fmt.Sprintf(f.(string), args.(list).values...), nil
+		},
+		params:       []string{"f"},
+		collectParam: "args",
+		env:          e,
+	}
+}
+
+func makeIsInt(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			if err != nil {
+				return nil, err
+			}
+
+			_, ok := a.(int)
+			return ok, nil
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func makeIsFloat(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			if err != nil {
+				return nil, err
+			}
+
+			_, ok := a.(float64)
+			return ok, nil
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func makeIsString(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			if err != nil {
+				return nil, err
+			}
+
+			_, ok := a.(string)
+			return ok, nil
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func makeIsBool(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			if err != nil {
+				return nil, err
+			}
+
+			_, ok := a.(bool)
+			return ok, nil
+		},
+		params: []string{"a"},
+		env:    e,
+	}
+}
+
+func makeLen(e *env) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			if err != nil {
+				return nil, err
+			}
+
+			switch at := a.(type) {
+			case list:
+				return len(at.values), nil
+			case string:
+				return len(at), nil
+			default:
+				return nil, errUnsupportedCode
+			}
+		},
+		params: []string{"a"},
+		env:    e,
 	}
 }

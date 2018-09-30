@@ -52,8 +52,9 @@ collect-parameter    = "..." nl* symbol;
 return               = "return" (nl* expression)?;
 block                = "{" sep? statement-list? sep? "}";
 function-fact:alias  = "(" list-sep?
-                       parameter-list?
-                       (list-sep collect-parameter)?
+                       (parameter-list
+		     | parameter-list list-sep collect-parameter
+		     | collect-parameter)?
                        list-sep? ")" nl*
                        (simple-statement | block);
 function             = "fn" nl* function-fact;
@@ -219,6 +220,8 @@ definition:alias = value-definition
                  | function-definition
                  | function-definition-group
                  | effect-definition-group;
+
+// TODO: require effect
 
 require-inline                = ".";
 require-fact                  = string

@@ -1,0 +1,2 @@
+antidoc: it is possible to turn around code docs and reference the code from the doc instead of including the
+doc in the code

@@ -10,8 +10,8 @@ type env struct {
 }
 
 var (
-	errSymbolExists  = errors.New("symbol exists")
-	errSymbolMissing = errors.New("symbol missing")
+	errSymbolExists   = errors.New("symbol exists")
+	errSymbolNotFound = errors.New("symbol not found")
 )
 
 func newEnv() *env {
@@ -21,8 +21,25 @@ func newEnv() *env {
 	v["panic"] = panicFunction(e)
 	v["chan"] = makeChannel(e)
 	v["bufchan"] = makeBufferedChannel(e)
+	v["yes"] = makeYes(e)
+	v["not"] = makeNot(e)
+	v["stdin"] = makeStdin(e)
+	v["stdout"] = makeStdout(e)
+	v["stderr"] = makeStderr(e)
+	v["parse"] = makeParse(e)
+	v["isError"] = makeIsError(e)
+	v["parse"] = makeParseForMML(e)
+	v["string"] = makeString(e)
+	v["format"] = makeFormat(e)
+	v["isInt"] = makeIsInt(e)
+	v["isFloat"] = makeIsFloat(e)
+	v["isString"] = makeIsString(e)
+	v["isBool"] = makeIsBool(e)
+	v["len"] = makeLen(e)
 	return e
 }
+
+// TODO: methods are not thread safe
 
 func (e *env) extend() *env {
 	return &env{parent: e, values: make(map[string]interface{})}
@@ -44,7 +61,8 @@ func (e *env) lookupWithParent(name string) (interface{}, *env, error) {
 	}
 
 	if e.parent == nil {
-		return nil, nil, errSymbolMissing
+		println(name)
+		return nil, nil, errSymbolNotFound
 	}
 
 	return e.parent.lookupWithParent(name)

@@ -19,7 +19,6 @@ var (
 	errNotAFunction                = errors.New("not a function")
 	errInvalidArgument             = errors.New("invalid argument")
 	errExpectedBoolean             = errors.New("expected boolean")
-	errInvalidSwitchExpression     = errors.New("invalid switch expression")
 	errInvalidCaseExpression       = errors.New("invalid case expression")
 	errInvalidLoopExpression       = errors.New("invalid loop expression")
 	errInvalidAssignTarget         = errors.New("invalid assign target")
@@ -160,6 +159,45 @@ func evalListIndex(e *env, i interface{}) (ii int, err error) {
 	return
 }
 
+func evalStringIndexer(e *env, s string, i interface{}) (v interface{}, err error) {
+	switch it := i.(type) {
+	case rangeExpression:
+		var from, to int
+
+		if it.from != nil {
+			if from, err = evalListIndex(e, it.from); err != nil {
+				return
+			}
+		}
+
+		if it.to != nil {
+			if to, err = evalListIndex(e, it.to); err != nil {
+				return
+			}
+		}
+
+		switch {
+		case it.from != nil && it.to != nil:
+			v = s[from:to]
+		case it.from != nil && it.to == nil:
+			v = s[from:]
+		case it.from == nil && it.to != nil:
+			v = s[:to]
+		default:
+			v = s
+		}
+	default:
+		var ii int
+		if ii, err = evalListIndex(e, i); err != nil {
+			return
+		}
+
+		v = string(s[ii])
+	}
+
+	return
+}
+
 func evalListIndexer(e *env, l list, i interface{}) (v interface{}, err error) {
 	switch it := i.(type) {
 	case rangeExpression:
@@ -234,6 +272,8 @@ func evalIndexer(e *env, i indexer) (interface{}, error) {
 	}
 
 	switch et := exp.(type) {
+	case string:
+		return evalStringIndexer(e, et, i.index)
 	case list:
 		return evalListIndexer(e, et, i.index)
 	case structure:
@@ -246,7 +286,15 @@ func evalIndexer(e *env, i indexer) (interface{}, error) {
 func evalStatementList(e *env, s statementList) (interface{}, error) {
 	for _, si := range s.statements {
 		if r, ok := si.(ret); ok {
-			siv, err := eval(e, r.value)
+			var (
+				siv interface{}
+				err error
+			)
+
+			if r.value != nil {
+				siv, err = eval(e, r.value)
+			}
+
 			return ret{value: siv}, err
 		}
 
@@ -317,18 +365,18 @@ func toErr(err interface{}) error {
 	}
 }
 
-func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, error) {
+func evalExecuteFunctionApplication(e *env, f function, a []interface{}) (interface{}, error) {
 	v := func() interface{} {
 		for i, p := range f.params {
-			if err := f.env.define(p, a[i]); err != nil {
-				f.env.pendingErr = err
+			if err := e.define(p, a[i]); err != nil {
+				e.pendingErr = err
 				return nil
 			}
 		}
 
 		if f.collectParam != "" {
-			if err := f.env.define(f.collectParam, list{values: a[len(f.params):]}); err != nil {
-				f.env.pendingErr = err
+			if err := e.define(f.collectParam, list{values: a[len(f.params):]}); err != nil {
+				e.pendingErr = err
 				return nil
 			}
 		}
@@ -336,13 +384,13 @@ func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, e
 		if f.primitive != nil {
 			defer func() {
 				if err := toErr(recover()); err != nil {
-					f.env.pendingErr = err
+					e.pendingErr = err
 				}
 			}()
 
-			v, err := f.primitive(f.env)
+			v, err := f.primitive(e)
 			if err != nil {
-				f.env.pendingErr = err
+				e.pendingErr = err
 			}
 
 			return v
@@ -350,23 +398,24 @@ func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, e
 
 		defer func() {
 			if err := toErr(recover()); err != nil {
-				f.env.pendingErr = err
+				e.pendingErr = err
 			}
 
-			for i := len(f.env.deferred) - 1; i >= 0; i-- {
-				d := f.env.deferred[i]
-				d.function.env.injectContext(f.env)
-				if _, err := evalExecuteFunctionApplication(d.function, d.args); err != nil {
-					f.env.pendingErr = err
+			for i := len(e.deferred) - 1; i >= 0; i-- {
+				d := e.deferred[i]
+				ee := d.function.env.extend()
+				ee.injectContext(e)
+				if _, err := evalExecuteFunctionApplication(ee, d.function, d.args); err != nil {
+					e.pendingErr = err
 				}
 
-				d.function.env.releaseContext(f.env)
+				ee.releaseContext(e)
 			}
 		}()
 
-		v, err := evalExpressionOrStatementList(f.env, f.statement)
+		v, err := evalExpressionOrStatementList(e, f.statement)
 		if err != nil {
-			f.env.pendingErr = err
+			e.pendingErr = err
 			return nil
 		}
 
@@ -377,8 +426,8 @@ func evalExecuteFunctionApplication(f function, a []interface{}) (interface{}, e
 		return v
 	}()
 
-	err := f.env.pendingErr
-	f.env.pendingErr = nil
+	err := e.pendingErr
+	e.pendingErr = nil
 	if pe, ok := v.(errPanic); ok {
 		v = pe.value
 	}
@@ -397,9 +446,10 @@ func evalFunctionApplication(e *env, fa functionApplication) (interface{}, error
 		return f, nil
 	}
 
-	f.env.injectContext(e)
-	v, err := evalExecuteFunctionApplication(f, a)
-	f.env.releaseContext(e)
+	ee := f.env.extend()
+	ee.injectContext(e)
+	v, err := evalExecuteFunctionApplication(ee, f, a)
+	ee.releaseContext(e)
 	return v, err
 }
 
@@ -727,7 +777,7 @@ func evalSwitch(e *env, s switchStatement) (interface{}, error) {
 
 	if s.expression != nil {
 		if exp, err = eval(e, s.expression); err != nil {
-			return nil, errInvalidSwitchExpression
+			return nil, err
 		}
 	}
 
@@ -1088,7 +1138,8 @@ func evalGo(e *env, g goStatement) (interface{}, error) {
 	}
 
 	go func() {
-		if _, err := evalExecuteFunctionApplication(f, a); err != nil {
+		ee := f.env.extend()
+		if _, err := evalExecuteFunctionApplication(ee, f, a); err != nil {
 			evalError(err)
 		}
 	}()
@@ -1179,6 +1230,8 @@ func evalSelect(e *env, s selectStatement) (interface{}, error) {
 
 func eval(e *env, code interface{}) (interface{}, error) {
 	switch v := code.(type) {
+	case comment:
+		return code, nil
 	case int:
 		return code, nil
 	case float64:
@@ -1246,4 +1299,9 @@ func evalStatement(e *env, s interface{}) interface{} {
 }
 
 func evalModule(e *env, m module) {
+	// TODO: control statements like return don't make sense here
+	e = e.extend()
+	for _, s := range m.statements {
+		evalStatement(e, s)
+	}
 }

@@ -1,5 +1,7 @@
 package mml
 
+type comment struct{}
+
 type primitive func(*env) (interface{}, error)
 
 type symbol struct {
@@ -45,7 +47,6 @@ type function struct {
 	collectParam string
 	statement    interface{}
 	env          *env
-	syntax       string
 }
 
 type rangeExpression struct {
