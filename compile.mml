@@ -9,20 +9,19 @@ fn (
 	passErr(f)               ifErr(not, f)
 	onlyErr(f)               ifErr(yes, f)
 	anyErr(l)                fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
-	anyErrPass(f, l)         l -> anyErr -> passErr(f)
 	firstOr(v, l)            len(l) > 0 ? l[0] : v
 	join(j, s)               len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
 	joins(j, ...s)           join(j, s)
 	joinTwo(j, left, right)  joins(j, left, right)
 	destruct(s)              s -> keys -> map(fn (key) [key, s[key]])
 	formats(f, ...args)      format(f, args)
-	passErrFormat(fmt, ...p) p -> anyErrPass(format(fmt))
+	passErrFormat(fmt, ...p) p -> anyErr -> passErr(format(fmt))
 	notEmpty(l)              l -> filter(fn (s) s != "")
 )
 
 fn counter () {
 	let ~ c -1
-	return fn ~ () {
+	return fn~ () {
 		set c c + 1
 		return c
 	}
@@ -85,7 +84,8 @@ fn (
 	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
 	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
 	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileListItems(a.args))
-	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
+	compileSwitchCase(c)  passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
+	compileStatements(s)  s -> mapCompile -> anyErr -> passErr(notEmpty) -> passErr(join(";\n"))
 	compileModule(m)      compileStatements(m.statements)
 )
 
@@ -208,7 +208,7 @@ fn compileBinary(b) passErrFormat(
 )
 
 fn compileCond(c)
-	has(c, "alternative") ?
+	has("alternative", c) ?
 	passErrFormat(
 		"func () interface{} { if %s { return %s } else { return %s } }()"
 		compile(c.condition)
@@ -221,56 +221,25 @@ fn compileCond(c)
 		compile(c.consequent)
 	)
 
-fn compileSwitchCase(c) {
-	let exp compile(c.expression)
-	if isError(exp) {
-		return exp
-	}
-
-	let statements compile(c.body)
-	if isError(statements) {
-		return statements
-	}
-
-	return formats("case %s:\n%s", exp, statements)
-}
-
-fn compileSwitch(s) {
-	let ~ exp ""
-	if has(s, "expression") {
-		set exp compile(s.expression)
-	}
-
-	if isError(exp) {
-		return exp
-	}
-
-	let ~ cases mapCompile(s.cases)
-	if cases -> anyErr -> isError {
-		return cases
-	}
-
-	if has(s, "defaultStatements") {
-		let defaultStatements compile(s.defaultStatements)
-		if isError(defaultStatements) {
-			return defaultStatements
-		}
-
-		set cases [cases..., formats("default:\n%s", defaultStatements)]
-	}
-
-	set cases anyErr(cases)
-	if isError(cases) {
-		return cases
-	}
-
-	set cases join("\n", cases)
-	return formats(
-		"func() interface{} {\nswitch %s {\n%s\n} }()"
-		exp
-		cases
-	)
-}
+fn compileSwitch(s)
+	(has("expression", s) ? compile(s.expression) : "")
+	-> fn (c) [c, mapCompile(s.cases)]
+	-> fn (c)
+		has("defaultStatemnets", s) ?
+		[
+			c[0]
+			[
+				c[1:]...
+				s.defaultStatements
+				-> compile
+				-> passErr(fn (c) formats("default:\n%s", c))
+			]
+		]
+		:
+		c
+	-> fn (c) isError(c[0]) ? c[0] : isError(anyErr(c[1])) ? anyErr(c[1]) : c
+	-> passErr(fn (c) [c[0], join("\n", c[1])])
+	-> passErr(format("func() interface{} {\nswitch %s {\n%s\n} }()"))
 
 fn compile(code) {
 	switch {
