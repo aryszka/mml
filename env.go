@@ -21,8 +21,6 @@ func newEnv() *env {
 	v["panic"] = panicFunction(e)
 	v["chan"] = makeChannel(e)
 	v["bufchan"] = makeBufferedChannel(e)
-	v["yes"] = makeYes(e)
-	v["not"] = makeNot(e)
 	v["stdin"] = makeStdin(e)
 	v["stdout"] = makeStdout(e)
 	v["stderr"] = makeStderr(e)
@@ -36,6 +34,7 @@ func newEnv() *env {
 	v["isString"] = makeIsString(e)
 	v["isBool"] = makeIsBool(e)
 	v["len"] = makeLen(e)
+	v["error"] = makeError(e)
 	return e
 }
 

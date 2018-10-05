@@ -7,7 +7,7 @@ line-comment:alias:nows    = "//" line-comment-content;
 block-comment-content:nows = ([^*] | "*" [^/])*;
 block-comment:alias:nows   = "/*" block-comment-content "*/";
 comment-part:alias         = line-comment | block-comment;
-comment:alias              = comment-part ("\n"? comment-part)*;
+comment:alias              = comment-part (nl? comment-part)*;
 
 decimal-digit:alias = [0-9];
 octal-digit:alias   = [0-7];
@@ -133,11 +133,11 @@ operand3:alias = operand2 | binary2;
 operand4:alias = operand3 | binary3;
 operand5:alias = operand4 | binary4;
 
-binary0  = operand0 (binary-op0 operand0)+;
-binary1  = operand1 (binary-op1 operand1)+;
-binary2  = operand2 (binary-op2 operand2)+;
-binary3  = operand3 (binary-op3 operand3)+;
-binary4  = operand4 (binary-op4 operand4)+;
+binary0  = operand0 (nl* binary-op0 nl* operand0)+;
+binary1  = operand1 (nl* binary-op1 nl* operand1)+;
+binary2  = operand2 (nl* binary-op2 nl* operand2)+;
+binary3  = operand3 (nl* binary-op3 nl* operand3)+;
+binary4  = operand4 (nl* binary-op4 nl* operand4)+;
 chaining = operand5 (nl* chain nl* operand5)+;
 
 binary-expression:alias = binary0

@@ -1,14 +1,38 @@
 fn (
-	fold(f, i, l)  len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
-	foldr(f, i, l) len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
-	map(m, l)      fold(fn (c, r) [r..., m(c)], [], l)
-	ifErr(mod, f)  fn~ (a) mod(isError(a)) ? f(a) : a
+	fold(f, i, l)           len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
+	foldr(f, i, l)          len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
+	map(m, l)               fold(fn (c, r) [r..., m(c)], [], l)
+	filter(p, l)            fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
+	not(x)                  !x
+	yes(x)                  x
+	ifErr(mod, f)           fn~ (a) mod(isError(a)) ? f(a) : a
+	passErr(f)              ifErr(not, f)
+	onlyErr(f)              ifErr(yes, f)
+	anyErr(l)               fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
+	firstOr(v, l)           len(l) > 0 ? l[0] : v
+	join(j, s)              len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
+	joins(j, ...s)          join(j, s)
+	joinTwo(j, left, right) joins(j, left, right)
+	destruct(s)             s -> keys -> map(fn (key) [key, s[key]])
+	formats(f, ...args)     format(f, args)
 )
 
-let (
-	passErr ifErr(not)
-	onlyErr ifErr(yes)
-)
+fn counter () {
+	let ~ c -1
+	return fn ~ () {
+		set c c + 1
+		return c
+	}
+}
+
+let enum counter
+
+// TODO: should be a builtin fake function
+fn~ log(...a) {
+	a -> map(string) -> join(" ") -> stderr
+	"\n" -> stderr
+	return a[len(a) - 1]
+}
 
 fn~ (
 	readAll(input) input(-1)
@@ -20,42 +44,24 @@ fn escape(s) {
 		return ""
 	}
 
-	fn isEscape(c) {
-		switch c {
-		case "\b":
-		case "\f":
-		case "\n":
-		case "\r":
-		case "\t":
-		case "\v":
-		default:
-			return false
-		}
-
-		return true
-	}
-
 	let ~ first s[0]
-	if isEscape(first) {
-		first = "\\" + first
+	switch first {
+	case "\b":
+		first = "\\b"
+	case "\f":
+		first = "\\f"
+	case "\n":
+		first = "\\n"
+	case "\r":
+		first = "\\r"
+	case "\t":
+		first = "\\t"
+	case "\v":
+		first = "\\v"
 	}
 
 	return first + escape(s[1:])
 }
-
-fn join(j, s) {
-	if len(s) == 0 {
-		return ""
-	}
-
-	if len(s) == 1 {
-		return s[0]
-	}
-
-	return s[0] + j + join(j, s[1:])
-}
-
-fn joinTwo(j, left, right) join(j, [left, right])
 
 let (
 	compileInt   string
@@ -64,10 +70,161 @@ let (
 )
 
 fn (
-	compileString(s)     format("\"%s\"", escape(s))
+	mapCompile(l)        l -> map(compile) -> anyErr
+	mapCompileJoin(j, l) l -> mapCompile -> passErr(join(j))
+	anyErrPass(f, l)     l -> anyErr -> passErr(f)
+	compileComment(_)    ""
+	compileString(s)     formats("\"%s\"", escape(s))
 	compileSymbol(s)     s.name
-	compileStatements(s) s -> map(compile) -> foldr(joinTwo(";"), "")
+	compileListItems(i)  mapCompileJoin(",", i)
+	compileEntry(e)      [compile(e.key), compile(e.value)] -> anyErrPass(format("\"%s\":%s"))
+	compileEntries(e)    mapCompileJoin(",", e)
+	compileStatements(s) mapCompileJoin(";\n", s)
 	compileModule(m)     compileStatements(m.statements)
+)
+
+fn compileList(l)
+	l.values
+	-> compileListItems
+	-> passErr(fn (s) formats("[]interface{}{%s}", s))
+
+fn compileStructure(s)
+	s.entries
+	-> compileEntries
+	-> passErr(fn (s) formats("map[string]interface{}{%s}", s))
+
+fn compileMultiPart(fmt, ...p) p -> anyErrPass(format(fmt))
+
+fn compileParamList(params, collectParam)
+	params
+	-> join(",")
+	-> fn (p) formats("%s interface{}", p)
+	-> fn (p) collectParam == "" ?
+		p :
+		formats("%s, %s ...interface{}", p, collectParam)
+
+fn compileFunctionBody(s) compile(s)
+
+fn compileFunction(f) compileMultiPart(
+	"func(%s) interface{} {%s}"
+	compileParamList(f.params, f.collectParam)
+	compileFunctionBody(f.statement)
+)
+
+fn compileIndexer(i) compileMultiPart(
+	"%s[%s]"
+	compile(i.expression)
+	compile(i.index)
+)
+
+fn compileFunctionApplication(a) compileMultiPart(
+	"%s(%s)"
+	compile(a.function)
+	compileListItems(a.args)
+)
+
+let (
+	unaryOp    enum()
+	binaryNot  unaryOp()
+	plus       unaryOp()
+	minus      unaryOp()
+	logicalNot unaryOp()
+)
+
+fn compileUnaryOp(o) {
+	switch o {
+	case binaryNot:
+		return "^"
+	case plus:
+		return "+"
+	case minus:
+		return "-"
+	case logicalNot:
+		return "!"
+	default:
+		return error(formats("unsupported code: %v"))
+	}
+}
+
+fn compileUnary(u) compileMultiPart(
+	"%s%s",
+	compileUnaryOp(u.op)
+	compile(u.arg)
+)
+
+let (
+	binaryOp    enum()
+	binaryAnd   binaryOp()
+	binaryOr    binaryOp()
+	xor         binaryOp()
+	andNot      binaryOp()
+	lshift      binaryOp()
+	rshift      binaryOp()
+	mul         binaryOp()
+	div         binaryOp()
+	mod         binaryOp()
+	add         binaryOp()
+	sub         binaryOp()
+	eq          binaryOp()
+	notEq       binaryOp()
+	less        binaryOp()
+	lessOrEq    binaryOp()
+	greater     binaryOp()
+	greaterOrEq binaryOp()
+	logicalAnd  binaryOp()
+	logicalOr   binaryOp()
+)
+
+fn compileBinaryOp(o) {
+	switch o {
+	case binaryAnd:
+		return "&"
+	case binaryOr:
+		return "|"
+	case xor:
+		return "^"
+	case andNot:
+		return "&^"
+	case lshift:
+		return "<<"
+	case rshift:
+		return ">>"
+	case mul:
+		return "*"
+	case div:
+		return "/"
+	case mod:
+		return "%"
+	case add:
+		return "+"
+	case sub:
+		return "-"
+	case eq:
+		return "=="
+	case notEq:
+		return "!="
+	case less:
+		return "<"
+	case lessOrEq:
+		return "<="
+	case greater:
+		return ">"
+	case greaterOrEq:
+		return ">="
+	case logicalAnd:
+		return "&&"
+	case logicalOr:
+		return "||"
+	default:
+		return error(formats("unsupported code: %v", o, add, o == add))
+	}
+}
+
+fn compileBinary(b) compileMultiPart(
+	"(%s %s %s)"
+	compile(b.left)
+	compileBinaryOp(b.op)
+	compile(b.right)
 )
 
 fn compile(code) {
@@ -83,25 +240,36 @@ fn compile(code) {
 	}
 
 	switch code.type {
+	case "comment":
+		return compileComment(code)
 	case "symbol":
 		return compileSymbol(code)
 	case "module":
 		return compileModule(code)
+	case "list":
+		return compileList(code)
+	case "entry":
+		return compileEntry(code)
+	case "structure":
+		return compileStructure(code)
+	case "function":
+		return compileFunction(code)
+	case "indexer":
+		return compileIndexer(code)
+	case "function-application":
+		return compileFunctionApplication(code)
+	case "unary":
+		return compileUnary(code)
+	case "binary":
+		return compileBinary(code)
 	default:
-		return error("unsupported code")
+		return formats("unsupported code: %v", code) -> error
 	}
 }
 
 let write stdout
 
-// TODO: should be a builtin fake function
-fn log(...a) {
-	a -> map(string) -> join(" ") -> stderr
-	"\n" -> stderr
-	return a[len(a) - 1]
-}
-
-let result stdin
+stdin
 -> read
 -> passErr(compile)
 -> passErr(write)

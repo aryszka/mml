@@ -100,7 +100,7 @@ func unaryMML(u unary) structure {
 
 func binaryMML(b binary) structure {
 	return toMML("binary",
-		"op", b.op,
+		"op", codeMML(b.op),
 		"left", codeMML(b.left),
 		"right", codeMML(b.right),
 	)

@@ -652,6 +652,8 @@ func evalIntFloatStringBinary(e *env, b binary) (interface{}, error) {
 		}
 
 		return evalStringBinaryChecked(b.op, lt, rt)
+	case error:
+		return nil, lt
 	default:
 		return nil, errUnsupportedCode
 	}
@@ -902,7 +904,6 @@ func evalNumericLoop(e *env, symbol string, r rangeExpression, s statementList) 
 	}
 
 	counter = from
-	e = e.extend()
 	if symbol != "" {
 		if err = e.define(symbol, counter); err != nil {
 			return nil, err
@@ -930,12 +931,6 @@ func evalNumericLoop(e *env, symbol string, r rangeExpression, s statementList) 
 }
 
 func evalListLoop(e *env, symbol string, l list, s statementList) (interface{}, error) {
-	l, err := evalList(e, l)
-	if err != nil {
-		return nil, err
-	}
-
-	e = e.extend()
 	if symbol != "" {
 		e.define(symbol, nil)
 	}
@@ -954,12 +949,6 @@ func evalListLoop(e *env, symbol string, l list, s statementList) (interface{}, 
 }
 
 func evalStructLoop(e *env, symbol string, str structure, s statementList) (interface{}, error) {
-	str, err := evalStruct(e, str)
-	if err != nil {
-		return nil, err
-	}
-
-	e = e.extend()
 	if symbol != "" {
 		e.define(symbol, nil)
 	}
@@ -978,15 +967,22 @@ func evalStructLoop(e *env, symbol string, str structure, s statementList) (inte
 }
 
 func evalRangeLoop(e *env, r rangeOver, s statementList) (interface{}, error) {
+	e = e.extend()
+
 	if re, ok := r.expression.(rangeExpression); ok || r.symbol != "" && r.expression == nil {
 		return evalNumericLoop(e, r.symbol, re, s)
 	}
 
-	if l, ok := r.expression.(list); ok {
+	exp, err := eval(e, r.expression)
+	if err != nil {
+		return nil, err
+	}
+
+	if l, ok := exp.(list); ok {
 		return evalListLoop(e, r.symbol, l, s)
 	}
 
-	if str, ok := r.expression.(structure); ok {
+	if str, ok := exp.(structure); ok {
 		return evalStructLoop(e, r.symbol, str, s)
 	}
 

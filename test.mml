@@ -1,4 +1,12 @@
 42
 3.14
 "foo"
-bool
+true
+bar
+[1, 2, 3]
+{a: 1, b: 2, c: 3}
+fn (x, y, ...p) {a: x, b: [y, p]}
+a[b]
+a(b, c)
+!a
+a + b * c

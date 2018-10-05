@@ -1,6 +1,7 @@
 package mml
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -78,27 +79,6 @@ func makeBufferedChannel(e *env) function {
 	}
 }
 
-func makeYes(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			return eval(e, symbol{name: "a"})
-		},
-		params: []string{"a"},
-		env:    e,
-	}
-}
-
-func makeNot(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
-			return a == false, err
-		},
-		params: []string{"a"},
-		env:    e,
-	}
-}
-
 func makeParse(e *env) function {
 	return function{
 		primitive: func(e *env) (interface{}, error) {
@@ -156,16 +136,6 @@ func makeStderr(e *env) function {
 	return makeIOWriter(e, os.Stderr)
 }
 
-func makeIsError(e *env) function {
-	return function{
-		primitive: func(*env) (interface{}, error) {
-			return false, nil
-		},
-		params: []string{"a"},
-		env:    e,
-	}
-}
-
 func parseForMML(e *env) (interface{}, error) {
 	doc, err := eval(e, symbol{name: "doc"})
 	if err != nil {
@@ -189,7 +159,6 @@ func makeParseForMML(e *env) function {
 }
 
 func toString(e *env) (interface{}, error) {
-	println("in the string")
 	a, err := eval(e, symbol{name: "a"})
 	if err != nil {
 		return nil, err
@@ -221,74 +190,59 @@ func makeFormat(e *env) function {
 
 			return fmt.Sprintf(f.(string), args.(list).values...), nil
 		},
-		params:       []string{"f"},
-		collectParam: "args",
-		env:          e,
+		params: []string{"f", "args"},
+		env:    e,
+	}
+}
+
+func makeTypeCheck(e *env, check func(a interface{}) bool) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			a, err := eval(e, symbol{name: "a"})
+			if err != nil {
+				return nil, err
+			}
+
+			return check(a), nil
+		},
+		params: []string{"a"},
+		env:    e,
 	}
 }
 
 func makeIsInt(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
-			if err != nil {
-				return nil, err
-			}
-
-			_, ok := a.(int)
-			return ok, nil
-		},
-		params: []string{"a"},
-		env:    e,
-	}
+	return makeTypeCheck(e, func(a interface{}) bool {
+		_, ok := a.(int)
+		return ok
+	})
 }
 
 func makeIsFloat(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
-			if err != nil {
-				return nil, err
-			}
-
-			_, ok := a.(float64)
-			return ok, nil
-		},
-		params: []string{"a"},
-		env:    e,
-	}
+	return makeTypeCheck(e, func(a interface{}) bool {
+		_, ok := a.(float64)
+		return ok
+	})
 }
 
 func makeIsString(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
-			if err != nil {
-				return nil, err
-			}
-
-			_, ok := a.(string)
-			return ok, nil
-		},
-		params: []string{"a"},
-		env:    e,
-	}
+	return makeTypeCheck(e, func(a interface{}) bool {
+		_, ok := a.(string)
+		return ok
+	})
 }
 
 func makeIsBool(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
-			if err != nil {
-				return nil, err
-			}
+	return makeTypeCheck(e, func(a interface{}) bool {
+		_, ok := a.(bool)
+		return ok
+	})
+}
 
-			_, ok := a.(bool)
-			return ok, nil
-		},
-		params: []string{"a"},
-		env:    e,
-	}
+func makeIsError(e *env) function {
+	return makeTypeCheck(e, func(a interface{}) bool {
+		_, ok := a.(error)
+		return ok
+	})
 }
 
 func makeLen(e *env) function {
@@ -305,10 +259,37 @@ func makeLen(e *env) function {
 			case string:
 				return len(at), nil
 			default:
+				fmt.Println(at)
 				return nil, errUnsupportedCode
 			}
 		},
 		params: []string{"a"},
 		env:    e,
 	}
+}
+
+func makeWithParams(e *env, p []string, f func(e *env, a []interface{}) (interface{}, error)) function {
+	return function{
+		primitive: func(e *env) (interface{}, error) {
+			var a []interface{}
+			for _, pi := range p {
+				ai, err := eval(e, symbol{name: pi})
+				if err != nil {
+					return nil, err
+				}
+
+				a = append(a, ai)
+			}
+
+			return f(e, a)
+		},
+		params: p,
+		env:    e,
+	}
+}
+
+func makeError(e *env) function {
+	return makeWithParams(e, []string{"message"}, func(e *env, a []interface{}) (interface{}, error) {
+		return errors.New(a[0].(string)), nil
+	})
 }

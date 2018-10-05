@@ -811,7 +811,6 @@ func parse(ast *parser.Node) interface{} {
 	case "select":
 		return parseSelect(ast)
 	default:
-		println(ast.Name)
 		panic(errUnexpectedParserResult)
 	}
 }
