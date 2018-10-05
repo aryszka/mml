@@ -1,20 +1,23 @@
 fn (
-	fold(f, i, l)           len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
-	foldr(f, i, l)          len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
-	map(m, l)               fold(fn (c, r) [r..., m(c)], [], l)
-	filter(p, l)            fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
-	not(x)                  !x
-	yes(x)                  x
-	ifErr(mod, f)           fn~ (a) mod(isError(a)) ? f(a) : a
-	passErr(f)              ifErr(not, f)
-	onlyErr(f)              ifErr(yes, f)
-	anyErr(l)               fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
-	firstOr(v, l)           len(l) > 0 ? l[0] : v
-	join(j, s)              len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
-	joins(j, ...s)          join(j, s)
-	joinTwo(j, left, right) joins(j, left, right)
-	destruct(s)             s -> keys -> map(fn (key) [key, s[key]])
-	formats(f, ...args)     format(f, args)
+	fold(f, i, l)            len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
+	foldr(f, i, l)           len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
+	map(m, l)                fold(fn (c, r) [r..., m(c)], [], l)
+	filter(p, l)             fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
+	not(x)                   !x
+	yes(x)                   x
+	ifErr(mod, f)            fn~ (a) mod(isError(a)) ? f(a) : a
+	passErr(f)               ifErr(not, f)
+	onlyErr(f)               ifErr(yes, f)
+	anyErr(l)                fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
+	anyErrPass(f, l)         l -> anyErr -> passErr(f)
+	firstOr(v, l)            len(l) > 0 ? l[0] : v
+	join(j, s)               len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
+	joins(j, ...s)           join(j, s)
+	joinTwo(j, left, right)  joins(j, left, right)
+	destruct(s)              s -> keys -> map(fn (key) [key, s[key]])
+	formats(f, ...args)      format(f, args)
+	passErrFormat(fmt, ...p) p -> anyErrPass(format(fmt))
+	notEmpty(l)              l -> filter(fn (s) s != "")
 )
 
 fn counter () {
@@ -31,7 +34,7 @@ let enum counter
 fn~ log(...a) {
 	a -> map(string) -> join(" ") -> stderr
 	"\n" -> stderr
-	return a[len(a) - 1]
+	return len(a) == 0 ? "" : a[len(a) - 1]
 }
 
 fn~ (
@@ -70,30 +73,21 @@ let (
 )
 
 fn (
-	mapCompile(l)        l -> map(compile) -> anyErr
-	mapCompileJoin(j, l) l -> mapCompile -> passErr(join(j))
-	anyErrPass(f, l)     l -> anyErr -> passErr(f)
-	compileComment(_)    ""
-	compileString(s)     formats("\"%s\"", escape(s))
-	compileSymbol(s)     s.name
-	compileListItems(i)  mapCompileJoin(",", i)
-	compileEntry(e)      [compile(e.key), compile(e.value)] -> anyErrPass(format("\"%s\":%s"))
-	compileEntries(e)    mapCompileJoin(",", e)
-	compileStatements(s) mapCompileJoin(";\n", s)
-	compileModule(m)     compileStatements(m.statements)
+	mapCompile(l)         l -> map(compile) -> anyErr
+	mapCompileJoin(j, l)  l -> mapCompile -> passErr(join(j))
+	compileComment(_)     ""
+	compileString(s)      formats("\"%s\"", escape(s))
+	compileSymbol(s)      s.name
+	compileListItems(i)   mapCompileJoin(",", i)
+	compileList(l)        passErrFormat("[]interface{}{%s}", compileListItems(l.values))
+	compileEntry(e)       passErrFormat("\"%s\":%s", compile(e.key), compile(e.value))
+	compileEntries(e)     mapCompileJoin(",", e)
+	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
+	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
+	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileListItems(a.args))
+	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
+	compileModule(m)      compileStatements(m.statements)
 )
-
-fn compileList(l)
-	l.values
-	-> compileListItems
-	-> passErr(fn (s) formats("[]interface{}{%s}", s))
-
-fn compileStructure(s)
-	s.entries
-	-> compileEntries
-	-> passErr(fn (s) formats("map[string]interface{}{%s}", s))
-
-fn compileMultiPart(fmt, ...p) p -> anyErrPass(format(fmt))
 
 fn compileParamList(params, collectParam)
 	params
@@ -103,24 +97,10 @@ fn compileParamList(params, collectParam)
 		p :
 		formats("%s, %s ...interface{}", p, collectParam)
 
-fn compileFunctionBody(s) compile(s)
-
-fn compileFunction(f) compileMultiPart(
+fn compileFunction(f) passErrFormat(
 	"func(%s) interface{} {%s}"
 	compileParamList(f.params, f.collectParam)
-	compileFunctionBody(f.statement)
-)
-
-fn compileIndexer(i) compileMultiPart(
-	"%s[%s]"
-	compile(i.expression)
-	compile(i.index)
-)
-
-fn compileFunctionApplication(a) compileMultiPart(
-	"%s(%s)"
-	compile(a.function)
-	compileListItems(a.args)
+	compile(f.statement)
 )
 
 let (
@@ -146,7 +126,7 @@ fn compileUnaryOp(o) {
 	}
 }
 
-fn compileUnary(u) compileMultiPart(
+fn compileUnary(u) passErrFormat(
 	"%s%s",
 	compileUnaryOp(u.op)
 	compile(u.arg)
@@ -216,16 +196,81 @@ fn compileBinaryOp(o) {
 	case logicalOr:
 		return "||"
 	default:
-		return error(formats("unsupported code: %v", o, add, o == add))
+		return error(formats("unsupported code: %v"))
 	}
 }
 
-fn compileBinary(b) compileMultiPart(
+fn compileBinary(b) passErrFormat(
 	"(%s %s %s)"
 	compile(b.left)
 	compileBinaryOp(b.op)
 	compile(b.right)
 )
+
+fn compileCond(c)
+	has(c, "alternative") ?
+	passErrFormat(
+		"func () interface{} { if %s { return %s } else { return %s } }()"
+		compile(c.condition)
+		compile(c.consequent)
+		compile(c.alternative)
+	) :
+	passErrFormat(
+		"func () interface{} { if %s { return %s } }()"
+		compile(c.condition)
+		compile(c.consequent)
+	)
+
+fn compileSwitchCase(c) {
+	let exp compile(c.expression)
+	if isError(exp) {
+		return exp
+	}
+
+	let statements compile(c.body)
+	if isError(statements) {
+		return statements
+	}
+
+	return formats("case %s:\n%s", exp, statements)
+}
+
+fn compileSwitch(s) {
+	let ~ exp ""
+	if has(s, "expression") {
+		set exp compile(s.expression)
+	}
+
+	if isError(exp) {
+		return exp
+	}
+
+	let ~ cases mapCompile(s.cases)
+	if cases -> anyErr -> isError {
+		return cases
+	}
+
+	if has(s, "defaultStatements") {
+		let defaultStatements compile(s.defaultStatements)
+		if isError(defaultStatements) {
+			return defaultStatements
+		}
+
+		set cases [cases..., formats("default:\n%s", defaultStatements)]
+	}
+
+	set cases anyErr(cases)
+	if isError(cases) {
+		return cases
+	}
+
+	set cases join("\n", cases)
+	return formats(
+		"func() interface{} {\nswitch %s {\n%s\n} }()"
+		exp
+		cases
+	)
+}
 
 fn compile(code) {
 	switch {
@@ -257,11 +302,19 @@ fn compile(code) {
 	case "indexer":
 		return compileIndexer(code)
 	case "function-application":
-		return compileFunctionApplication(code)
+		return compileApplication(code)
 	case "unary":
 		return compileUnary(code)
 	case "binary":
 		return compileBinary(code)
+	case "cond":
+		return compileCond(code)
+	case "switch-case":
+		return compileSwitchCase(code)
+	case "switch-statement":
+		return compileSwitch(code)
+	case "statement-list":
+		return compileStatements(code.statements)
 	default:
 		return formats("unsupported code: %v", code) -> error
 	}

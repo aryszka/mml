@@ -35,6 +35,7 @@ func newEnv() *env {
 	v["isBool"] = makeIsBool(e)
 	v["len"] = makeLen(e)
 	v["error"] = makeError(e)
+	v["has"] = makeHas(e)
 	return e
 }
 

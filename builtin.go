@@ -259,7 +259,6 @@ func makeLen(e *env) function {
 			case string:
 				return len(at), nil
 			default:
-				fmt.Println(at)
 				return nil, errUnsupportedCode
 			}
 		},
@@ -291,5 +290,12 @@ func makeWithParams(e *env, p []string, f func(e *env, a []interface{}) (interfa
 func makeError(e *env) function {
 	return makeWithParams(e, []string{"message"}, func(e *env, a []interface{}) (interface{}, error) {
 		return errors.New(a[0].(string)), nil
+	})
+}
+
+func makeHas(e *env) function {
+	return makeWithParams(e, []string{"o", "k"}, func(e *env, a []interface{}) (interface{}, error) {
+		_, ok := a[0].(structure).values[a[1].(string)]
+		return ok, nil
 	})
 }
