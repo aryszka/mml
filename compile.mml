@@ -85,7 +85,11 @@ fn (
 	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
 	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileListItems(a.args))
 	compileSwitchCase(c)  passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
-	compileStatements(s)  s -> mapCompile -> anyErr -> passErr(notEmpty) -> passErr(join(";\n"))
+	compileSend(s)        passErrFormat("%s <- %s", compile(s.channel), compile(s.value))
+	compileReceive(r)     passErrFormat("<- %s", compile(r.channel))
+	compileGo(g)          passErrFormat("go %s", compile(g.application))
+	compileDefer(d)       passErrFormat("defer %s", compile(d.application))
+	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
 	compileModule(m)      compileStatements(m.statements)
 )
 
@@ -223,7 +227,7 @@ fn compileCond(c)
 
 fn compileSwitch(s)
 	(has("expression", s) ? compile(s.expression) : "")
-	-> fn (c) [c, mapCompile(s.cases)]
+	-> fn (c) [c, map(compile, s.cases)]
 	-> fn (c)
 		has("defaultStatemnets", s) ?
 		[
@@ -234,8 +238,7 @@ fn compileSwitch(s)
 				-> compile
 				-> passErr(fn (c) formats("default:\n%s", c))
 			]
-		]
-		:
+		] :
 		c
 	-> fn (c) isError(c[0]) ? c[0] : isError(anyErr(c[1])) ? anyErr(c[1]) : c
 	-> passErr(fn (c) [c[0], join("\n", c[1])])
@@ -282,6 +285,14 @@ fn compile(code) {
 		return compileSwitchCase(code)
 	case "switch-statement":
 		return compileSwitch(code)
+	case "send":
+		return compileSend(code)
+	case "receive":
+		return compileReceive(code)
+	case "go":
+		return compileGo(code)
+	case "defer":
+		return compileDefer(code)
 	case "statement-list":
 		return compileStatements(code.statements)
 	default:

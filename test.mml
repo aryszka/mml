@@ -30,3 +30,8 @@ case d:
 default:
 	f()
 }
+
+send a b()
+receive a
+go a(b)
+defer a(b)

@@ -218,7 +218,7 @@ func sendMML(s send) structure {
 	return toMML("send", "channel", codeMML(s.channel), "value", codeMML(s.value))
 }
 
-func receiveMML(r receive) structure { return toMML("receive", "channel", r.channel) }
+func receiveMML(r receive) structure { return toMML("receive", "channel", codeMML(r.channel)) }
 func goMML(g goStatement) structure  { return toMML("go", "application", codeMML(g.application)) }
 
 func deferredMML(d deferred) structure {
