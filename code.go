@@ -115,6 +115,7 @@ type switchCase struct {
 	body       statementList
 }
 
+// TODO: needs a hasDefault because then it is impossible whether it has a return value or not
 type switchStatement struct {
 	expression        interface{}
 	cases             []switchCase

@@ -14,7 +14,8 @@ fn (
 	joins(j, ...s)           join(j, s)
 	joinTwo(j, left, right)  joins(j, left, right)
 	destruct(s)              s -> keys -> map(fn (key) [key, s[key]])
-	formats(f, ...args)      format(f, args)
+	formats(f, ...a)         format(f, a)
+	formatOne(f, a)          formats(f, a)
 	passErrFormat(fmt, ...p) p -> anyErr -> passErr(format(fmt))
 	notEmpty(l)              l -> filter(fn (s) s != "")
 )
@@ -84,11 +85,12 @@ fn (
 	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
 	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
 	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileListItems(a.args))
-	compileSwitchCase(c)  passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
+	compileCase(c)        passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
 	compileSend(s)        passErrFormat("%s <- %s", compile(s.channel), compile(s.value))
 	compileReceive(r)     passErrFormat("<- %s", compile(r.channel))
 	compileGo(g)          passErrFormat("go %s", compile(g.application))
 	compileDefer(d)       passErrFormat("defer %s", compile(d.application))
+	compileDefinition(d)  passErrFormat("%s := %s", d.symbol, compile(d.expression))
 	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
 	compileModule(m)      compileStatements(m.statements)
 )
@@ -96,7 +98,7 @@ fn (
 fn compileParamList(params, collectParam)
 	params
 	-> join(",")
-	-> fn (p) formats("%s interface{}", p)
+	-> formatOne("%s interface{}")
 	-> fn (p) collectParam == "" ?
 		p :
 		formats("%s, %s ...interface{}", p, collectParam)
@@ -126,7 +128,7 @@ fn compileUnaryOp(o) {
 	case logicalNot:
 		return "!"
 	default:
-		return error(formats("unsupported code: %v"))
+		return error(formats("unsupported code: %v"), o)
 	}
 }
 
@@ -200,7 +202,7 @@ fn compileBinaryOp(o) {
 	case logicalOr:
 		return "||"
 	default:
-		return error(formats("unsupported code: %v"))
+		return error(formats("unsupported code: %v"), o)
 	}
 }
 
@@ -228,21 +230,34 @@ fn compileCond(c)
 fn compileSwitch(s)
 	(has("expression", s) ? compile(s.expression) : "")
 	-> fn (c) [c, map(compile, s.cases)]
-	-> fn (c)
-		has("defaultStatemnets", s) ?
+	-> fn (c) (
+		len(s.defaultStatements.statements) > 0 ?
 		[
 			c[0]
 			[
-				c[1:]...
+				c[1]...
 				s.defaultStatements
 				-> compile
-				-> passErr(fn (c) formats("default:\n%s", c))
+				-> passErr(formatOne("default:\n%s"))
 			]
 		] :
 		c
+	)
 	-> fn (c) isError(c[0]) ? c[0] : isError(anyErr(c[1])) ? anyErr(c[1]) : c
 	-> passErr(fn (c) [c[0], join("\n", c[1])])
 	-> passErr(format("func() interface{} {\nswitch %s {\n%s\n} }()"))
+
+fn compileSelect(s)
+	s.cases
+	-> map(compile)
+	-> fn (c) (
+		s.hasDefault ?
+		[c..., s.defaultStatements -> compile -> passErr(formatOne("default:\n%s")) ] :
+		c
+	)
+	-> anyErr
+	-> passErr(join("\n"))
+	-> passErr(formatOne("func() interface{} {\nselect {\n%s\n} }()"))
 
 fn compile(code) {
 	switch {
@@ -282,7 +297,7 @@ fn compile(code) {
 	case "cond":
 		return compileCond(code)
 	case "switch-case":
-		return compileSwitchCase(code)
+		return compileCase(code)
 	case "switch-statement":
 		return compileSwitch(code)
 	case "send":
@@ -293,10 +308,16 @@ fn compile(code) {
 		return compileGo(code)
 	case "defer":
 		return compileDefer(code)
+	case "select-case":
+		return compileCase(code)
+	case "select":
+		return compileSelect(code)
+	case "definition":
+		return compileDefinition(code)
 	case "statement-list":
 		return compileStatements(code.statements)
 	default:
-		return formats("unsupported code: %v", code) -> error
+		return error(formats("unsupported code: %v", code))
 	}
 }
 

@@ -2,7 +2,6 @@ package mml
 
 func toMML(typ string, a ...interface{}) structure {
 	var s structure
-
 	s.values = make(map[string]interface{})
 	s.values["type"] = typ
 	for i := 0; i < len(a); i += 2 {
@@ -125,7 +124,6 @@ func switchCaseMML(c switchCase) structure {
 
 func mapSwitchCasesMML(c []switchCase) list {
 	var i []interface{}
-
 	for _, ci := range c {
 		i = append(i, ci)
 	}
@@ -184,7 +182,6 @@ func definitionMML(d definition) structure {
 
 func mapDefinitionsMML(d []definition) list {
 	var i []interface{}
-
 	for _, di := range d {
 		i = append(i, di)
 	}
@@ -202,7 +199,6 @@ func assignMML(a assign) structure {
 
 func mapAssignsMML(a []assign) list {
 	var i []interface{}
-
 	for _, ai := range a {
 		i = append(i, ai)
 	}
@@ -230,12 +226,11 @@ func deferMML(d deferStatement) structure {
 }
 
 func selectCaseMML(c selectCase) structure {
-	return toMML("select-case", "expression", codeMML(c.expression), "body", c.body)
+	return toMML("select-case", "expression", codeMML(c.expression), "body", codeMML(c.body))
 }
 
 func mapSelectCasesMML(c []selectCase) list {
 	var i []interface{}
-
 	for _, ci := range c {
 		i = append(i, ci)
 	}

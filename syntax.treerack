@@ -138,21 +138,26 @@ binary1  = operand1 (nl* binary-op1 nl* operand1)+;
 binary2  = operand2 (nl* binary-op2 nl* operand2)+;
 binary3  = operand3 (nl* binary-op3 nl* operand3)+;
 binary4  = operand4 (nl* binary-op4 nl* operand4)+;
-chaining = operand5 (nl* chain nl* operand5)+;
 
 binary-expression:alias = binary0
                         | binary1
                         | binary2
                         | binary3
-                        | binary4
-                        | chaining;
+                        | binary4;
 
 ternary-expression = expression nl* "?" nl* expression nl* ":" nl* expression;
+
+chainingOperand:alias = primary-expression
+                      | unary-expression
+		    | binary-expression
+		    | ternary-expression;
+chaining = chainingOperand (nl* chain nl* chainingOperand)+;
 
 expression:alias = primary-expression
                  | unary-expression
                  | binary-expression
-                 | ternary-expression;
+                 | ternary-expression
+	        | chaining;
 
 if = "if" nl* expression nl* block
      (nl* "else" nl* "if" nl* expression nl* block)*
@@ -221,7 +226,9 @@ definition:alias = value-definition
                  | function-definition-group
                  | effect-definition-group;
 
-// TODO: require effect
+// TODO:
+// - require effect
+// - rename to 'use'
 
 require-inline                = ".";
 require-fact                  = string

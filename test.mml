@@ -27,11 +27,20 @@ case b:
 	c()
 case d:
 	e()
-default:
-	f()
 }
 
 send a b()
 receive a
 go a(b)
 defer a(b)
+
+select {
+case a receive b:
+	c()
+case receive d:
+	e()
+case send f g():
+	h()
+default:
+	i()
+}
