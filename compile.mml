@@ -88,8 +88,6 @@ fn (
 	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
 	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
 	compileSpread(s)      passErrFormat("%s...", compile(s.value))
-	compileArgs(i)        mapCompileJoin(",", i)
-	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileArgs(a.args))
 	compileCase(c)        passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
 	compileSend(s)        passErrFormat("%s <- %s", compile(s.channel), compile(s.value))
 	compileReceive(r)     passErrFormat("<- %s", compile(r.channel))
@@ -105,57 +103,111 @@ fn (
 	compileModule(m)      compileStatements(m.statements)
 )
 
-fn compileList(l)
-	l.values
-	-> mapCompile
-	-> passErr(map(fn (item) len(item) > 3 && item[len(item) - 3:] == "..." ? {spread: item} : item))
-	-> passErr(fold(fn (item, appends) {
-		let i len(appends) - 1
+fn compileList(l) {
+	let compileValues mapCompile
+
+	fn (
+		isSpread(c)     len(c) > 3 && c[len(c) - 3:] == "..."
+		selectSpread(c) isSpread(c) ? {spread: c} : c
+	)
+
+	let groupSpread fold(fn (item, groups) {
+		let (
+			i             len(groups) - 1
+			isSpread      has("spread", item)
+			groupIsSpread i >= 0 && has("spread", groups[i])
+		)
+
+		fn (
+			appendNewSimple() [groups..., {simple: [item]}]
+			appendNewSpread() [groups..., {spread: [item.spread]}]
+			appendSimple()    [groups[:i]..., {simple: [groups[i].simple..., item]}]
+			appendSpread()    [groups[:i]..., {spread: [groups[i].spread..., item.spread]}]
+		)
+
 		switch {
-		case i < 0 && isString(item):
-			return [{simple: [item]}]
-		case i < 0 && has("spread", item):
-			return [{spread: [item.spread]}]
-		case has("simple", appends[i]) && isString(item):
-			return [appends[:i]..., {simple: [appends[i].simple..., item]}]
-		case has("simple", appends[i]) && has("spread", item):
-			return [appends..., {spread: [item.spread]}]
-		case has("spread", appends[i]) && isString(item):
-			return [appends..., {simple: [item]}]
-		case has("spread", appends[i]) && has("spread", item):
-			return [appends[:i]..., {spread: [appends[i].spread..., item.spread]}]
+		case (i < 0 || groupIsSpread) && !isSpread:
+			return appendNewSimple()
+		case (i < 0 || !groupIsSpread) && isSpread:
+			return appendNewSpread()
+		case !groupIsSpread && !isSpread:
+			return appendSimple()
+		case groupIsSpread && isSpread:
+			return appendSpread()
 		}
-	}, []))
-	-> passErr(fold(
-		fn (current, code) has("simple", current) ?
-			formats("append(%s, %s)", code, join(", ", current.simple)) :
-			fold(fn (spread, code) formats("append(%s, %s)", code, spread), code, current.spread)
-		"[]interface{}{}"
-	))
+	}, [])
 
-fn compileParamList(params, collectParam)
-	params
-	-> map(formatOne("_%s"))
-	-> join(",")
-	-> fn (p) p == "" ? "" : formats("%s interface{}", p)
-	-> fn (p) collectParam == "" ?
-		p :
-		p == "" ?
-			formats("%s ...interface{}", collectParam) :
-			formats("%s, %s ...interface{}", p, collectParam)
+	fn (
+		appendSimples(code, group) formats("append(%s, %s)", code, join(", ", group))
+		appendSpread(item, code)   formats("append(%s, %s)", code, item)
+		appendSpreads(code, group) fold(appendSpread, code, group)
+		appendGroups(groups)       fold(appendGroup, "[]interface{}{}", groups)
+	)
 
-fn compileFunction(f) passErrFormat(
-	has("type", f.statement) && f.statement.type == "statement-list" ?
-		"func(%s) interface{} {%s; return nil}" :
-		"func(%s) interface{} { return %s }"
-	compileParamList(f.params, f.collectParam)
-	compile(f.statement)
-)
+	fn appendGroup(group, code) has("spread", group) ?
+		appendSpreads(code, group.spread) :
+		appendSimples(code, group.simple)
+
+	return l.values
+	-> compileValues
+	-> passErr(map(selectSpread))
+	-> passErr(groupSpread)
+	-> passErr(appendGroups)
+}
+
+fn compileParamList(params, collectParam) {
+	let ~ p []
+	for i in 0:len(params) {
+		p = [p..., formats("var _%s = a[%d]", params[i], i)]
+	}
+
+	if collectParam != "" {
+		p = [p..., formats("var _%s = a[%d:]", collectParam, len(params))]
+	}
+
+	return join(";\n", p)
+}
+
+fn compileFunction(f) {
+	let multipleStatements has("type", f.statement) && f.statement.type == "statement-list"
+	let fmt multipleStatements ?
+		"&cfunction{
+			f: func(a []interface{}) interface{} {
+				%s;
+				%s;
+				return nil
+			},
+		}" :
+		"&cfunction{
+			f: func(a []interface{}) interface{} {
+				%s;
+				return %s
+			},
+		}"
+
+	let p compileParamList(f.params, f.collectParam)
+	if isError(p) {
+		return p
+	}
+
+	let s compile(f.statement)
+	if isError(s) {
+		return s
+	}
+
+	return formats(fmt, p, s)
+}
 
 fn compileRangeExpression(e) passErrFormat(
 	"%s:%s"
 	has("from", e) ? compile(e.from) : ""
 	has("to", e) ? compile(e.to) : ""
+)
+
+fn compileApplication(a) passErrFormat(
+	"%s.(*cfunction).call(%s)"
+	compile(a.function)
+	compileList({values: a.args})
 )
 
 let (
@@ -283,25 +335,33 @@ fn compileIf(c)
 		compile(c.consequent)
 	)
 
-fn compileSwitch(s)
-	(has("expression", s) ? compile(s.expression) : "")
-	-> fn (c) [c, map(compile, s.cases)]
-	-> fn (c) (
-		len(s.defaultStatements.statements) > 0 ?
-		[
-			c[0]
-			[
-				c[1]...
-				s.defaultStatements
-				-> compile
-				-> passErr(formatOne("default:\n%s"))
-			]
-		] :
-		c
+fn compileSwitch(s) {
+	let (
+		hasDefault len(s.defaultStatements.statements) > 0
+		exp has("expression", s) ? compile(s.expression) : ""
 	)
-	-> fn (c) isError(c[0]) ? c[0] : isError(anyErr(c[1])) ? anyErr(c[1]) : c
-	-> passErr(fn (c) [c[0], join("\n", c[1])])
-	-> passErr(format("func() interface{} {\nswitch %s {\n%s\n} }()"))
+
+	if isError(exp) {
+		return exp
+	}
+
+	let cases s.cases -> map(compile) -> anyErr
+	if isError(cases) {
+		return cases
+	}
+
+	let def hasDefault ? compile(s.defaultStatements) : ""
+	if isError(def) {
+		return def
+	}
+
+	let (
+		defaultCode hasDefault ? formats("default:\n%s", def) : ""
+		casesCode join("\n", hasDefault ? [cases..., defaultCode] : cases)
+	)
+
+	return formats("switch %s {\n%s\n}", exp, casesCode)
+}
 
 fn compileSelect(s)
 	s.cases
@@ -316,30 +376,35 @@ fn compileSelect(s)
 	-> passErr(formatOne("func() interface{} {\nselect {\n%s\n} }()"))
 
 fn compileRangeOver(r) {
+	fn infiniteCounter() passErrFormat(
+		"%s := 0; true; %s++"
+		r.symbol
+		r.symbol
+	)
+
+	fn withRangeExpression() passErrFormat(
+		"%s := %s; %s; %s++"
+		r.symbol
+		has("from", r.expression) ? compile(r.expression.from) : "0"
+		has("to", r.expression) ?
+			formats("%s < %s", r.symbol, compile(r.expression.to)) :
+			"true"
+		r.symbol
+	)
+
+	fn listStyleRange() passErrFormat(
+		"_, %s := range %s"
+		r.symbol
+		compile(r.expression)
+	)
+
 	switch {
 	case !has("expression", r):
-		return passErrFormat(
-			"%s := 0; true; %s++"
-			r.symbol
-			r.symbol
-		)
-	case has("type", r.expression) &&
-		r.expression.type == "range-expression":
-		return passErrFormat(
-			"%s := %s; %s; %s++"
-			r.symbol
-			has("from", r.expression) ? compile(r.expression.from) : "0"
-			has("to", r.expression) ?
-				formats("%s < %s", r.symbol, compile(r.expression.to)) :
-				"true"
-			r.symbol
-		)
+		return infiniteCounter()
+	case has("type", r.expression) && r.expression.type == "range-expression":
+		return withRangeExpression()
 	default:
-		return passErrFormat(
-			"_, %s := range %s"
-			r.symbol
-			compile(r.expression)
-		)
+		return listStyleRange()
 	}
 }
 
@@ -438,7 +503,28 @@ fn compile(code) {
 let write stdout
 write("package mml
 
-func Compile() {
+type cfunction struct {
+	f         func([]interface{}) interface{}
+	fixedArgs int
+	args      []interface{}
+}
+
+func (f *cfunction) bind(a []interface{}) *cfunction {
+	b := *f
+	b.args = a
+	return &b
+}
+
+func (f *cfunction) call(a []interface{}) interface{} {
+	a = append(f.args, a...)
+	if len(a) < f.fixedArgs {
+		return f.bind(a)
+	}
+
+	return f.f(a)
+}
+
+func init() {
 ")
 
 stdin
