@@ -84,6 +84,7 @@ fn (
 	compileEntries(e)     mapCompileJoin(",", e)
 	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
 	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
+	compileSpread(s)      passErrFormat("%s...", compile(s.value))
 	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileListItems(a.args))
 	compileCase(c)        passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
 	compileSend(s)        passErrFormat("%s <- %s", compile(s.channel), compile(s.value))
@@ -91,6 +92,9 @@ fn (
 	compileGo(g)          passErrFormat("go %s", compile(g.application))
 	compileDefer(d)       passErrFormat("defer %s", compile(d.application))
 	compileDefinition(d)  passErrFormat("%s := %s", d.symbol, compile(d.expression))
+	compileDefinitions(l) mapCompileJoin(";\n", l.definitions)
+	compileAssign(a)      passErrFormat("%s = %s", compile(a.capture), compile(a.value))
+	compileAssigns(l)     mapCompileJoin(";\n", l.assignments)
 	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
 	compileModule(m)      compileStatements(m.statements)
 )
@@ -107,6 +111,12 @@ fn compileFunction(f) passErrFormat(
 	"func(%s) interface{} {%s}"
 	compileParamList(f.params, f.collectParam)
 	compile(f.statement)
+)
+
+fn compileRangeExpression(e) passErrFormat(
+	"%s:%s"
+	has("from", e) ? compile(e.from) : ""
+	has("to", e) ? compile(e.to) : ""
 )
 
 let (
@@ -259,6 +269,46 @@ fn compileSelect(s)
 	-> passErr(join("\n"))
 	-> passErr(formatOne("func() interface{} {\nselect {\n%s\n} }()"))
 
+fn compileRangeOver(r) {
+	switch {
+	case !has("expression", r):
+		return passErrFormat(
+			"%s := 0; true; %s++"
+			r.symbol
+			r.symbol
+		)
+	case has("type", r.expression) &&
+		r.expression.type == "range-expression":
+		return passErrFormat(
+			"%s := %s; %s; %s++"
+			r.symbol
+			has("from", r.expression) ?
+				compile(r.expression.from) :
+				"0"
+			has("to", r.expression) ?
+				formats(
+					"%s < %s"
+					r.symbol
+					compile(r.expression.to)
+				) :
+				"true"
+			r.symbol
+		)
+	default:
+		return passErrFormat(
+			"_, %s := range %s"
+			r.symbol
+			compile(r.expression)
+		)
+	}
+}
+
+fn compileLoop(l) passErrFormat(
+	"for %s {\n%s\n}"
+	has("expression", l) ? compile(l.expression) : ""
+	compile(l.body)
+)
+
 fn compile(code) {
 	switch {
 	case isInt(code):
@@ -286,8 +336,12 @@ fn compile(code) {
 		return compileStructure(code)
 	case "function":
 		return compileFunction(code)
+	case "range-expression":
+		return compileRangeExpression(code)
 	case "indexer":
 		return compileIndexer(code)
+	case "spread":
+		return compileSpread(code)
 	case "function-application":
 		return compileApplication(code)
 	case "unary":
@@ -312,8 +366,18 @@ fn compile(code) {
 		return compileCase(code)
 	case "select":
 		return compileSelect(code)
+	case "range-over":
+		return compileRangeOver(code)
+	case "loop":
+		return compileLoop(code)
 	case "definition":
 		return compileDefinition(code)
+	case "definition-list":
+		return compileDefinitions(code)
+	case "assign":
+		return compileAssign(code)
+	case "assign-list":
+		return compileAssigns(code)
 	case "statement-list":
 		return compileStatements(code.statements)
 	default:

@@ -152,11 +152,11 @@ func rangeOverMML(r rangeOver) structure {
 	m := toMML("range-over")
 
 	if r.symbol != "" {
-		m.values["symbol"] = r.symbol
+		m.values["symbol"] = codeMML(r.symbol)
 	}
 
 	if r.expression != nil {
-		m.values["expression"] = r.expression
+		m.values["expression"] = codeMML(r.expression)
 	}
 
 	return m

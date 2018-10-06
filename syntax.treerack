@@ -227,18 +227,18 @@ definition:alias = value-definition
                  | effect-definition-group;
 
 // TODO:
-// - require effect
+// - use effect
 // - rename to 'use'
 
-require-inline                = ".";
-require-fact                  = string
-                              | (symbol | require-inline) (nl* "=")? nl* string;
-require-fact-list:alias       = require-fact (list-sep require-fact)*;
-require-statement:alias       = "require" nl* require-fact;
-require-statement-group:alias = "require" nl* "(" list-sep?
-                                require-fact-list?
-                                list-sep? ")";
-require                       = require-statement | require-statement-group;
+use-inline                = ".";
+use-fact                  = string
+                              | (symbol | use-inline) (nl* "=")? nl* string;
+use-fact-list:alias       = use-fact (list-sep use-fact)*;
+use-statement:alias       = "use" nl* use-fact;
+use-statement-group:alias = "use" nl* "(" list-sep?
+                            use-fact-list?
+                            list-sep? ")";
+use                       = use-statement | use-statement-group;
 
 export = "export" nl* definition;
 
@@ -255,7 +255,7 @@ statement:alias              = return
                              | select
                              | loop
                              | definition
-                             | require
+                             | use
                              | export
                              | statement-group
                              | simple-statement;
