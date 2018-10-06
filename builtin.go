@@ -295,7 +295,12 @@ func makeError(e *env) function {
 
 func makeHas(e *env) function {
 	return makeWithParams(e, []string{"k", "o"}, func(e *env, a []interface{}) (interface{}, error) {
-		_, ok := a[1].(structure).values[a[0].(string)]
+		s, ok := a[1].(structure)
+		if !ok {
+			return false, nil
+		}
+
+		_, ok = s.values[a[0].(string)]
 		return ok, nil
 	})
 }

@@ -351,6 +351,7 @@ func parserTernary(ast *parser.Node) cond {
 		condition:   parse(ast.Nodes[0]),
 		consequent:  parse(ast.Nodes[1]),
 		alternative: parse(ast.Nodes[2]),
+		ternary:     true,
 	}
 }
 
@@ -713,6 +714,8 @@ func parseSelect(ast *parser.Node) selectStatement {
 
 	return s
 }
+
+// TODO: block comment
 
 func parse(ast *parser.Node) interface{} {
 	switch ast.Name {

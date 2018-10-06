@@ -108,6 +108,7 @@ type binary struct {
 
 type cond struct {
 	condition, consequent, alternative interface{}
+	ternary                            bool
 }
 
 type switchCase struct {

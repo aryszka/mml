@@ -109,6 +109,7 @@ func condMML(c cond) structure {
 	m := toMML("cond",
 		"condition", codeMML(c.condition),
 		"consequent", codeMML(c.consequent),
+		"ternary", codeMML(c.ternary),
 	)
 
 	if c.alternative != nil {
@@ -145,7 +146,7 @@ func switchStatementMML(s switchStatement) structure {
 }
 
 func controlStatementMML(s controlStatement) structure {
-	return toMML("control-statement", "type", int(s))
+	return toMML("control-statement", "control", int(s))
 }
 
 func rangeOverMML(r rangeOver) structure {

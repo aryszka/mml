@@ -259,6 +259,7 @@ func evalStructIndexer(e *env, s structure, i interface{}) (interface{}, error) 
 
 	v, ok := s.values[ks]
 	if !ok {
+		println(ks)
 		return nil, errMissingStructKey
 	}
 
@@ -655,6 +656,7 @@ func evalIntFloatStringBinary(e *env, b binary) (interface{}, error) {
 	case error:
 		return nil, lt
 	default:
+		println("here", left)
 		return nil, errUnsupportedCode
 	}
 }
@@ -813,6 +815,8 @@ func evalSwitch(e *env, s switchStatement) (interface{}, error) {
 }
 
 func evalLoopBody(e *env, s statementList) (interface{}, error, bool) {
+	e = e.extend()
+
 	v, err := evalStatementList(e, s)
 	if err != nil {
 		return nil, err, true
@@ -1007,8 +1011,7 @@ func evalDefinition(e *env, d definition) (interface{}, error) {
 		return nil, err
 	}
 
-	e.define(d.symbol, v)
-	return nil, nil
+	return nil, e.define(d.symbol, v)
 }
 
 func evalDefinitionList(e *env, d definitionList) (interface{}, error) {

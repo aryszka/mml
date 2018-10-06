@@ -23,7 +23,7 @@ fn (
 fn counter () {
 	let ~ c -1
 	return fn~ () {
-		set c c + 1
+		c = c + 1
 		return c
 	}
 }
@@ -61,6 +61,10 @@ fn escape(s) {
 		first = "\\t"
 	case "\v":
 		first = "\\v"
+	case "\"":
+		first = "\\\""
+	case "\\":
+		first = "\\\\"
 	}
 
 	return first + escape(s[1:])
@@ -77,38 +81,73 @@ fn (
 	mapCompileJoin(j, l)  l -> mapCompile -> passErr(join(j))
 	compileComment(_)     ""
 	compileString(s)      formats("\"%s\"", escape(s))
-	compileSymbol(s)      s.name
-	compileListItems(i)   mapCompileJoin(",", i)
-	compileList(l)        passErrFormat("[]interface{}{%s}", compileListItems(l.values))
+	compileSymbol(s)      formats("_%s", s.name)
 	compileEntry(e)       passErrFormat("\"%s\":%s", compile(e.key), compile(e.value))
 	compileEntries(e)     mapCompileJoin(",", e)
 	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
+	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
 	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
 	compileSpread(s)      passErrFormat("%s...", compile(s.value))
-	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileListItems(a.args))
+	compileArgs(i)        mapCompileJoin(",", i)
+	compileApplication(a) passErrFormat("%s(%s)", compile(a.function), compileArgs(a.args))
 	compileCase(c)        passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
 	compileSend(s)        passErrFormat("%s <- %s", compile(s.channel), compile(s.value))
 	compileReceive(r)     passErrFormat("<- %s", compile(r.channel))
 	compileGo(g)          passErrFormat("go %s", compile(g.application))
 	compileDefer(d)       passErrFormat("defer %s", compile(d.application))
-	compileDefinition(d)  passErrFormat("%s := %s", d.symbol, compile(d.expression))
+	compileDefinition(d)  passErrFormat("var _%s = %s", d.symbol, compile(d.expression))
 	compileDefinitions(l) mapCompileJoin(";\n", l.definitions)
 	compileAssign(a)      passErrFormat("%s = %s", compile(a.capture), compile(a.value))
 	compileAssigns(l)     mapCompileJoin(";\n", l.assignments)
 	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
+	compileRet(r)         passErrFormat("return %s", compile(r.value))
+	compileControl(c)     c.control == breakControl ? "break" : "continue"
 	compileModule(m)      compileStatements(m.statements)
 )
 
+fn compileList(l)
+	l.values
+	-> mapCompile
+	-> passErr(map(fn (item) len(item) > 3 && item[len(item) - 3:] == "..." ? {spread: item} : item))
+	-> passErr(fold(fn (item, appends) {
+		let i len(appends) - 1
+		switch {
+		case i < 0 && isString(item):
+			return [{simple: [item]}]
+		case i < 0 && has("spread", item):
+			return [{spread: [item.spread]}]
+		case has("simple", appends[i]) && isString(item):
+			return [appends[:i]..., {simple: [appends[i].simple..., item]}]
+		case has("simple", appends[i]) && has("spread", item):
+			return [appends..., {spread: [item.spread]}]
+		case has("spread", appends[i]) && isString(item):
+			return [appends..., {simple: [item]}]
+		case has("spread", appends[i]) && has("spread", item):
+			return [appends[:i]..., {spread: [appends[i].spread..., item.spread]}]
+		}
+	}, []))
+	-> passErr(fold(
+		fn (current, code) has("simple", current) ?
+			formats("append(%s, %s)", code, join(", ", current.simple)) :
+			fold(fn (spread, code) formats("append(%s, %s)", code, spread), code, current.spread)
+		"[]interface{}{}"
+	))
+
 fn compileParamList(params, collectParam)
 	params
+	-> map(formatOne("_%s"))
 	-> join(",")
-	-> formatOne("%s interface{}")
+	-> fn (p) p == "" ? "" : formats("%s interface{}", p)
 	-> fn (p) collectParam == "" ?
 		p :
-		formats("%s, %s ...interface{}", p, collectParam)
+		p == "" ?
+			formats("%s ...interface{}", collectParam) :
+			formats("%s, %s ...interface{}", p, collectParam)
 
 fn compileFunction(f) passErrFormat(
-	"func(%s) interface{} {%s}"
+	has("type", f.statement) && f.statement.type == "statement-list" ?
+		"func(%s) interface{} {%s; return nil}" :
+		"func(%s) interface{} { return %s }"
 	compileParamList(f.params, f.collectParam)
 	compile(f.statement)
 )
@@ -223,16 +262,23 @@ fn compileBinary(b) passErrFormat(
 	compile(b.right)
 )
 
-fn compileCond(c)
+fn compileTernary(c) passErrFormat(
+	"func () interface{} { if %s { return %s } else { return %s } }()"
+	compile(c.condition)
+	compile(c.consequent)
+	compile(c.alternative)
+)
+
+fn compileIf(c)
 	has("alternative", c) ?
 	passErrFormat(
-		"func () interface{} { if %s { return %s } else { return %s } }()"
+		"if %s { %s } else { %s }"
 		compile(c.condition)
 		compile(c.consequent)
 		compile(c.alternative)
 	) :
 	passErrFormat(
-		"func () interface{} { if %s { return %s } }()"
+		"if %s { %s }"
 		compile(c.condition)
 		compile(c.consequent)
 	)
@@ -282,15 +328,9 @@ fn compileRangeOver(r) {
 		return passErrFormat(
 			"%s := %s; %s; %s++"
 			r.symbol
-			has("from", r.expression) ?
-				compile(r.expression.from) :
-				"0"
+			has("from", r.expression) ? compile(r.expression.from) : "0"
 			has("to", r.expression) ?
-				formats(
-					"%s < %s"
-					r.symbol
-					compile(r.expression.to)
-				) :
+				formats("%s < %s", r.symbol, compile(r.expression.to)) :
 				"true"
 			r.symbol
 		)
@@ -307,6 +347,12 @@ fn compileLoop(l) passErrFormat(
 	"for %s {\n%s\n}"
 	has("expression", l) ? compile(l.expression) : ""
 	compile(l.body)
+)
+
+let (
+	controlStatement enum()
+	breakControl     controlStatement()
+	continueControl  controlStatement()
 )
 
 fn compile(code) {
@@ -378,6 +424,10 @@ fn compile(code) {
 		return compileAssign(code)
 	case "assign-list":
 		return compileAssigns(code)
+	case "ret":
+		return compileRet(code)
+	case "control-statement":
+		return compileControl(code)
 	case "statement-list":
 		return compileStatements(code.statements)
 	default:
@@ -386,9 +436,15 @@ fn compile(code) {
 }
 
 let write stdout
+write("package mml
+
+func Compile() {
+")
 
 stdin
 -> read
 -> passErr(compile)
 -> passErr(write)
 -> onlyErr(log)
+
+write("}")

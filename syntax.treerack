@@ -163,6 +163,7 @@ if = "if" nl* expression nl* block
      (nl* "else" nl* "if" nl* expression nl* block)*
      (nl* "else" nl* block)?;
 
+// TODO: empty switch not parsed
 default            = "default" nl* ":";
 default-line:alias = default ";"* statement?;
 case               = "case" nl* expression nl* ":";
@@ -189,6 +190,7 @@ range-over-expression = symbol nl* "in" nl* (expression | range) | range;
 loop-expression:alias = expression | range-over-expression;
 loop                  = "for" ((nl* loop-expression)? nl* block | nl* block);
 
+// TODO: set(a b)
 assign-capture:alias      = primary-expression (nl* "=")? nl* expression;
 assign-capture-list:alias = assign-capture (list-sep assign-capture)*;
 assign-set:alias          = "set" nl* assign-capture;

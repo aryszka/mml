@@ -4,6 +4,9 @@
 true
 bar
 [1, 2, 3]
+[a..., b]
+[a, b..., c..., d, e]
+{}
 {a: 1, b: 2, c: 3}
 fn (x, y, ...p) {a: x, b: [y, p]}
 a[b]
@@ -88,3 +91,7 @@ set (
 	a    b
 	c[d] e
 )
+
+fn () {
+	return 42
+}
