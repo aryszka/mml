@@ -76,6 +76,12 @@ let (
 	compileBool  string
 )
 
+fn getScope(...statements)
+	statements
+	-> filter(fn (s) has("type", s) && (s.type == "definition" || s.type == "definition-list"))
+	-> fold(fn (d, flat) d.type == "definition" ? [flat..., d] : [flat..., d.definitions...], [])
+	-> map(fn (d) d.symbol)
+
 fn (
 	mapCompile(l)         l -> map(compile) -> anyErr
 	mapCompileJoin(j, l)  l -> mapCompile -> passErr(join(j))
@@ -86,21 +92,17 @@ fn (
 	compileEntries(e)     mapCompileJoin(",", e)
 	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
 	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
-	compileIndexer(i)     passErrFormat("%s[%s]", compile(i.expression), compile(i.index))
-	compileSpread(s)      passErrFormat("%s...", compile(s.value))
+	compileSpread(s)      passErrFormat("%s.([]interface{})...", compile(s.value))
 	compileCase(c)        passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
 	compileSend(s)        passErrFormat("%s <- %s", compile(s.channel), compile(s.value))
 	compileReceive(r)     passErrFormat("<- %s", compile(r.channel))
 	compileGo(g)          passErrFormat("go %s", compile(g.application))
 	compileDefer(d)       passErrFormat("defer %s", compile(d.application))
-	compileDefinition(d)  passErrFormat("var _%s = %s", d.symbol, compile(d.expression))
 	compileDefinitions(l) mapCompileJoin(";\n", l.definitions)
 	compileAssign(a)      passErrFormat("%s = %s", compile(a.capture), compile(a.value))
 	compileAssigns(l)     mapCompileJoin(";\n", l.assignments)
-	compileStatements(s)  s -> mapCompile -> passErr(notEmpty) -> passErr(join(";\n"))
 	compileRet(r)         passErrFormat("return %s", compile(r.value))
 	compileControl(c)     c.control == breakControl ? "break" : "continue"
-	compileModule(m)      compileStatements(m.statements)
 )
 
 fn compileList(l) {
@@ -169,33 +171,51 @@ fn compileParamList(params, collectParam) {
 }
 
 fn compileFunction(f) {
-	let multipleStatements has("type", f.statement) && f.statement.type == "statement-list"
+	let multipleStatements
+		has("type", f.statement) &&
+		f.statement.type == "statement-list"
+	let scope getScope(f.statement)
+	let paramNames f.collectParam == "" ? f.params : [f.params..., f.collectParam]
+	let scopeNames join(", ", map(formatOne("_%s"), [scope..., paramNames...]))
+	let scopeDefs scope
+		-> map(fn (s) formats("var _%s interface{}", s))
+		-> join(";\n")
+
 	let fmt multipleStatements ?
 		"&cfunction{
 			f: func(a []interface{}) interface{} {
+				var c interface{}
+				nop(c)
 				%s;
+				%s;
+				nop(%s);
 				%s;
 				return nil
 			},
+			fixedArgs: %d,
 		}" :
 		"&cfunction{
 			f: func(a []interface{}) interface{} {
+				var c interface{}
+				nop(c)
 				%s;
+				%s;
+				nop(%s);
 				return %s
 			},
+			fixedArgs: %d,
 		}"
 
-	let p compileParamList(f.params, f.collectParam)
-	if isError(p) {
-		return p
-	}
+	let (
+		p compileParamList(f.params, f.collectParam)
+		s compile(f.statement)
+	)
 
-	let s compile(f.statement)
 	if isError(s) {
 		return s
 	}
 
-	return formats(fmt, p, s)
+	return formats(fmt, p, scopeDefs, scopeNames, s, len(f.params))
 }
 
 fn compileRangeExpression(e) passErrFormat(
@@ -204,8 +224,42 @@ fn compileRangeExpression(e) passErrFormat(
 	has("to", e) ? compile(e.to) : ""
 )
 
+fn compileIndexer(i) {
+	let exp compile(i.expression)
+	if isError(exp) {
+		return exp
+	}
+
+	if !has("type", i.index) || i.index.type != "range-expression" {
+		let index compile(i.index)
+		if isError(index) {
+			return index
+		}
+
+		return formats("ref(%s, %s)", exp, index)
+	}
+
+	let ~ from "nil"
+	if has("from", i.index) {
+		from = compile(i.index.from)
+		if isError(from) {
+			return from
+		}
+	}
+
+	let ~ to "nil"
+	if has("to", i.index) {
+		to = compile(i.index.to)
+		if isError(to) {
+			return to
+		}
+	}
+
+	return formats("refRange(%s, %s, %s)", exp, from, to)
+}
+
 fn compileApplication(a) passErrFormat(
-	"%s.(*cfunction).call(%s)"
+	has("type", a.function) && a.function.type == "function" ? "(%s).call(%s)" : "%s.(*cfunction).call(%s)"
 	compile(a.function)
 	compileList({values: a.args})
 )
@@ -218,26 +272,23 @@ let (
 	logicalNot unaryOp()
 )
 
-fn compileUnaryOp(o) {
-	switch o {
-	case binaryNot:
-		return "^"
-	case plus:
-		return "+"
-	case minus:
-		return "-"
+fn compileUnary(u) {
+	let arg compile(u.arg)
+	if isError(arg) {
+		return arg
+	}
+
+	switch u.op {
 	case logicalNot:
-		return "!"
+		if !isBool(u.arg) {
+			arg = arg + ".(bool)"
+		}
+
+		return formats("!%s", arg)
 	default:
-		return error(formats("unsupported code: %v"), o)
+		return formats("unaryOp(%d, %s)", u.op, arg)
 	}
 }
-
-fn compileUnary(u) passErrFormat(
-	"%s%s",
-	compileUnaryOp(u.op)
-	compile(u.arg)
-)
 
 let (
 	binaryOp    enum()
@@ -262,60 +313,49 @@ let (
 	logicalOr   binaryOp()
 )
 
-fn compileBinaryOp(o) {
-	switch o {
-	case binaryAnd:
-		return "&"
-	case binaryOr:
-		return "|"
-	case xor:
-		return "^"
-	case andNot:
-		return "&^"
-	case lshift:
-		return "<<"
-	case rshift:
-		return ">>"
-	case mul:
-		return "*"
-	case div:
-		return "/"
-	case mod:
-		return "%"
-	case add:
-		return "+"
-	case sub:
-		return "-"
-	case eq:
-		return "=="
-	case notEq:
-		return "!="
-	case less:
-		return "<"
-	case lessOrEq:
-		return "<="
-	case greater:
-		return ">"
-	case greaterOrEq:
-		return ">="
-	case logicalAnd:
-		return "&&"
-	case logicalOr:
-		return "||"
-	default:
-		return error(formats("unsupported code: %v"), o)
+fn compileBinary(b) {
+	if b.op != logicalAnd && b.op != logicalOr {
+		return passErrFormat(
+			"binaryOp(%s, %s, %s)"
+			compile(b.op)
+			compile(b.left)
+			compile(b.right)
+		)
 	}
+
+	fn isBoolOp(c)
+		has("type", c) &&
+		(c.type == "unary" && c.op == logicalNot) ||
+		(c.type == "binary" && (c.op == logicalAnd || c.op == logicalOr))
+
+	let ~ left compile(b.left)
+	if isError(left) {
+		return left
+	}
+
+	let ~ right compile(b.right)
+	if isError(right) {
+		return right
+	}
+
+	if !isBool(b.left) && !isBoolOp(b.left) {
+		left = left + ".(bool)"
+	}
+
+	if !isBool(b.right) && !isBoolOp(b.right) {
+		right = right + ".(bool)"
+	}
+
+	let ~ op "&&"
+	if b.op == logicalOr {
+		op = "||"
+	}
+
+	return formats("(%s %s %s)", left, op, right)
 }
 
-fn compileBinary(b) passErrFormat(
-	"(%s %s %s)"
-	compile(b.left)
-	compileBinaryOp(b.op)
-	compile(b.right)
-)
-
 fn compileTernary(c) passErrFormat(
-	"func () interface{} { if %s { return %s } else { return %s } }()"
+	"func () interface{} { c = %s; if c.(bool) { return %s } else { return %s } }()"
 	compile(c.condition)
 	compile(c.consequent)
 	compile(c.alternative)
@@ -324,13 +364,13 @@ fn compileTernary(c) passErrFormat(
 fn compileIf(c)
 	has("alternative", c) ?
 	passErrFormat(
-		"if %s { %s } else { %s }"
+		"c = %s; if c.(bool) { %s } else { %s }"
 		compile(c.condition)
 		compile(c.consequent)
 		compile(c.alternative)
 	) :
 	passErrFormat(
-		"if %s { %s }"
+		"c = %s; if c.(bool) { %s }"
 		compile(c.condition)
 		compile(c.consequent)
 	)
@@ -377,23 +417,23 @@ fn compileSelect(s)
 
 fn compileRangeOver(r) {
 	fn infiniteCounter() passErrFormat(
-		"%s := 0; true; %s++"
+		"_%s := 0; true; _%s++"
 		r.symbol
 		r.symbol
 	)
 
 	fn withRangeExpression() passErrFormat(
-		"%s := %s; %s; %s++"
+		"_%s := %s; %s; _%s++"
 		r.symbol
 		has("from", r.expression) ? compile(r.expression.from) : "0"
 		has("to", r.expression) ?
-			formats("%s < %s", r.symbol, compile(r.expression.to)) :
+			formats("_%s < %s.(int)", r.symbol, compile(r.expression.to)) :
 			"true"
 		r.symbol
 	)
 
 	fn listStyleRange() passErrFormat(
-		"_, %s := range %s"
+		"_, _%s := range %s"
 		r.symbol
 		compile(r.expression)
 	)
@@ -414,11 +454,36 @@ fn compileLoop(l) passErrFormat(
 	compile(l.body)
 )
 
+fn compileDefinition(d) passErrFormat(
+	"_%s = %s"
+	d.symbol
+	compile(d.expression)
+)
+
 let (
 	controlStatement enum()
 	breakControl     controlStatement()
 	continueControl  controlStatement()
 )
+
+fn compileStatements(s) {
+	let scope getScope(s...)
+	let scopeDefs scope
+		-> map(fn (s) formats("var _%s interface{}", s))
+		-> join(";\n")
+	let scopeNames join(", ", map(formatOne("_%s"), scope))
+	let statements mapCompile(s) -> passErr(notEmpty) -> passErr(join(";\n"))
+	return formats("%s;\nnop(%s);\n%s", scopeDefs, scopeNames, statements)
+}
+
+fn compileModule(m) {
+	let statements compileStatements(m.statements)
+	if isError(statements) {
+		return statements
+	}
+
+	return formats("%s", statements)
+}
 
 fn compile(code) {
 	switch {
@@ -503,6 +568,10 @@ fn compile(code) {
 let write stdout
 write("package mml
 
+import \"fmt\"
+import \"os\"
+import \"errors\"
+
 type cfunction struct {
 	f         func([]interface{}) interface{}
 	fixedArgs int
@@ -524,7 +593,372 @@ func (f *cfunction) call(a []interface{}) interface{} {
 	return f.f(a)
 }
 
+func ref(v, k interface{}) interface{} {
+	switch vt := v.(type) {
+	case []interface{}:
+		return vt[k.(int)]
+	case map[string]interface{}:
+		return vt[k.(string)]
+	default:
+		panic(\"ref: unsupported code\")
+	}
+}
+
+func refRange(v, from, to interface{}) interface{} {
+	switch {
+	case from == nil && to == nil:
+		return v.([]interface{})[:]
+	case from == nil:
+		return v.([]interface{})[:to.(int)]
+	case to == nil:
+		return v.([]interface{})[from.(int):]
+	default:
+		return v.([]interface{})[from.(int):to.(int)]
+	}
+}
+
+func unaryOp(op int, arg interface{}) interface{} {
+	switch op {
+	case 0:
+		switch at := arg.(type) {
+		case int:
+			return +at
+		default:
+			panic(\"unary: unsupported code\")
+		}
+	case 1:
+		switch at := arg.(type) {
+		case int:
+			return +at
+		case float64:
+			return +at
+		default:
+			panic(\"unary: unsupported code\")
+		}
+	case 2:
+		switch at := arg.(type) {
+		case int:
+			return -at
+		case float64:
+			return -at
+		default:
+			panic(\"unary: unsupported code\")
+		}
+	default:
+		panic(\"unary: unsupported code\")
+	}
+}
+
+func binaryOp(op int, left, right interface{}) interface{} {
+	switch op {
+	case 0:
+		switch lt := left.(type) {
+		case int:
+			return lt & right.(int)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 1:
+		switch lt := left.(type) {
+		case int:
+			return lt | right.(int)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 2:
+		switch lt := left.(type) {
+		case int:
+			return lt ^ right.(int)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 3:
+		switch lt := left.(type) {
+		case int:
+			return lt &^ right.(int)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 4:
+		switch lt := left.(type) {
+		case int:
+			return lt << right.(uint)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 5:
+		switch lt := left.(type) {
+		case int:
+			return lt >> right.(uint)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 6:
+		switch lt := left.(type) {
+		case int:
+			return lt * right.(int)
+		case float64:
+			return lt * right.(float64)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 7:
+		switch lt := left.(type) {
+		case int:
+			return lt / right.(int)
+		case float64:
+			return lt / right.(float64)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 8:
+		switch lt := left.(type) {
+		case int:
+			return lt % right.(int)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 9:
+		switch lt := left.(type) {
+		case int:
+			return lt + right.(int)
+		case float64:
+			return lt + right.(float64)
+		case string:
+			return lt + right.(string)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 10:
+		switch lt := left.(type) {
+		case int:
+			return lt - right.(int)
+		case float64:
+			return lt - right.(float64)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 11:
+		return left == right
+	case 12:
+		return left != right
+	case 13:
+		switch lt := left.(type) {
+		case int:
+			return lt < right.(int)
+		case float64:
+			return lt < right.(float64)
+		case string:
+			return lt < right.(string)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 14:
+		switch lt := left.(type) {
+		case int:
+			return lt <= right.(int)
+		case float64:
+			return lt <= right.(float64)
+		case string:
+			return lt <= right.(string)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 15:
+		switch lt := left.(type) {
+		case int:
+			return lt > right.(int)
+		case float64:
+			return lt > right.(float64)
+		case string:
+			return lt > right.(string)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	case 16:
+		switch lt := left.(type) {
+		case int:
+			return lt <= right.(int)
+		case float64:
+			return lt <= right.(float64)
+		case string:
+			return lt <= right.(string)
+		default:
+			panic(\"binary: unsupported code\")
+		}
+	default:
+		panic(\"binary: unsupported code\")
+	}
+}
+
+func nop(...interface{}) {}
+
+var _len interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		switch at := a[0].(type) {
+		case []interface{}:
+			return len(at)
+		case map[string]interface{}:
+			return len(at)
+		case string:
+			return len(at)
+		default:
+			panic(\"len: unsupported code\")
+		}
+	},
+	fixedArgs: 1,
+}
+
+var _isError interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		_, ok := a[0].(error)
+		return ok
+	},
+	fixedArgs: 1,
+}
+
+var _keys interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		s, ok := a[0].(map[string]interface{})
+		if !ok {
+			panic(\"keys: unsupported code\")
+		}
+
+		var keys []interface{}
+		for k := range s {
+			keys = append(keys, k)
+		}
+
+		return keys
+	},
+	fixedArgs: 1,
+}
+
+var _format interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		f, ok := a[0].(string)
+		if !ok {
+			panic(\"format: unsupported code\")
+		}
+
+		args, ok := a[1].([]interface{})
+		if !ok {
+			panic(\"format: unsupported code\")
+		}
+
+		return fmt.Sprintf(f, args...)
+	},
+	fixedArgs: 2,
+}
+
+var _stderr interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		s, ok := a[0].(string)
+		if !ok {
+			panic(\"stderr: unsupported code\")
+		}
+
+		_, err := os.Stderr.Write([]byte(s))
+		return err
+	},
+	fixedArgs: 1,
+}
+
+var _stdout interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		s, ok := a[0].(string)
+		if !ok {
+			panic(\"stderr: unsupported code\")
+		}
+
+		_, err := os.Stdout.Write([]byte(s))
+		return err
+	},
+	fixedArgs: 1,
+}
+
+var _stdin interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		b := make([]byte, a[0].(int))
+		n, err := os.Stdin.Read(b)
+		if err != nil {
+			return err
+		}
+
+		return string(b[:n])
+	},
+	fixedArgs: 1,
+}
+
+var _string interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		return fmt.Sprint(a[0])
+	},
+	fixedArgs: 1,
+}
+
+var _parse interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		return 42
+	},
+	fixedArgs: 1,
+}
+
+var _has interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		s, ok := a[1].(map[string]interface{})
+		if !ok {
+			return false
+		}
+
+		_, ok = s[a[0].(string)]
+		return ok
+	},
+	fixedArgs: 2,
+}
+
+var _isBool interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		_, ok := a[0].(bool)
+		return ok
+	},
+	fixedArgs: 1,
+}
+
+var _isInt interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		_, ok := a[0].(int)
+		return ok
+	},
+	fixedArgs: 1,
+}
+
+var _isFloat interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		_, ok := a[0].(float64)
+		return ok
+	},
+	fixedArgs: 1,
+}
+
+var _isString interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		_, ok := a[0].(string)
+		return ok
+	},
+	fixedArgs: 1,
+}
+
+var _error interface{} = &cfunction{
+	f: func(a []interface{}) interface{} {
+		return errors.New(a[0].(string))
+	},
+	fixedArgs: 1,
+}
+
 func init() {
+var c interface{}
+nop(c)
 ")
 
 stdin
