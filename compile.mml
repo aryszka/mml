@@ -588,20 +588,20 @@ fn compile(code) {
 
 let builtin {
 	len: "Len"
-	isError: "IsError"
-	keys: "Keys"
-	format: "Format"
-	stdin: "Stdin",
-	stdout: "Stdout"
-	stderr: "Stderr"
-	string: "String"
-	parse: "Parse"
-	has: "Has"
-	isBool: "IsBool"
-	isInt: "IsInt"
-	isFloat: "IsFloat"
+	isError:  "IsError"
+	keys:     "Keys"
+	format:   "Format"
+	stdin:    "Stdin",
+	stdout:   "Stdout"
+	stderr:   "Stderr"
+	string:   "String"
+	parse:    "Parse"
+	has:      "Has"
+	isBool:   "IsBool"
+	isInt:    "IsInt"
+	isFloat:  "IsFloat"
 	isString: "IsString"
-	error: "Error"
+	error:    "Error"
 }
 
 let builtins builtin
@@ -611,14 +611,16 @@ let builtins builtin
 -> join(";\n")
 
 let write stdout
-write("package main
+write(
+"package main
 
 import \"github.com/aryszka/mml\"
 ")
 
 write(builtins)
 
-write("
+write(
+"
 func init() {
 var c interface{}
 mml.Nop(c)
@@ -630,6 +632,7 @@ stdin
 -> passErr(write)
 -> onlyErr(log)
 
-write("}
+write(
+"}
 func main() {}
 ")
