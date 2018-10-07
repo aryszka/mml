@@ -20,6 +20,12 @@ fn (
 	notEmpty(l)              l -> filter(fn (s) s != "")
 )
 
+fn sort(less, l) len(l) == 0 ? [] : [
+	(l[1:] -> filter(fn (i) !less(l[0], i)) -> sort(less))...
+	l[0]
+	(l[1:] -> filter(less(l[0])) -> sort(less))...
+]
+
 fn counter () {
 	let ~ c -1
 	return fn~ () {
@@ -82,13 +88,15 @@ fn getScope(...statements)
 	-> fold(fn (d, flat) d.type == "definition" ? [flat..., d] : [flat..., d.definitions...], [])
 	-> map(fn (d) d.symbol)
 
+// TODO:
+// - compiling string keys in struct
+// - struct keys should not be prefixed by "_"
 fn (
 	mapCompile(l)         l -> map(compile) -> anyErr
 	mapCompileJoin(j, l)  l -> mapCompile -> passErr(join(j))
 	compileComment(_)     ""
 	compileString(s)      formats("\"%s\"", escape(s))
 	compileSymbol(s)      formats("_%s", s.name)
-	compileEntry(e)       passErrFormat("\"%s\":%s", compile(e.key), compile(e.value))
 	compileEntries(e)     mapCompileJoin(",", e)
 	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
 	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
@@ -157,6 +165,14 @@ fn compileList(l) {
 	-> passErr(appendGroups)
 }
 
+fn compileEntry(e) {
+	let key has("type", e.key) && e.key.type == "symbol" ?
+		e.key.name :
+		compile(e.key)
+	let value compile(e.value)
+	return passErrFormat("\"%s\":%s", key, value)
+}
+
 fn compileParamList(params, collectParam) {
 	let ~ p []
 	for i in 0:len(params) {
@@ -182,28 +198,28 @@ fn compileFunction(f) {
 		-> join(";\n")
 
 	let fmt multipleStatements ?
-		"&cfunction{
-			f: func(a []interface{}) interface{} {
+		"&mml.Function{
+			F: func(a []interface{}) interface{} {
 				var c interface{}
-				nop(c)
+				mml.Nop(c)
 				%s;
 				%s;
-				nop(%s);
+				mml.Nop(%s);
 				%s;
 				return nil
 			},
-			fixedArgs: %d,
+			FixedArgs: %d,
 		}" :
-		"&cfunction{
-			f: func(a []interface{}) interface{} {
+		"&mml.Function{
+			F: func(a []interface{}) interface{} {
 				var c interface{}
-				nop(c)
+				mml.Nop(c)
 				%s;
 				%s;
-				nop(%s);
+				mml.Nop(%s);
 				return %s
 			},
-			fixedArgs: %d,
+			FixedArgs: %d,
 		}"
 
 	let (
@@ -236,7 +252,7 @@ fn compileIndexer(i) {
 			return index
 		}
 
-		return formats("ref(%s, %s)", exp, index)
+		return formats("mml.Ref(%s, %s)", exp, index)
 	}
 
 	let ~ from "nil"
@@ -255,11 +271,13 @@ fn compileIndexer(i) {
 		}
 	}
 
-	return formats("refRange(%s, %s, %s)", exp, from, to)
+	return formats("mml.RefRange(%s, %s, %s)", exp, from, to)
 }
 
 fn compileApplication(a) passErrFormat(
-	has("type", a.function) && a.function.type == "function" ? "(%s).call(%s)" : "%s.(*cfunction).call(%s)"
+	has("type", a.function) && a.function.type == "function" ?
+		"(%s).Call(%s)" :
+		"%s.(*mml.Function).Call(%s)"
 	compile(a.function)
 	compileList({values: a.args})
 )
@@ -286,7 +304,7 @@ fn compileUnary(u) {
 
 		return formats("!%s", arg)
 	default:
-		return formats("unaryOp(%d, %s)", u.op, arg)
+		return formats("mml.UnaryOp(%d, %s)", u.op, arg)
 	}
 }
 
@@ -316,7 +334,7 @@ let (
 fn compileBinary(b) {
 	if b.op != logicalAnd && b.op != logicalOr {
 		return passErrFormat(
-			"binaryOp(%s, %s, %s)"
+			"mml.BinaryOp(%s, %s, %s)"
 			compile(b.op)
 			compile(b.left)
 			compile(b.right)
@@ -432,8 +450,11 @@ fn compileRangeOver(r) {
 		r.symbol
 	)
 
+	// TODO:
+	// - should work for struct, too
+	// - the arg should be called with nop()
 	fn listStyleRange() passErrFormat(
-		"_, _%s := range %s"
+		"_, _%s := range %s.([]interface{})"
 		r.symbol
 		compile(r.expression)
 	)
@@ -473,7 +494,7 @@ fn compileStatements(s) {
 		-> join(";\n")
 	let scopeNames join(", ", map(formatOne("_%s"), scope))
 	let statements mapCompile(s) -> passErr(notEmpty) -> passErr(join(";\n"))
-	return formats("%s;\nnop(%s);\n%s", scopeDefs, scopeNames, statements)
+	return formats("%s;\nmml.Nop(%s);\n%s", scopeDefs, scopeNames, statements)
 }
 
 fn compileModule(m) {
@@ -565,400 +586,42 @@ fn compile(code) {
 	}
 }
 
+let builtin {
+	len: "Len"
+	isError: "IsError"
+	keys: "Keys"
+	format: "Format"
+	stdin: "Stdin",
+	stdout: "Stdout"
+	stderr: "Stderr"
+	string: "String"
+	parse: "Parse"
+	has: "Has"
+	isBool: "IsBool"
+	isInt: "IsInt"
+	isFloat: "IsFloat"
+	isString: "IsString"
+	error: "Error"
+}
+
+let builtins builtin
+-> keys
+-> sort(fn (left, right) left < right)
+-> map(fn (k) formats("var _%s interface{} = mml.%s", k, builtin[k]))
+-> join(";\n")
+
 let write stdout
-write("package mml
+write("package main
 
-import \"fmt\"
-import \"os\"
-import \"errors\"
+import \"github.com/aryszka/mml\"
+")
 
-type cfunction struct {
-	f         func([]interface{}) interface{}
-	fixedArgs int
-	args      []interface{}
-}
+write(builtins)
 
-func (f *cfunction) bind(a []interface{}) *cfunction {
-	b := *f
-	b.args = a
-	return &b
-}
-
-func (f *cfunction) call(a []interface{}) interface{} {
-	a = append(f.args, a...)
-	if len(a) < f.fixedArgs {
-		return f.bind(a)
-	}
-
-	return f.f(a)
-}
-
-func ref(v, k interface{}) interface{} {
-	switch vt := v.(type) {
-	case []interface{}:
-		return vt[k.(int)]
-	case map[string]interface{}:
-		return vt[k.(string)]
-	default:
-		panic(\"ref: unsupported code\")
-	}
-}
-
-func refRange(v, from, to interface{}) interface{} {
-	switch {
-	case from == nil && to == nil:
-		return v.([]interface{})[:]
-	case from == nil:
-		return v.([]interface{})[:to.(int)]
-	case to == nil:
-		return v.([]interface{})[from.(int):]
-	default:
-		return v.([]interface{})[from.(int):to.(int)]
-	}
-}
-
-func unaryOp(op int, arg interface{}) interface{} {
-	switch op {
-	case 0:
-		switch at := arg.(type) {
-		case int:
-			return +at
-		default:
-			panic(\"unary: unsupported code\")
-		}
-	case 1:
-		switch at := arg.(type) {
-		case int:
-			return +at
-		case float64:
-			return +at
-		default:
-			panic(\"unary: unsupported code\")
-		}
-	case 2:
-		switch at := arg.(type) {
-		case int:
-			return -at
-		case float64:
-			return -at
-		default:
-			panic(\"unary: unsupported code\")
-		}
-	default:
-		panic(\"unary: unsupported code\")
-	}
-}
-
-func binaryOp(op int, left, right interface{}) interface{} {
-	switch op {
-	case 0:
-		switch lt := left.(type) {
-		case int:
-			return lt & right.(int)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 1:
-		switch lt := left.(type) {
-		case int:
-			return lt | right.(int)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 2:
-		switch lt := left.(type) {
-		case int:
-			return lt ^ right.(int)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 3:
-		switch lt := left.(type) {
-		case int:
-			return lt &^ right.(int)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 4:
-		switch lt := left.(type) {
-		case int:
-			return lt << right.(uint)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 5:
-		switch lt := left.(type) {
-		case int:
-			return lt >> right.(uint)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 6:
-		switch lt := left.(type) {
-		case int:
-			return lt * right.(int)
-		case float64:
-			return lt * right.(float64)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 7:
-		switch lt := left.(type) {
-		case int:
-			return lt / right.(int)
-		case float64:
-			return lt / right.(float64)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 8:
-		switch lt := left.(type) {
-		case int:
-			return lt % right.(int)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 9:
-		switch lt := left.(type) {
-		case int:
-			return lt + right.(int)
-		case float64:
-			return lt + right.(float64)
-		case string:
-			return lt + right.(string)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 10:
-		switch lt := left.(type) {
-		case int:
-			return lt - right.(int)
-		case float64:
-			return lt - right.(float64)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 11:
-		return left == right
-	case 12:
-		return left != right
-	case 13:
-		switch lt := left.(type) {
-		case int:
-			return lt < right.(int)
-		case float64:
-			return lt < right.(float64)
-		case string:
-			return lt < right.(string)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 14:
-		switch lt := left.(type) {
-		case int:
-			return lt <= right.(int)
-		case float64:
-			return lt <= right.(float64)
-		case string:
-			return lt <= right.(string)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 15:
-		switch lt := left.(type) {
-		case int:
-			return lt > right.(int)
-		case float64:
-			return lt > right.(float64)
-		case string:
-			return lt > right.(string)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	case 16:
-		switch lt := left.(type) {
-		case int:
-			return lt <= right.(int)
-		case float64:
-			return lt <= right.(float64)
-		case string:
-			return lt <= right.(string)
-		default:
-			panic(\"binary: unsupported code\")
-		}
-	default:
-		panic(\"binary: unsupported code\")
-	}
-}
-
-func nop(...interface{}) {}
-
-var _len interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		switch at := a[0].(type) {
-		case []interface{}:
-			return len(at)
-		case map[string]interface{}:
-			return len(at)
-		case string:
-			return len(at)
-		default:
-			panic(\"len: unsupported code\")
-		}
-	},
-	fixedArgs: 1,
-}
-
-var _isError interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		_, ok := a[0].(error)
-		return ok
-	},
-	fixedArgs: 1,
-}
-
-var _keys interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		s, ok := a[0].(map[string]interface{})
-		if !ok {
-			panic(\"keys: unsupported code\")
-		}
-
-		var keys []interface{}
-		for k := range s {
-			keys = append(keys, k)
-		}
-
-		return keys
-	},
-	fixedArgs: 1,
-}
-
-var _format interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		f, ok := a[0].(string)
-		if !ok {
-			panic(\"format: unsupported code\")
-		}
-
-		args, ok := a[1].([]interface{})
-		if !ok {
-			panic(\"format: unsupported code\")
-		}
-
-		return fmt.Sprintf(f, args...)
-	},
-	fixedArgs: 2,
-}
-
-var _stderr interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		s, ok := a[0].(string)
-		if !ok {
-			panic(\"stderr: unsupported code\")
-		}
-
-		_, err := os.Stderr.Write([]byte(s))
-		return err
-	},
-	fixedArgs: 1,
-}
-
-var _stdout interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		s, ok := a[0].(string)
-		if !ok {
-			panic(\"stderr: unsupported code\")
-		}
-
-		_, err := os.Stdout.Write([]byte(s))
-		return err
-	},
-	fixedArgs: 1,
-}
-
-var _stdin interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		b := make([]byte, a[0].(int))
-		n, err := os.Stdin.Read(b)
-		if err != nil {
-			return err
-		}
-
-		return string(b[:n])
-	},
-	fixedArgs: 1,
-}
-
-var _string interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		return fmt.Sprint(a[0])
-	},
-	fixedArgs: 1,
-}
-
-var _parse interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		return 42
-	},
-	fixedArgs: 1,
-}
-
-var _has interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		s, ok := a[1].(map[string]interface{})
-		if !ok {
-			return false
-		}
-
-		_, ok = s[a[0].(string)]
-		return ok
-	},
-	fixedArgs: 2,
-}
-
-var _isBool interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		_, ok := a[0].(bool)
-		return ok
-	},
-	fixedArgs: 1,
-}
-
-var _isInt interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		_, ok := a[0].(int)
-		return ok
-	},
-	fixedArgs: 1,
-}
-
-var _isFloat interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		_, ok := a[0].(float64)
-		return ok
-	},
-	fixedArgs: 1,
-}
-
-var _isString interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		_, ok := a[0].(string)
-		return ok
-	},
-	fixedArgs: 1,
-}
-
-var _error interface{} = &cfunction{
-	f: func(a []interface{}) interface{} {
-		return errors.New(a[0].(string))
-	},
-	fixedArgs: 1,
-}
-
+write("
 func init() {
 var c interface{}
-nop(c)
+mml.Nop(c)
 ")
 
 stdin
@@ -967,4 +630,6 @@ stdin
 -> passErr(write)
 -> onlyErr(log)
 
-write("}")
+write("}
+func main() {}
+")

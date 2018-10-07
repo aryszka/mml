@@ -304,3 +304,14 @@ func makeHas(e *env) function {
 		return ok, nil
 	})
 }
+
+func makeKeys(e *env) function {
+	return makeWithParams(e, []string{"s"}, func(e *env, a []interface{}) (interface{}, error) {
+		var keys list
+		for k := range a[0].(structure).values {
+			keys.values = append(keys.values, k)
+		}
+
+		return keys, nil
+	})
+}

@@ -3,6 +3,7 @@ package mml
 import (
 	"errors"
 	"fmt"
+	"reflect"
 )
 
 var (
@@ -615,7 +616,16 @@ func evalStringBinaryChecked(op binaryOperator, left, right string) (interface{}
 	switch op {
 	case add:
 		return left + right, nil
+	case less:
+		return left < right, nil
+	case lessOrEq:
+		return left <= right, nil
+	case greater:
+		return left > right, nil
+	case greaterOrEq:
+		return left >= right, nil
 	default:
+		println("here", op, reflect.TypeOf(op).Name())
 		return nil, errUnsupportedCode
 	}
 }
@@ -656,7 +666,6 @@ func evalIntFloatStringBinary(e *env, b binary) (interface{}, error) {
 	case error:
 		return nil, lt
 	default:
-		println("here", left)
 		return nil, errUnsupportedCode
 	}
 }
