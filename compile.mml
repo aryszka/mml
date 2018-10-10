@@ -506,6 +506,8 @@ fn compileModule(m) {
 	return formats("%s", statements)
 }
 
+// TODO: trim comments from everywhere
+
 fn compile(code) {
 	switch {
 	case isInt(code):
@@ -612,7 +614,9 @@ let builtins builtin
 
 let write stdout
 write(
-"package main
+"// Generated code
+
+package main
 
 import \"github.com/aryszka/mml\"
 ")
