@@ -6,7 +6,7 @@ An alternative frontend for Go and JS.
 
 ## Boot the compiler
 
-Prerequisits: Go installed, $GOPATH, set and $GOPATH/bin added to $PATH.
+Prerequisits: Go installed, $GOPATH set and $GOPATH/bin added to $PATH.
 
 ```
 make boot
