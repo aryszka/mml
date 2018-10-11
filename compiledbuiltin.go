@@ -84,6 +84,12 @@ func Ref(v, k interface{}) interface{} {
 	case map[string]interface{}:
 		return vt[k.(string)]
 	default:
+		// TMP:
+		if err, ok := v.(error); ok {
+			println(err.Error())
+		}
+
+		println(k.(string), v == nil)
 		panic("ref: unsupported code")
 	}
 }
@@ -303,6 +309,7 @@ var Len = &Function{
 		case string:
 			return len(at)
 		default:
+			println("is nil", a[0] == nil)
 			panic("len: unsupported code")
 		}
 	},

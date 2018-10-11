@@ -1,0 +1,9 @@
+export fn (
+	fold(f, i, l)            len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
+	foldr(f, i, l)           len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
+	map(m, l)                fold(fn (c, r) [r..., m(c)], [], l)
+	filter(p, l)             fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
+	firstOr(v, l)            len(l) > 0 ? l[0] : v
+)
+
+export fn contains(i, l) len(filter(fn (ii) ii == i, l)) > 0

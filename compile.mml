@@ -1,20 +1,15 @@
+use . "list"
+
 fn (
-	fold(f, i, l)            len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
-	foldr(f, i, l)           len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
-	map(m, l)                fold(fn (c, r) [r..., m(c)], [], l)
-	filter(p, l)             fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
-	contains(i, l)           len(filter(fn (ii) ii == i, l)) > 0
 	not(x)                   !x
 	yes(x)                   x
 	ifErr(mod, f)            fn~ (a) mod(isError(a)) ? f(a) : a
 	passErr(f)               ifErr(not, f)
 	onlyErr(f)               ifErr(yes, f)
 	anyErr(l)                fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
-	firstOr(v, l)            len(l) > 0 ? l[0] : v
 	join(j, s)               len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
 	joins(j, ...s)           join(j, s)
 	joinTwo(j, left, right)  joins(j, left, right)
-	destruct(s)              s -> keys -> map(fn (key) [key, s[key]])
 	formats(f, ...a)         format(f, a)
 	formatOne(f, a)          formats(f, a)
 	passErrFormat(fmt, ...p) p -> anyErr -> passErr(format(fmt))
@@ -89,14 +84,19 @@ fn getScope(...statements) {
 	let (
 		defs getFlattenedStatements("definition", "definition-list", "definitions", statements)
 		uses getFlattenedStatements("use", "use-list", "uses", statements)
+		inlineUses uses
+		-> filter(has("exportNames"))
+		-> map(fn (u) u.exportNames)
+		-> fold(fn (current, result) [result..., current...], [])
 	)
 
-	return [map(fn (d) d.symbol, defs)..., map(fn (u) u.path, uses)...]
+	return [map(fn (d) d.symbol, defs)..., map(fn (u) u.path, uses)..., inlineUses...]
 }
 
 // TODO:
 // - compiling string keys in struct
 // - struct keys should not be prefixed by "_"
+// - spread for maps
 fn (
 	mapCompile(l)         l -> map(compile) -> anyErr
 	mapCompileJoin(j, l)  l -> mapCompile -> passErr(join(j))
@@ -475,6 +475,8 @@ fn compileRangeOver(r) {
 	}
 }
 
+// TODO: nop call for the loop variable
+
 fn compileLoop(l) passErrFormat(
 	"for %s {\n%s\n}"
 	has("expression", l) ? compile(l.expression) : ""
@@ -520,8 +522,39 @@ fn compileModule(m) {
 	return formats("%s", statements)
 }
 
+// TODO
+fn getModuleName(path) path
+
 fn compileUse(u) {
-	return formats("_%s = mml.Modules.Use(\"%s.mml\")", u.path, u.path)
+	switch {
+	case u.capture == ".":
+		let useStatement formats(
+			"var __%s = mml.Modules.Use(\"%s.mml\");"
+			getModuleName(u.path)
+			u.path
+		)
+
+		let assigns map(fn (name)
+			formats(
+				"_%s = __%s[\"%s\"]"
+				name
+				getModuleName(u.path)
+				name
+			)
+			u.exportNames
+		)
+		-> join(";\n")
+
+		return joins(";", useStatement, assigns)
+	case len(u.capture) == "":
+		return ""
+	default:
+		return formats(
+			"_%s = mml.Modules.Use(\"%s.mml\")"
+			getModuleName(u.path)
+			u.path
+		)
+	}
 }
 
 fn compileUseList(u) mapCompileJoin("\n;", u.uses)
@@ -646,26 +679,87 @@ fn parseFile(path) {
 	}
 
 	defer close(in)
-	return in(-1) -> passErr(parse)
+	return in(-1) -> passErr(parse) -> onlyErr(log)
 }
 
+// TODO: can there be an export below the top level?
+
+fn findExportNames(statements)
+	statements
+	-> getFlattenedStatements("definition", "definition-list", "definitions")
+	-> filter(fn (d) d.exported)
+	-> map(fn (d) d.symbol)
+
 fn parseModules(path) {
-	// TODO: errors
+	// TODO:
+	// - errors
+	// - this only considers the top level uses, while it is allowed to have lower level uses
+
 	let (
 		code parseFile(path)
 		uses getFlattenedStatements("use", "use-list", "uses", code.statements)
 	)
 
-	let usesCode uses
+	let usesModules uses
 	-> map(fn (u) u.path + ".mml")
 	-> map(parseModules)
 	-> fold(fn (m, all) [all..., m...], [])
+	-> map(fn (m) {
+		type: m.type
+		path: m.path
+		statements: m.statements
+		exportNames: findExportNames(m.statements)
+	})
 
-	return [{path: path, code: code}, usesCode...]
+	let statements code.statements
+	-> map(fn (s) {
+		if !has("type", s) || s.type != "use" && s.type != "use-list" {
+			return s
+		}
+
+		if s.type == "use" {
+			let m filter(fn (m) m.path == s.path, usesModules)
+			if len(m) == 0 {
+				return s
+			}
+
+			return {
+				type: s.type
+				path: s.path
+				capture: s.capture
+				exportNames: m[0].exportNames
+			}
+		}
+
+		return {
+			type: s.type
+			uses: map(fn (u) {
+				let m filter(fn (m) m.path == u.path + ".mml", usesModules)
+				if len(m) == 0 {
+					return u
+				}
+
+				return {
+					type: u.type
+					path: u.path
+					capture: u.capture
+					exportNames: m[0].exportNames
+				}
+			}, s.uses)
+		}
+	})
+
+	let pimpedCode {
+		type: code.type
+		path: path
+		statements: statements
+	}
+
+	return [pimpedCode, usesModules...]
 }
 
-fn compileModuleCode(modulePath, moduleCode) {
-	stdout(formats("modulePath = \"%s\"", modulePath))
+fn compileModuleCode(moduleCode) {
+	stdout(formats("modulePath = \"%s\"", moduleCode.path))
 
 	stdout("
 		mml.Modules.Set(modulePath, func() map[string]interface{} {
@@ -688,7 +782,7 @@ fn compileModuleCode(modulePath, moduleCode) {
 
 fn compileModules(m) {
 	for mi in m {
-		compileModuleCode(mi.path, mi.code)
+		compileModuleCode(mi)
 	}
 }
 

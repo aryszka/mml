@@ -258,7 +258,7 @@ func moduleCompiled(m module) map[string]interface{} {
 }
 
 func useCompiled(u use) map[string]interface{} {
-	return toCompiled("use", "path", codeCompiled(u.path))
+	return toCompiled("use", "path", codeCompiled(u.path), "capture", codeCompiled(u.capture))
 }
 
 func mapUsesCompiled(u []use) []interface{} {

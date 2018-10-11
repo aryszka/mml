@@ -193,7 +193,7 @@ type selectStatement struct {
 }
 
 type use struct {
-	path string
+	capture, path string
 }
 
 type useList struct {

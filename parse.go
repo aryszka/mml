@@ -736,8 +736,25 @@ func parseExport(ast *parser.Node) definitionList {
 }
 
 func parseUseFact(ast *parser.Node) use {
-	var u use
-	u.path = parse(ast.Nodes[0]).(string)
+	var (
+		u use
+		c string
+		p *parser.Node
+	)
+
+	switch ast.Nodes[0].Name {
+	case "use-inline":
+		c = "."
+		p = ast.Nodes[1]
+	case "symbol":
+		c = parse(ast.Nodes[0]).(symbol).name
+		p = ast.Nodes[1]
+	default:
+		p = ast.Nodes[0]
+	}
+
+	u.capture = c
+	u.path = parse(p).(string)
 	return u
 }
 

@@ -17,8 +17,9 @@ recompile:
 	mkdir -p build
 	mml compile.mml > build/compile.1.go
 	go run build/compile.1.go compile.mml > build/compile.2.go
-	rm build/compile.1.go
-	mv build/compile.2.go cmd/mml/main.go
+	go run build/compile.2.go compile.mml > build/compile.3.go
+	rm build/compile.1.go build/compile.2.go
+	mv build/compile.3.go cmd/mml/main.go
 	go install ./cmd/mml
 
 check-syntax: syntax.treerack
