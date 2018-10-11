@@ -1,0 +1,92 @@
+use (
+	. "errors"
+	. "log"
+	. "list"
+	. "statements"
+)
+
+fn parseFile(path) {
+	let in open(path)
+	if isError(in) {
+		return in
+	}
+
+	defer close(in)
+	return in(-1) -> passErr(parse) -> onlyErr(log)
+}
+
+// TODO: can there be an export below the top level?
+
+fn findExportNames(statements)
+	statements
+	-> getFlattenedStatements("definition", "definition-list", "definitions")
+	-> filter(fn (d) d.exported)
+	-> map(fn (d) d.symbol)
+
+export fn parseModules(path) {
+	// TODO:
+	// - errors
+	// - this only considers the top level uses, while it is allowed to have lower level uses
+
+	let (
+		code parseFile(path)
+		uses getFlattenedStatements("use", "use-list", "uses", code.statements)
+	)
+
+	let usesModules uses
+	-> map(fn (u) u.path + ".mml")
+	-> map(parseModules)
+	-> fold(fn (m, all) [all..., m...], [])
+	-> map(fn (m) {
+		type: m.type
+		path: m.path
+		statements: m.statements
+		exportNames: findExportNames(m.statements)
+	})
+
+	let statements code.statements
+	-> map(fn (s) {
+		if !has("type", s) || s.type != "use" && s.type != "use-list" {
+			return s
+		}
+
+		if s.type == "use" {
+			let m filter(fn (m) m.path == s.path, usesModules)
+			if len(m) == 0 {
+				return s
+			}
+
+			return {
+				type: s.type
+				path: s.path
+				capture: s.capture
+				exportNames: m[0].exportNames
+			}
+		}
+
+		return {
+			type: s.type
+			uses: map(fn (u) {
+				let m filter(fn (m) m.path == u.path + ".mml", usesModules)
+				if len(m) == 0 {
+					return u
+				}
+
+				return {
+					type: u.type
+					path: u.path
+					capture: u.capture
+					exportNames: m[0].exportNames
+				}
+			}, s.uses)
+		}
+	})
+
+	let pimpedCode {
+		type: code.type
+		path: path
+		statements: statements
+	}
+
+	return [pimpedCode, usesModules...]
+}

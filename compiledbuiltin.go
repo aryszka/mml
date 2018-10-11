@@ -89,7 +89,6 @@ func Ref(v, k interface{}) interface{} {
 			println(err.Error())
 		}
 
-		println(k.(string), v == nil)
 		panic("ref: unsupported code")
 	}
 }
@@ -309,7 +308,6 @@ var Len = &Function{
 		case string:
 			return len(at)
 		default:
-			println("is nil", a[0] == nil)
 			panic("len: unsupported code")
 		}
 	},

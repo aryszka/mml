@@ -1,0 +1,37 @@
+fn firstOr(v, l) len(l) > 0 ? l[0] : v
+
+export fn (
+	join(j, s)               len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
+	joins(j, ...s)           join(j, s)
+	joinTwo(j, left, right)  joins(j, left, right)
+	formats(f, ...a)         format(f, a)
+	formatOne(f, a)          formats(f, a)
+)
+
+export fn escape(s) {
+	if s == "" {
+		return ""
+	}
+
+	let ~ first s[0]
+	switch first {
+	case "\b":
+		first = "\\b"
+	case "\f":
+		first = "\\f"
+	case "\n":
+		first = "\\n"
+	case "\r":
+		first = "\\r"
+	case "\t":
+		first = "\\t"
+	case "\v":
+		first = "\\v"
+	case "\"":
+		first = "\\\""
+	case "\\":
+		first = "\\\\"
+	}
+
+	return first + escape(s[1:])
+}

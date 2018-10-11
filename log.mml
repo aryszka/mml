@@ -1,0 +1,11 @@
+use (
+	. "list"
+	. "strings"
+)
+
+// TODO: should be a builtin fake function
+export fn~ log(...a) {
+	a -> map(string) -> join(" ") -> stderr
+	"\n" -> stderr
+	return len(a) == 0 ? "" : a[len(a) - 1]
+}

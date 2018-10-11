@@ -1,0 +1,94 @@
+use (
+	. "list"
+	. "strings"
+	. "errors"
+	. "log"
+	. "compile"
+	. "parse"
+)
+
+let builtin {
+	len: "Len"
+	isError:  "IsError"
+	keys:     "Keys"
+	format:   "Format"
+	stdin:    "Stdin",
+	stdout:   "Stdout"
+	stderr:   "Stderr"
+	string:   "String"
+	parse:    "Parse"
+	has:      "Has"
+	isBool:   "IsBool"
+	isInt:    "IsInt"
+	isFloat:  "IsFloat"
+	isString: "IsString"
+	error:    "Error"
+	open:     "Open"
+	close:    "Close"
+	args:     "Args"
+}
+
+let builtins builtin
+-> keys
+-> sort(fn (left, right) left < right)
+-> map(fn (k) formats("var _%s interface{} = mml.%s", k, builtin[k]))
+-> join(";\n")
+
+fn compileModuleCode(moduleCode) {
+	stdout(formats("modulePath = \"%s\"", moduleCode.path))
+
+	stdout("
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	")
+
+	moduleCode
+	-> compile
+	-> passErr(stdout)
+	-> onlyErr(log)
+
+	stdout("
+			return exports
+		})
+	")
+}
+
+fn compileModules(m) {
+	for mi in m {
+		compileModuleCode(mi)
+	}
+}
+
+stdout(
+	"// Generated code
+
+	package main
+
+	import \"github.com/aryszka/mml\"
+")
+
+stdout(builtins)
+
+stdout("
+	func init() {
+		var modulePath string
+")
+
+let modules parseModules(args[1])
+compileModules(modules)
+
+stdout("
+	}
+
+	func main() {
+		mml.Modules.Use(\""
+)
+
+stdout(args[1])
+
+stdout("\")
+	}
+")

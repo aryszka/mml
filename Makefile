@@ -15,11 +15,11 @@ deps:
 
 recompile:
 	mkdir -p build
-	mml compile.mml > build/compile.1.go
-	go run build/compile.1.go compile.mml > build/compile.2.go
-	go run build/compile.2.go compile.mml > build/compile.3.go
-	rm build/compile.1.go build/compile.2.go
-	mv build/compile.3.go cmd/mml/main.go
+	mml main.mml > build/main.1.go
+	go run build/main.1.go main.mml > build/main.2.go
+	go run build/main.2.go main.mml > build/main.3.go
+	rm build/main.1.go build/main.2.go
+	mv build/main.3.go cmd/mml/main.go
 	go install ./cmd/mml
 
 check-syntax: syntax.treerack

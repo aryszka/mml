@@ -1,71 +1,16 @@
-use . "list"
+use (
+	. "list"
+	. "errors"
+	. "strings"
+	. "ints"
+	. "log"
+	. "statements"
+)
 
 fn (
-	not(x)                   !x
-	yes(x)                   x
-	ifErr(mod, f)            fn~ (a) mod(isError(a)) ? f(a) : a
-	passErr(f)               ifErr(not, f)
-	onlyErr(f)               ifErr(yes, f)
-	anyErr(l)                fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
-	join(j, s)               len(s) < 2 ? firstOr("", s) : s[0] + j + join(j, s[1:])
-	joins(j, ...s)           join(j, s)
-	joinTwo(j, left, right)  joins(j, left, right)
-	formats(f, ...a)         format(f, a)
-	formatOne(f, a)          formats(f, a)
 	passErrFormat(fmt, ...p) p -> anyErr -> passErr(format(fmt))
 	notEmpty(l)              l -> filter(fn (s) s != "")
 )
-
-fn sort(less, l) len(l) == 0 ? [] : [
-	(l[1:] -> filter(fn (i) !less(l[0], i)) -> sort(less))...
-	l[0]
-	(l[1:] -> filter(less(l[0])) -> sort(less))...
-]
-
-fn counter () {
-	let ~ c -1
-	return fn~ () {
-		c = c + 1
-		return c
-	}
-}
-
-let enum counter
-
-// TODO: should be a builtin fake function
-fn~ log(...a) {
-	a -> map(string) -> join(" ") -> stderr
-	"\n" -> stderr
-	return len(a) == 0 ? "" : a[len(a) - 1]
-}
-
-fn escape(s) {
-	if s == "" {
-		return ""
-	}
-
-	let ~ first s[0]
-	switch first {
-	case "\b":
-		first = "\\b"
-	case "\f":
-		first = "\\f"
-	case "\n":
-		first = "\\n"
-	case "\r":
-		first = "\\r"
-	case "\t":
-		first = "\\t"
-	case "\v":
-		first = "\\v"
-	case "\"":
-		first = "\\\""
-	case "\\":
-		first = "\\\\"
-	}
-
-	return first + escape(s[1:])
-}
 
 let (
 	compileInt   string
@@ -73,13 +18,7 @@ let (
 	compileBool  string
 )
 
-fn getFlattenedStatements(itemType, listType, listProp, statements) {
-	fn toList(s) s.type == itemType ? [s] : s[listProp]
-	return statements
-	-> filter(fn (s) has("type", s) && contains(s.type, [itemType, listType]))
-	-> fold(fn (s, result) [result..., toList(s)...], [])
-}
-
+// TODO: take unique
 fn getScope(...statements) {
 	let (
 		defs getFlattenedStatements("definition", "definition-list", "definitions", statements)
@@ -88,9 +27,11 @@ fn getScope(...statements) {
 		-> filter(has("exportNames"))
 		-> map(fn (u) u.exportNames)
 		-> fold(fn (current, result) [result..., current...], [])
+		notInlineUses uses
+		-> filter(fn (u) u.capture != ".")
 	)
 
-	return [map(fn (d) d.symbol, defs)..., map(fn (u) u.path, uses)..., inlineUses...]
+	return [map(fn (d) d.symbol, defs)..., map(fn (u) u.path, notInlineUses)..., inlineUses...]
 }
 
 // TODO:
@@ -561,7 +502,7 @@ fn compileUseList(u) mapCompileJoin("\n;", u.uses)
 
 // TODO: trim comments from everywhere
 
-fn compile(code) {
+export fn compile(code) {
 	switch {
 	case isInt(code):
 		return compileInt(code)
@@ -644,175 +585,3 @@ fn compile(code) {
 		return error(formats("unsupported code: %v", code))
 	}
 }
-
-let builtin {
-	len: "Len"
-	isError:  "IsError"
-	keys:     "Keys"
-	format:   "Format"
-	stdin:    "Stdin",
-	stdout:   "Stdout"
-	stderr:   "Stderr"
-	string:   "String"
-	parse:    "Parse"
-	has:      "Has"
-	isBool:   "IsBool"
-	isInt:    "IsInt"
-	isFloat:  "IsFloat"
-	isString: "IsString"
-	error:    "Error"
-	open:     "Open"
-	close:    "Close"
-	args:     "Args"
-}
-
-let builtins builtin
--> keys
--> sort(fn (left, right) left < right)
--> map(fn (k) formats("var _%s interface{} = mml.%s", k, builtin[k]))
--> join(";\n")
-
-fn parseFile(path) {
-	let in open(path)
-	if isError(in) {
-		return in
-	}
-
-	defer close(in)
-	return in(-1) -> passErr(parse) -> onlyErr(log)
-}
-
-// TODO: can there be an export below the top level?
-
-fn findExportNames(statements)
-	statements
-	-> getFlattenedStatements("definition", "definition-list", "definitions")
-	-> filter(fn (d) d.exported)
-	-> map(fn (d) d.symbol)
-
-fn parseModules(path) {
-	// TODO:
-	// - errors
-	// - this only considers the top level uses, while it is allowed to have lower level uses
-
-	let (
-		code parseFile(path)
-		uses getFlattenedStatements("use", "use-list", "uses", code.statements)
-	)
-
-	let usesModules uses
-	-> map(fn (u) u.path + ".mml")
-	-> map(parseModules)
-	-> fold(fn (m, all) [all..., m...], [])
-	-> map(fn (m) {
-		type: m.type
-		path: m.path
-		statements: m.statements
-		exportNames: findExportNames(m.statements)
-	})
-
-	let statements code.statements
-	-> map(fn (s) {
-		if !has("type", s) || s.type != "use" && s.type != "use-list" {
-			return s
-		}
-
-		if s.type == "use" {
-			let m filter(fn (m) m.path == s.path, usesModules)
-			if len(m) == 0 {
-				return s
-			}
-
-			return {
-				type: s.type
-				path: s.path
-				capture: s.capture
-				exportNames: m[0].exportNames
-			}
-		}
-
-		return {
-			type: s.type
-			uses: map(fn (u) {
-				let m filter(fn (m) m.path == u.path + ".mml", usesModules)
-				if len(m) == 0 {
-					return u
-				}
-
-				return {
-					type: u.type
-					path: u.path
-					capture: u.capture
-					exportNames: m[0].exportNames
-				}
-			}, s.uses)
-		}
-	})
-
-	let pimpedCode {
-		type: code.type
-		path: path
-		statements: statements
-	}
-
-	return [pimpedCode, usesModules...]
-}
-
-fn compileModuleCode(moduleCode) {
-	stdout(formats("modulePath = \"%s\"", moduleCode.path))
-
-	stdout("
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
-
-			var c interface{}
-			mml.Nop(c)
-	")
-
-	moduleCode
-	-> compile
-	-> passErr(stdout)
-	-> onlyErr(log)
-
-	stdout("
-			return exports
-		})
-	")
-}
-
-fn compileModules(m) {
-	for mi in m {
-		compileModuleCode(mi)
-	}
-}
-
-stdout(
-	"// Generated code
-
-	package main
-
-	import \"github.com/aryszka/mml\"
-")
-
-stdout(builtins)
-
-stdout("
-	func init() {
-		var modulePath string
-")
-
-let modules parseModules(args[1])
-compileModules(modules)
-
-stdout("
-	}
-
-	func main() {
-		mml.Modules.Use(\""
-)
-
-stdout(args[1])
-
-stdout("\")
-	}
-")
