@@ -64,36 +64,33 @@ range-from  = expression;
 range-to    = expression;
 range:alias = range-from? nl* ":" nl* range-to?;
 
-symbol-indexer           = primary-expression nl* "." nl* symbol;
+symbol-index     = "." nl* symbol;
+expression-index = "[" nl* expression nl* "]";
+range-index      = "[" nl* range nl* "]";
+index:alias      = symbol-index | expression-index | range-index;
+index-list:alias = index (nl* index)?;
+indexer          = primary-expression nl* index-list;
 
 function-application = primary-expression "(" list-sep? expression-list? list-sep? ")";
 
 expression-group:alias   = "(" nl* expression nl* ")";
-
-// TODO:
-// - bug: to support a.b[c]
-subprimary-expression:alias = int
-                            | float
-                            | string
-                            | bool
-                            | receive
-                            | symbol
-                            | list
-                            | mutable-list
-                            | struct
-                            | mutable-struct
-                            | function
-                            | effect
-                            | symbol-indexer
-                            | function-application
-                            | expression-group;
-
-simple-indexer:alias     = subprimary-expression "[" nl* expression nl* "]";
-range-indexer:alias      = subprimary-expression "[" nl* range nl* "]";
-expression-indexer       = simple-indexer | range-indexer;
-
-primary-expression:alias = subprimary-expression
-                         | expression-indexer;
+primary-expression:alias = int
+                         | float
+                         | string
+                         | bool
+                         | receive
+                         | symbol
+                         | list
+                         | mutable-list
+                         | struct
+                         | mutable-struct
+                         | function
+                         | effect
+                         // | expression-indexer
+                         // | symbol-indexer
+		       | indexer
+                         | function-application
+                         | expression-group;
 
 binary-not = "^";
 binary-and = "&";

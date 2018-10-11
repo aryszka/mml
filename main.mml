@@ -26,6 +26,8 @@ let builtin {
 	open:     "Open"
 	close:    "Close"
 	args:     "Args"
+	parseAST: "ParseAST"
+	parseInt: "ParseInt"
 }
 
 let builtins builtin

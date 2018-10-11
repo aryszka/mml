@@ -1,11 +1,11 @@
 SOURCES = $(shell find . -name "*.go") syntax.treerack
 
-.PHONY: boot
+.PHONY: recompile
 
-build:
+build: $(SOURCES)
 	go build ./...
 
-install:
+install: $(SOURCES)
 	go install ./...
 
 deps:

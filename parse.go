@@ -220,31 +220,43 @@ func parseRange(ast *parser.Node) rangeExpression {
 	}
 }
 
-func parseExpressionIndexer(ast *parser.Node) indexer {
-	e := parse(ast.Nodes[0])
+func parseSymbolIndex(ast *parser.Node) string {
+	return parse(ast.Nodes[0]).(symbol).name
+}
 
-	if len(ast.Nodes) == 1 {
-		return indexer{expression: e, index: rangeExpression{}}
+func parseExpressionIndex(ast *parser.Node) interface{} {
+	return parse(ast.Nodes[0])
+}
+
+func parseRangeIndex(ast *parser.Node) rangeExpression {
+	if len(ast.Nodes) == 0 {
+		return rangeExpression{}
 	}
 
-	i := parse(ast.Nodes[1])
+	r := parse(ast.Nodes[0]).(rangeExpression)
+	if len(ast.Nodes) > 1 {
+		r.to = parse(ast.Nodes[1]).(rangeExpression).to
+	}
 
-	switch it := i.(type) {
-	case rangeExpression:
-		if len(ast.Nodes) > 2 {
-			it.to = parse(ast.Nodes[2]).(rangeExpression).to
-		}
+	return r
+}
 
-		return indexer{expression: e, index: it}
-	default:
-		return indexer{expression: e, index: i}
+func parseIndexerNodes(n []*parser.Node) indexer {
+	var e interface{}
+	if len(n) == 2 {
+		e = parse(n[0])
+	} else {
+		e = parseIndexerNodes(n[:len(n)-1])
+	}
+
+	return indexer{
+		expression: e,
+		index:      parse(n[len(n)-1]),
 	}
 }
 
-func parseSymbolIndexer(ast *parser.Node) indexer {
-	e := parse(ast.Nodes[0])
-	k := parse(ast.Nodes[1]).(symbol).name
-	return indexer{expression: e, index: k}
+func parseIndexer(ast *parser.Node) indexer {
+	return parseIndexerNodes(ast.Nodes)
 }
 
 func parseFunctionApplication(ast *parser.Node) functionApplication {
@@ -809,10 +821,14 @@ func parse(ast *parser.Node) interface{} {
 		return parseEffect(ast)
 	case "range-from", "range-to":
 		return parseRange(ast)
-	case "expression-indexer":
-		return parseExpressionIndexer(ast)
-	case "symbol-indexer":
-		return parseSymbolIndexer(ast)
+	case "symbol-index":
+		return parseSymbolIndex(ast)
+	case "expression-index":
+		return parseExpressionIndex(ast)
+	case "range-index":
+		return parseRangeIndex(ast)
+	case "indexer":
+		return parseIndexer(ast)
 	case "function-application":
 		return parseFunctionApplication(ast)
 	case "unary-expression":
@@ -872,6 +888,7 @@ func parse(ast *parser.Node) interface{} {
 	case "use":
 		return parseUse(ast)
 	default:
+		println(ast.Name)
 		panic(errUnexpectedParserResult)
 	}
 }

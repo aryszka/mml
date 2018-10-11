@@ -35,3 +35,43 @@ export fn escape(s) {
 
 	return first + escape(s[1:])
 }
+
+export fn unescape(s) {
+	let (
+		~ esc false
+		~ r   []
+	)
+
+	for i in 0:len(s) {
+		let c s[0]
+		if esc {
+			switch c {
+			case "b":
+				c = "\b"
+			case "f":
+				c = "\f"
+			case "n":
+				c = "\n"
+			case "r":
+				c = "\r"
+			case "t":
+				c = "\t"
+			case "v":
+				c = "\v"
+			}
+
+			r = [r..., c]
+			esc = false
+			continue
+		}
+
+		if c == "\\" {
+			esc = true
+			continue
+		}
+
+		r = [r..., c]
+	}
+
+	return join("", r)
+}

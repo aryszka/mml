@@ -1,12 +1,17 @@
 package mml
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
+
+	"github.com/aryszka/mml/parser"
 )
 
 type Function struct {
@@ -419,6 +424,84 @@ var Parse = &Function{
 		}
 
 		return codeCompiled(code)
+	},
+	FixedArgs: 1,
+}
+
+var ParseInt = &Function{
+	F: func(a []interface{}) interface{} {
+		s := a[0].(string)
+
+		var base int
+		switch {
+		case strings.HasPrefix(s, "0x"):
+			base = 16
+			s = s[2:]
+		case strings.HasPrefix(s, "0"):
+			if s == "0" {
+				return 0
+			}
+
+			base = 8
+			s = s[1:]
+		default:
+			base = 10
+		}
+
+		i, err := strconv.ParseInt(s, base, 64)
+		if err != nil {
+			return err
+		}
+
+		return int(i)
+	},
+	FixedArgs: 1,
+}
+
+var ParseFloat = &Function{
+	F: func(a []interface{}) interface{} {
+		v, err := strconv.ParseFloat(a[0].(string), 64)
+		if err != nil {
+			return err
+		}
+
+		return v
+	},
+	FixedArgs: 1,
+}
+
+func convertAST(goAST *parser.Node) map[string]interface{} {
+	ast := make(map[string]interface{})
+	ast["name"] = goAST.Name
+	ast["text"] = goAST.Text()
+
+	var nodes []interface{}
+	for i := range goAST.Nodes {
+		nodes = append(nodes, convertAST(goAST.Nodes[i]))
+	}
+
+	ast["nodes"] = nodes
+	return ast
+}
+
+func parseAST(doc string) (ast map[string]interface{}, err error) {
+	var goAST *parser.Node
+	goAST, err = parser.Parse(bytes.NewBufferString(doc))
+	if err != nil {
+		return
+	}
+
+	return convertAST(goAST), nil
+}
+
+var ParseAST = &Function{
+	F: func(a []interface{}) interface{} {
+		ast, err := parseAST(a[0].(string))
+		if err != nil {
+			return err
+		}
+
+		return ast
 	},
 	FixedArgs: 1,
 }

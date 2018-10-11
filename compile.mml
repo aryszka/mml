@@ -5,6 +5,7 @@ use (
 	. "ints"
 	. "log"
 	. "statements"
+	. "code"
 )
 
 fn (
@@ -229,14 +230,6 @@ fn compileApplication(a) passErrFormat(
 	compileList({values: a.args})
 )
 
-let (
-	unaryOp    enum()
-	binaryNot  unaryOp()
-	plus       unaryOp()
-	minus      unaryOp()
-	logicalNot unaryOp()
-)
-
 fn compileUnary(u) {
 	let arg compile(u.arg)
 	if isError(arg) {
@@ -254,29 +247,6 @@ fn compileUnary(u) {
 		return formats("mml.UnaryOp(%d, %s)", u.op, arg)
 	}
 }
-
-let (
-	binaryOp    enum()
-	binaryAnd   binaryOp()
-	binaryOr    binaryOp()
-	xor         binaryOp()
-	andNot      binaryOp()
-	lshift      binaryOp()
-	rshift      binaryOp()
-	mul         binaryOp()
-	div         binaryOp()
-	mod         binaryOp()
-	add         binaryOp()
-	sub         binaryOp()
-	eq          binaryOp()
-	notEq       binaryOp()
-	less        binaryOp()
-	lessOrEq    binaryOp()
-	greater     binaryOp()
-	greaterOrEq binaryOp()
-	logicalAnd  binaryOp()
-	logicalOr   binaryOp()
-)
 
 fn compileBinary(b) {
 	if b.op != logicalAnd && b.op != logicalOr {
@@ -437,12 +407,6 @@ fn compileDefinition(d) d.exported ?
 		d.symbol
 		compile(d.expression)
 	)
-
-let (
-	controlStatement enum()
-	breakControl     controlStatement()
-	continueControl  controlStatement()
-)
 
 fn compileStatements(s) {
 	let scope getScope(s...)
