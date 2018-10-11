@@ -13,13 +13,12 @@ deps:
 	make gen-parser
 	go get ./...
 
-boot:
-	go install ./cmd/runmml
-	mkdir -p boot
-	runmml compile.mml < compile.mml > boot/compile.go
-	go run boot/compile.go < compile.mml > boot/compile.1.go
-	go run boot/compile.1.go < compile.mml > cmd/mml/main.go
-	rm boot/compile.1.go
+recompile:
+	mkdir -p build
+	mml compile.mml > build/compile.1.go
+	go run build/compile.1.go compile.mml > build/compile.2.go
+	rm build/compile.1.go
+	mv build/compile.2.go cmd/mml/main.go
 	go install ./cmd/mml
 
 check-syntax: syntax.treerack

@@ -37,6 +37,7 @@ func newEnv() *env {
 	v["error"] = makeError(e)
 	v["has"] = makeHas(e)
 	v["keys"] = makeKeys(e)
+	v["args"] = makeArgs(e)
 	return e
 }
 

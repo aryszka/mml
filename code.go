@@ -141,9 +141,9 @@ type loop struct {
 }
 
 type definition struct {
-	mutable    bool
-	symbol     string
-	expression interface{}
+	mutable, exported bool
+	symbol            string
+	expression        interface{}
 }
 
 type definitionList struct {
@@ -190,6 +190,14 @@ type selectStatement struct {
 	cases             []selectCase
 	hasDefault        bool
 	defaultStatements statementList
+}
+
+type use struct {
+	path string
+}
+
+type useList struct {
+	uses []use
 }
 
 type module struct {

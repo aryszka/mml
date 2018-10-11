@@ -177,6 +177,7 @@ func loopCompiled(l loop) map[string]interface{} {
 func definitionCompiled(d definition) map[string]interface{} {
 	return toCompiled("definition",
 		"mutable", d.mutable,
+		"exported", d.exported,
 		"symbol", d.symbol,
 		"expression", codeCompiled(d.expression),
 	)
@@ -256,6 +257,25 @@ func moduleCompiled(m module) map[string]interface{} {
 	return toCompiled("module", "statements", mapCompiled(m.statements))
 }
 
+func useCompiled(u use) map[string]interface{} {
+	return toCompiled("use", "path", codeCompiled(u.path))
+}
+
+func mapUsesCompiled(u []use) []interface{} {
+	var i []interface{}
+	for _, ui := range u {
+		i = append(i, ui)
+	}
+
+	return mapCompiled(i)
+}
+
+func useListCompiled(u useList) map[string]interface{} {
+	return toCompiled("use-list",
+		"uses", mapUsesCompiled(u.uses),
+	)
+}
+
 func codeCompiled(c interface{}) interface{} {
 	switch ct := c.(type) {
 	case comment:
@@ -332,6 +352,10 @@ func codeCompiled(c interface{}) interface{} {
 		return selectCompiled(ct)
 	case module:
 		return moduleCompiled(ct)
+	case use:
+		return useCompiled(ct)
+	case useList:
+		return useListCompiled(ct)
 	default:
 		panic(errUnsupportedCode)
 	}

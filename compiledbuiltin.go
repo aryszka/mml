@@ -3,14 +3,29 @@ package mml
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"sync"
 )
 
 type Function struct {
 	F         func([]interface{}) interface{}
 	FixedArgs int
 	args      []interface{}
+}
+
+type ModuleContext struct {
+	lock         sync.Mutex
+	moduleLocks  map[string]*sync.Mutex
+	initializers map[string]func() map[string]interface{}
+	cache        map[string]map[string]interface{}
+}
+
+var Modules = &ModuleContext{
+	moduleLocks:  make(map[string]*sync.Mutex),
+	initializers: make(map[string]func() map[string]interface{}),
+	cache:        make(map[string]map[string]interface{}),
 }
 
 func (f *Function) Bind(a []interface{}) *Function {
@@ -26,6 +41,38 @@ func (f *Function) Call(a []interface{}) interface{} {
 	}
 
 	return f.F(a)
+}
+
+func (c *ModuleContext) Set(path string, i func() map[string]interface{}) {
+	c.initializers[path] = i
+}
+
+func (c *ModuleContext) Use(path string) map[string]interface{} {
+	c.lock.Lock()
+	m, ok := c.cache[path]
+	if ok {
+		c.lock.Unlock()
+		return m
+	}
+
+	init := c.initializers[path]
+	ml, ok := c.moduleLocks[path]
+	if !ok {
+		ml = &sync.Mutex{}
+		c.moduleLocks[path] = ml
+	}
+
+	ml.Lock()
+	c.lock.Unlock()
+
+	m = init()
+
+	c.lock.Lock()
+	c.cache[path] = m
+	c.lock.Unlock()
+	ml.Unlock()
+
+	return m
 }
 
 func Ref(v, k interface{}) interface{} {
@@ -421,4 +468,67 @@ var Error = &Function{
 		return errors.New(a[0].(string))
 	},
 	FixedArgs: 1,
+}
+
+var Open = &Function{
+	F: func(a []interface{}) interface{} {
+		f, err := os.Open(a[0].(string))
+		if err != nil {
+			return err
+		}
+
+		return &Function{
+			F: func(a []interface{}) interface{} {
+				l, ok := a[0].(int)
+				if !ok {
+					f.Close()
+					return nil
+				}
+
+				if l < 0 {
+					b, err := ioutil.ReadAll(f)
+					if err != nil {
+						return err
+					}
+
+					return string(b)
+				}
+
+				b := make([]byte, l)
+				n, err := f.Read(b)
+				if err != nil && err != io.EOF {
+					return err
+				}
+
+				if err == io.EOF {
+					f.Close()
+				}
+
+				return string(b[:n])
+			},
+			FixedArgs: 1,
+		}
+	},
+	FixedArgs: 1,
+}
+
+var (
+	Close *Function
+	Args  interface{}
+)
+
+func init() {
+	Close = &Function{
+		F: func(a []interface{}) interface{} {
+			return a[0].(*Function).F([]interface{}{Close})
+		},
+		FixedArgs: 1,
+	}
+
+	var args []interface{}
+	for i := range os.Args {
+		args = append(args, os.Args[i])
+	}
+
+	Args = args
 }

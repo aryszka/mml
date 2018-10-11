@@ -9,7 +9,7 @@ An alternative frontend for Go and JS.
 Prerequisits: Go installed, $GOPATH set and $GOPATH/bin added to $PATH.
 
 ```
-make deps boot
+make deps install
 ```
 
 Test:

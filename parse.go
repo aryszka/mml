@@ -715,6 +715,41 @@ func parseSelect(ast *parser.Node) selectStatement {
 	return s
 }
 
+func parseExport(ast *parser.Node) definitionList {
+	d := parse(ast.Nodes[0])
+
+	var dl definitionList
+	switch dt := d.(type) {
+	case definition:
+		dl.definitions = append(dl.definitions, dt)
+	case definitionList:
+		dl = dt
+	default:
+		panic(errUnexpectedParserResult)
+	}
+
+	for i := range dl.definitions {
+		dl.definitions[i].exported = true
+	}
+
+	return dl
+}
+
+func parseUseFact(ast *parser.Node) use {
+	var u use
+	u.path = parse(ast.Nodes[0]).(string)
+	return u
+}
+
+func parseUse(ast *parser.Node) useList {
+	var ul useList
+	for i := range ast.Nodes {
+		ul.uses = append(ul.uses, parse(ast.Nodes[i]).(use))
+	}
+
+	return ul
+}
+
 // TODO: block comment
 
 func parse(ast *parser.Node) interface{} {
@@ -813,6 +848,12 @@ func parse(ast *parser.Node) interface{} {
 		return parseReceiveDefinition(ast)
 	case "select":
 		return parseSelect(ast)
+	case "export":
+		return parseExport(ast)
+	case "use-fact":
+		return parseUseFact(ast)
+	case "use":
+		return parseUse(ast)
 	default:
 		panic(errUnexpectedParserResult)
 	}

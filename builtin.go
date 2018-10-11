@@ -315,3 +315,12 @@ func makeKeys(e *env) function {
 		return keys, nil
 	})
 }
+
+func makeArgs(*env) list {
+	var values []interface{}
+	for i := range os.Args {
+		values = append(values, os.Args[i])
+	}
+
+	return list{values: values}
+}
