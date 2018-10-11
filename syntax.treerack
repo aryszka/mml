@@ -64,30 +64,36 @@ range-from  = expression;
 range-to    = expression;
 range:alias = range-from? nl* ":" nl* range-to?;
 
-simple-indexer:alias     = primary-expression "[" nl* expression nl* "]";
-range-indexer:alias      = primary-expression "[" nl* range nl* "]";
-expression-indexer       = simple-indexer | range-indexer;
 symbol-indexer           = primary-expression nl* "." nl* symbol;
 
 function-application = primary-expression "(" list-sep? expression-list? list-sep? ")";
 
 expression-group:alias   = "(" nl* expression nl* ")";
-primary-expression:alias = int
-                         | float
-                         | string
-                         | bool
-                         | receive
-                         | symbol
-                         | list
-                         | mutable-list
-                         | struct
-                         | mutable-struct
-                         | function
-                         | effect
-                         | expression-indexer
-                         | symbol-indexer
-                         | function-application
-                         | expression-group;
+
+// TODO:
+// - bug: to support a.b[c]
+subprimary-expression:alias = int
+                            | float
+                            | string
+                            | bool
+                            | receive
+                            | symbol
+                            | list
+                            | mutable-list
+                            | struct
+                            | mutable-struct
+                            | function
+                            | effect
+                            | symbol-indexer
+                            | function-application
+                            | expression-group;
+
+simple-indexer:alias     = subprimary-expression "[" nl* expression nl* "]";
+range-indexer:alias      = subprimary-expression "[" nl* range nl* "]";
+expression-indexer       = simple-indexer | range-indexer;
+
+primary-expression:alias = subprimary-expression
+                         | expression-indexer;
 
 binary-not = "^";
 binary-and = "&";
