@@ -225,6 +225,17 @@ func TestEval(t *testing.T) {
 				"quux": 5,
 			}},
 		))
+		t.Run("spread-simple", testEvalStatement(
+			`fn () {
+				let a {b: 1, c: 2}
+				return {a..., d: 3}
+			}()`,
+			structure{values: map[string]interface{}{
+				"b": 1,
+				"c": 2,
+				"d": 3,
+			}},
+		))
 	})
 
 	t.Run("mutable struct", func(t *testing.T) {

@@ -127,6 +127,17 @@ func RefRange(v, from, to interface{}) interface{} {
 	}
 }
 
+func SetRef(e, k, v interface{}) {
+	switch et := e.(type) {
+	case []interface{}:
+		et[k.(int)] = v
+	case map[string]interface{}:
+		et[k.(string)] = v
+	default:
+		panic("set-ref: unsupported code")
+	}
+}
+
 func UnaryOp(op int, arg interface{}) interface{} {
 	switch unaryOperator(op) {
 	case binaryNot:

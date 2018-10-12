@@ -25,6 +25,7 @@ fn getScope(...statements) {
 		defs getFlattenedStatements("definition", "definition-list", "definitions", statements)
 		uses getFlattenedStatements("use", "use-list", "uses", statements)
 		inlineUses uses
+		-> filter(fn (u) u.capture == ".")
 		-> filter(has("exportNames"))
 		-> map(fn (u) u.exportNames)
 		-> fold(fn (current, result) [result..., current...], [])
@@ -45,8 +46,6 @@ fn (
 	compileComment(_)     ""
 	compileString(s)      formats("\"%s\"", escape(s))
 	compileSymbol(s)      formats("_%s", s.name)
-	compileEntries(e)     mapCompileJoin(",", e)
-	compileStructure(s)   passErrFormat("map[string]interface{}{%s}", compileEntries(s.entries))
 	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
 	compileSpread(s)      passErrFormat("%s.([]interface{})...", compile(s.value))
 	compileCase(c)        passErrFormat("case %s:\n%s", compile(c.expression), compile(c.body))
@@ -55,7 +54,6 @@ fn (
 	compileGo(g)          passErrFormat("go %s", compile(g.application))
 	compileDefer(d)       passErrFormat("defer %s", compile(d.application))
 	compileDefinitions(l) mapCompileJoin(";\n", l.definitions)
-	compileAssign(a)      passErrFormat("%s = %s", compile(a.capture), compile(a.value))
 	compileAssigns(l)     mapCompileJoin(";\n", l.assignments)
 	compileRet(r)         passErrFormat("return %s", compile(r.value))
 	compileControl(c)     c.control == breakControl ? "break" : "continue"
@@ -119,6 +117,31 @@ fn compileEntry(e) {
 		compile(e.key)
 	let value compile(e.value)
 	return passErrFormat("\"%s\":%s", key, value)
+}
+
+fn compileStruct(s) {
+	// TODO: errors
+	let values map(fn (e) {
+		if e.type == "spread" {
+			let var formats("sp := %s.(map[string]interface{});", compile(e.value))
+			let assign "for k, v := range sp { s[k] = v };"
+			return joins("\n", var, assign)
+		}
+
+		let v compile(e.value)
+		if isString(e.key) {
+			return formats("s[\"%s\"] = %s;", e.key, v)
+		} else if e.key.type == "symbol" {
+			return formats("s[\"%s\"] = %s;", e.key.name, v)
+		} else {
+			return formats("s[%s] = %s;", compile(e.key), v)
+		}
+	}, s.entries)
+
+	return formats(
+		"func() interface{} { s := make(map[string]interface{}); %s; return s }()"
+		join("", values)
+	)
 }
 
 fn compileParamList(params, collectParam) {
@@ -408,6 +431,23 @@ fn compileDefinition(d) d.exported ?
 		compile(d.expression)
 	)
 
+fn compileAssign(a) {
+	if a.capture.type == "symbol" {
+		return passErrFormat(
+			"%s = %s"
+			compile(a.capture)
+			compile(a.value)
+		)
+	}
+
+	return passErrFormat(
+		"mml.SetRef(%s, %s, %s)"
+		compile(a.capture.expression)
+		compile(a.capture.index)
+		compile(a.value)
+	)
+}
+
 fn compileStatements(s) {
 	let scope getScope(s...)
 	let scopeDefs scope
@@ -490,7 +530,7 @@ export fn compile(code) {
 	case "entry":
 		return compileEntry(code)
 	case "structure":
-		return compileStructure(code)
+		return compileStruct(code)
 	case "function":
 		return compileFunction(code)
 	case "range-expression":
