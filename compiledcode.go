@@ -39,7 +39,7 @@ func entryCompiled(e entry) map[string]interface{} {
 }
 
 func structureCompiled(s structure) map[string]interface{} {
-	return toCompiled("structure", "mutable", s.mutable, "entries", mapCompiled(s.entries))
+	return toCompiled("struct", "mutable", s.mutable, "entries", mapCompiled(s.entries))
 }
 
 func retCompiled(r ret) map[string]interface{} {

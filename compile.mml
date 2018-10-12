@@ -529,7 +529,7 @@ export fn compile(code) {
 		return compileList(code)
 	case "entry":
 		return compileEntry(code)
-	case "structure":
+	case "struct":
 		return compileStruct(code)
 	case "function":
 		return compileFunction(code)

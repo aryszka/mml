@@ -91,7 +91,7 @@ func Ref(v, k interface{}) interface{} {
 	default:
 		// TMP:
 		if err, ok := v.(error); ok {
-			println(err.Error())
+			println("ref failed", err.Error())
 		}
 
 		panic("ref: unsupported code")
@@ -340,6 +340,7 @@ var IsError = &Function{
 
 var Keys = &Function{
 	F: func(a []interface{}) interface{} {
+		println("in the keys")
 		s, ok := a[0].(map[string]interface{})
 		if !ok {
 			panic("keys: unsupported code")

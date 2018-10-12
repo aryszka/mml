@@ -7,26 +7,16 @@ use (
 	. "strings"
 )
 
-fn parseFile(path) {
-	let in open(path)
-	if isError(in) {
-		return in
-	}
-
-	defer close(in)
-	return in(-1) -> passErr(parse) -> onlyErr(log)
-}
-
 fn parseString(ast) {
 	return unescape(ast.text[1:len(ast.text) - 1])
 }
 
 fn parseSymbol(ast) {
-	switch ast.name {
+	switch ast.text {
 	case "break":
-		return breakControl
+		return {type: "control-statement", control: breakControl}
 	case "continue":
-		return continueControl
+		return {type: "control-statement", control: continueControl}
 	// TODO: all the keywords
 	default:
 		return {type: "symbol", name: ast.text}
@@ -80,7 +70,7 @@ fn parseReturn(ast) {
 }
 
 fn parseStatementList(ast) {
-	return {type: "statement-list", statements: map(ast.nodes, parse)}
+	return {type: "statement-list", statements: map(parse, ast.nodes)}
 }
 
 fn parseFunctionFact(nodes) {
@@ -95,7 +85,7 @@ fn parseFunctionFact(nodes) {
 	return {
 		type: "function"
 		params: fixedParams -> map(parse) -> map(fn (p) p.name)
-		collectParam: hasCollectParam ? parse(params[last].nodes[0]).name : ""
+		collectParam: hasCollectParam ? parse(params[lastParam].nodes[0]).name : ""
 		statement: parse(nodes[last])
 		effect: false
 	}
@@ -111,13 +101,34 @@ fn parseEffect(ast) {
 
 fn parseRange(ast) {
 	let v = parse(ast.nodes[0])
-	return ast.Name == "range-from" ? {
+	return ast.name == "range-from" ? {
 		type: "range-expression"
 		from: v
 	} : {
 		type: "range-expression"
 		to: v
 	}
+}
+
+fn parseSymbolIndex(ast) {
+	return parse(ast.nodes[0]).name
+}
+
+fn parseExpressionIndex(ast) {
+	return parse(ast.nodes[0])
+}
+
+fn parseRangeIndex(ast) {
+	if len(ast.nodes) == 0 {
+		return {type: "range-expression"}
+	}
+
+	let r parse(ast.nodes[0])
+	if len(ast.nodes) == 1 {
+		return r
+	}
+
+	return {r..., to: parse(ast.nodes[1]).to}
 }
 
 fn parseIndexerNodes(n) {
@@ -134,6 +145,7 @@ fn parseIndexer(ast) {
 
 fn parseFunctionApplication(ast) {
 	return {
+		type: "function-application"
 		function: parse(ast.nodes[0])
 		args: parseExpressionList(ast.nodes[1:])
 	}
@@ -221,6 +233,7 @@ fn parseChaining(ast) {
 		}
 
 		a = {
+			type: "function-application"
 			function: parse(n[0])
 			args: [a]
 		}
@@ -242,6 +255,7 @@ fn parserTernary(ast) {
 fn parseIf(ast) {
 	let cond {
 		type: "cond"
+		ternary: false
 		condition: parse(ast.nodes[0])
 		consequent: parse(ast.nodes[1])
 	}
@@ -286,7 +300,7 @@ fn parseSwitch(ast) {
 					}
 				}
 
-				current = [n]
+				current = [n.nodes[0]]
 				isDefault = false
 			case "default":
 				if len(current) > 0 && !isDefault {
@@ -324,8 +338,9 @@ fn parseSwitch(ast) {
 
 	let lines groupLines()
 	let s {
+		type: "switch-statement"
 		cases: parseCases(lines.cases)
-		defaultStatements: map(parse, lines.defaults)
+		defaultStatements: {type: "statement-list", statements: map(parse, lines.defaults)}
 	}
 
 	return hasExpression ? {s..., expression: parse(expression)} : s
@@ -345,7 +360,7 @@ fn parseRangeOver(ast) {
 
 	fn parseExpression(nodes) {
 		let exp parse(nodes[0])
-		if !has("type", exp) || !exp.type == "range-expression" || !len(nodes) > 1 {
+		if !has("type", exp) || exp.type != "range-expression" || len(nodes) == 1 {
 			return exp
 		}
 
@@ -486,11 +501,11 @@ fn parseReceive(ast) {
 }
 
 fn parseGo(ast) {
-	return {type: "go", application: parse(ast.nodes[1])}
+	return {type: "go", application: parse(ast.nodes[0])}
 }
 
 fn parseDefer(ast) {
-	return {type: "defer", application: parse(ast.nodes[1])}
+	return {type: "defer", application: parse(ast.nodes[0])}
 }
 
 fn parseReceiveDefinition(ast) {
@@ -520,7 +535,7 @@ fn parseSelect(ast) {
 					}
 				}
 
-				current = [n]
+				current = [n.nodes[0]]
 				isDefault = false
 			case "default":
 				if len(current) > 0 && !isDefault {
@@ -559,7 +574,7 @@ fn parseSelect(ast) {
 	let lines groupLines()
 	return {
 		cases: parseCases(lines.cases)
-		defaultStatements: map(parse, lines.defaults)
+		defaultStatements: {type: "statement-list", statements: map(parse, lines.defaults)}
 		hasDefault: lines.hasDefault
 	}
 }
@@ -583,12 +598,12 @@ fn parseUseFact(ast) {
 	switch ast.nodes[0].name {
 	case "use-inline":
 		capture = "."
-		path = parse(ast.Nodes[1])
+		path = parse(ast.nodes[1])
 	case "symbol":
 		capture = parse(ast.nodes[0]).name
-		path = parse(ast.Nodes[1])
+		path = parse(ast.nodes[1])
 	default:
-		path = parse(ast.Nodes[0])
+		path = parse(ast.nodes[0])
 	}
 
 	return {
@@ -605,135 +620,154 @@ fn parseUse(ast) {
 	}
 }
 
-fn parseModule(ast) {;
-	// switch ast.name {
-	// case "line-comment-content":
-	// 	return {type: "comment"}
-	// case "int":
-	// 	return parseInt(ast.text)
-	// case "float":
-	// 	return parseFloat(ast.text)
-	// case "string":
-	// 	return parseString(ast)
-	// case "true":
-	// 	return true
-	// case "false":
-	// 	return false
-	// case "symbol":
-	// 	return parseSymbol(ast)
-	// case "spread-expression":
-	// 	return parseSpread(ast)
-	// case "list":
-	// 	return parseList(ast)
-	// case "mutable-list":
-	// 	return parseMutableList(ast)
-	// case "expression-key":
-	// 	return parseExpressionKey(ast)
-	// case "entry":
-	// 	return parseEntry(ast)
-	// case "struct":
-	// 	return parseStruct(ast)
-	// case "mutable-struct":
-	// 	return parseMutableStruct(ast)
-	// case "return":
-	// 	return parseReturn(ast)
-	// case "block":
-	// 	return parseStatementList(ast)
-	// case "function":
-	// 	return parseFunction(ast)
-	// case "effect":
-	// 	return parseEffect(ast)
-	// case "range-from":
-	// 	return parseRange(ast)
-	// case "range-to":
-	// 	return parseRange(ast)
-	// case "indexer":
-	// 	return parseIndexer(ast)
-	// case "function-application":
-	// 	return parseFunctionApplication(ast)
-	// case "unary-expression":
-	// 	return parseUnaryExpression(ast)
-	// case "binary0":
-	// 	return parseBinaryExpression(ast)
-	// case "binary1":
-	// 	return parseBinaryExpression(ast)
-	// case "binary2":
-	// 	return parseBinaryExpression(ast)
-	// case "binary3":
-	// 	return parseBinaryExpression(ast)
-	// case "binary4":
-	// 	return parseBinaryExpression(ast)
-	// case "chaining":
-	// 	return parseChaining(ast)
-	// case "ternary-expression":
-	// 	return parserTernary(ast)
-	// case "if":
-	// 	return parseIf(ast)
-	// case "switch":
-	// 	return parseSwitch(ast)
-	// case "range-over-expression":
-	// 	return parseRangeOver(ast)
-	// case "loop":
-	// 	return parseLoop(ast)
-	// case "value-capture":
-	// 	return parseValueCapture(ast)
-	// case "mutable-capture":
-	// 	return parseMutableCapture(ast)
-	// case "value-definition":
-	// 	return parseValueDefinition(ast)
-	// case "value-definition-group":
-	// 	return parseDefinitions(ast)
-	// case "mutable-definition-group":
-	// 	return parseMutableDefinitions(ast)
-	// case "function-capture":
-	// 	return parseFunctionCapture(ast)
-	// case "effect-capture":
-	// 	return parseEffectCapture(ast)
-	// case "function-definition":
-	// 	return parseFunctionDefinition(ast)
-	// case "function-definition-group":
-	// 	return parseDefinitions(ast)
-	// case "effect-definition-group":
-	// 	return parseEffectDefinitions(ast)
-	// case "assignment":
-	// 	return parseAssign(ast)
-	// case "send":
-	// 	return parseSend(ast)
-	// case "receive":
-	// 	return parseReceive(ast)
-	// case "go":
-	// 	return parseGo(ast)
-	// case "defer":
-	// 	return parseDefer(ast)
-	// case "receive-definition":
-	// 	return parseReceiveDefinition(ast)
-	// case "select":
-	// 	return parseSelect(ast)
-	// case "export":
-	// 	return parseExport(ast)
-	// case "use-fact":
-	// 	return parseUseFact(ast)
-	// case "use":
-	// 	return parseUse(ast)
-	// default:
-	// 	return error("unexpected parser result")
-	// }
+fn parse(ast) {
+	switch ast.name {
+	case "line-comment-content":
+		return {type: "comment"}
+	case "int":
+		return parseInt(ast.text)
+	case "float":
+		return parseFloat(ast.text)
+	case "string":
+		return parseString(ast)
+	case "true":
+		return true
+	case "false":
+		return false
+	case "symbol":
+		return parseSymbol(ast)
+	case "spread-expression":
+		return parseSpread(ast)
+	case "list":
+		return parseList(ast)
+	case "mutable-list":
+		return parseMutableList(ast)
+	case "expression-key":
+		return parseExpressionKey(ast)
+	case "entry":
+		return parseEntry(ast)
+	case "struct":
+		return parseStruct(ast)
+	case "mutable-struct":
+		return parseMutableStruct(ast)
+	case "return":
+		return parseReturn(ast)
+	case "block":
+		return parseStatementList(ast)
+	case "function":
+		return parseFunction(ast)
+	case "effect":
+		return parseEffect(ast)
+	case "range-from":
+		return parseRange(ast)
+	case "range-to":
+		return parseRange(ast)
+	case "symbol-index":
+		return parseSymbolIndex(ast)
+	case "expression-index":
+		return parseExpressionIndex(ast)
+	case "range-index":
+		return parseRangeIndex(ast)
+	case "indexer":
+		return parseIndexer(ast)
+	case "function-application":
+		return parseFunctionApplication(ast)
+	case "unary-expression":
+		return parseUnaryExpression(ast)
+	case "binary0":
+		return parseBinaryExpression(ast)
+	case "binary1":
+		return parseBinaryExpression(ast)
+	case "binary2":
+		return parseBinaryExpression(ast)
+	case "binary3":
+		return parseBinaryExpression(ast)
+	case "binary4":
+		return parseBinaryExpression(ast)
+	case "chaining":
+		return parseChaining(ast)
+	case "ternary-expression":
+		return parserTernary(ast)
+	case "if":
+		return parseIf(ast)
+	case "switch":
+		return parseSwitch(ast)
+	case "range-over-expression":
+		return parseRangeOver(ast)
+	case "loop":
+		return parseLoop(ast)
+	case "value-capture":
+		return parseValueCapture(ast)
+	case "mutable-capture":
+		return parseMutableCapture(ast)
+	case "value-definition":
+		return parseValueDefinition(ast)
+	case "value-definition-group":
+		return parseDefinitions(ast)
+	case "mutable-definition-group":
+		return parseMutableDefinitions(ast)
+	case "function-capture":
+		return parseFunctionCapture(ast)
+	case "effect-capture":
+		return parseEffectCapture(ast)
+	case "function-definition":
+		return parseFunctionDefinition(ast)
+	case "function-definition-group":
+		return parseDefinitions(ast)
+	case "effect-definition-group":
+		return parseEffectDefinitions(ast)
+	case "assignment":
+		return parseAssign(ast)
+	case "send":
+		return parseSend(ast)
+	case "receive":
+		return parseReceive(ast)
+	case "go":
+		return parseGo(ast)
+	case "defer":
+		return parseDefer(ast)
+	case "receive-definition":
+		return parseReceiveDefinition(ast)
+	case "select":
+		return parseSelect(ast)
+	case "export":
+		return parseExport(ast)
+	case "use-fact":
+		return parseUseFact(ast)
+	case "use":
+		return parseUse(ast)
+	case "mml":
+		return parseStatementList(ast)
+	default:
+		log("unexpected", ast.name)
+		return error("unexpected parser result")
+	}
 }
 
-fn parseFile2(path) {;
-	// let in open(path)
-	// if isError(in) {
-	// 	return in
-	// }
+fn parseFile(path) {
+	let in open(path)
+	if isError(in) {
+		return in
+	}
 
-	// defer close(in)
+	defer close(in)
 
-	// let ast in(-1) -> passErr(parseAST)
-	// if isError(ast) {
-	// 	return ast
-	// }
+	let ast in(-1) -> passErr(parseAST)
+	if isError(ast) {
+		return ast
+	}
 
-	// return parseModule(ast)
+	return parse(ast)
+}
+
+fn parseFile1(path) {
+	let in open(path)
+	if isError(in) {
+		return in
+	}
+
+	defer close(in)
+	return in(-1) -> passErr(parseMML) -> onlyErr(log)
 }
 
 // TODO: can there be an export below the top level?

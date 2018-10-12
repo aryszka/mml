@@ -9,25 +9,26 @@ use (
 
 let builtin {
 	len: "Len"
-	isError:  "IsError"
-	keys:     "Keys"
-	format:   "Format"
-	stdin:    "Stdin",
-	stdout:   "Stdout"
-	stderr:   "Stderr"
-	string:   "String"
-	parse:    "Parse"
-	has:      "Has"
-	isBool:   "IsBool"
-	isInt:    "IsInt"
-	isFloat:  "IsFloat"
-	isString: "IsString"
-	error:    "Error"
-	open:     "Open"
-	close:    "Close"
-	args:     "Args"
-	parseAST: "ParseAST"
-	parseInt: "ParseInt"
+	isError:    "IsError"
+	keys:       "Keys"
+	format:     "Format"
+	stdin:      "Stdin",
+	stdout:     "Stdout"
+	stderr:     "Stderr"
+	string:     "String"
+	parseMML:   "Parse"
+	has:        "Has"
+	isBool:     "IsBool"
+	isInt:      "IsInt"
+	isFloat:    "IsFloat"
+	isString:   "IsString"
+	error:      "Error"
+	open:       "Open"
+	close:      "Close"
+	args:       "Args"
+	parseAST:   "ParseAST"
+	parseInt:   "ParseInt"
+	parseFloat: "ParseInt"
 }
 
 let builtins builtin
@@ -80,6 +81,7 @@ stdout("
 ")
 
 let modules parseModules(args[1])
+log("compiling")
 compileModules(modules)
 
 stdout("

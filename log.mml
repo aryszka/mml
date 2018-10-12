@@ -1,3 +1,4 @@
+// TODO: drop dependencies, otherwise it cannot be used in the used modules
 use (
 	. "list"
 	. "strings"

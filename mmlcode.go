@@ -38,7 +38,7 @@ func entryMML(e entry) structure {
 }
 
 func structureMML(s structure) structure {
-	return toMML("structure", "mutable", s.mutable, "entries", mapMML(s.entries))
+	return toMML("struct", "mutable", s.mutable, "entries", mapMML(s.entries))
 }
 
 func retMML(r ret) structure {
