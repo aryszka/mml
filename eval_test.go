@@ -603,6 +603,18 @@ func TestEval(t *testing.T) {
 			}()`,
 			36,
 		))
+		t.Run("else if, top", testEvalStatement(
+			`fn () {
+				if true {
+					return 42
+				} else if true {
+					return 36
+				} else {
+					return 24
+				}
+			}()`,
+			42,
+		))
 		t.Run("else if, false", testEvalStatement(
 			`fn () {
 				if false {

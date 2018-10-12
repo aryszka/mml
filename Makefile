@@ -18,6 +18,7 @@ recompile:
 	mml main.mml > build/main.1.go
 	go run build/main.1.go main.mml > build/main.2.go
 	go run build/main.2.go main.mml > build/main.3.go
+	diff build/main.2.go build/main.3.go
 	rm build/main.1.go build/main.2.go
 	mv build/main.3.go cmd/mml/main.go
 	go install ./cmd/mml

@@ -42,13 +42,11 @@ fn parseExpressionList(nodes) {
 }
 
 fn parseList(ast) {
-	return {type: "list", values: parseExpressionList(ast.nodes)}
+	return {type: "list", values: parseExpressionList(ast.nodes), mutable: false}
 }
 
 fn parseMutableList(ast) {
-	// return {parseList(ast)..., mutable: true}
-	let l parseList(ast)
-	return {type: l.type, values: l.values, mutable: true}
+	return {parseList(ast)..., mutable: true}
 }
 
 fn parseExpressionKey(ast) {
@@ -67,17 +65,12 @@ fn parseStruct(ast) {
 	return {
 		type: "struct"
 		entries: map(parse, ast.nodes)
+		mutable: false
 	}
 }
 
 fn parseMutableStruct(ast) {
-	// return {parseStruct(ast)..., mutable: true}
-	let s parseStruct(ast)
-	return {
-		type: s.type
-		entries: s.entries
-		mutable: true
-	}
+	return {parseStruct(ast)..., mutable: true}
 }
 
 fn parseReturn(ast) {
@@ -104,6 +97,7 @@ fn parseFunctionFact(nodes) {
 		params: fixedParams -> map(parse) -> map(fn (p) p.name)
 		collectParam: hasCollectParam ? parse(params[last].nodes[0]).name : ""
 		statement: parse(nodes[last])
+		effect: false
 	}
 }
 
@@ -112,15 +106,7 @@ fn parseFunction(ast) {
 }
 
 fn parseEffect(ast) {
-	// return {parseFunction(ast)..., effect: true}
-	let f parseFunction(ast)
-	return {
-		type: f.type
-		params: f.params
-		collectParam: f.collectParam
-		statement: f.statement
-		effect: true
-	}
+	return {parseFunction(ast)..., effect: true}
 }
 
 fn parseRange(ast) {
@@ -254,9 +240,369 @@ fn parserTernary(ast) {
 }
 
 fn parseIf(ast) {
+	let cond {
+		type: "cond"
+		condition: parse(ast.nodes[0])
+		consequent: parse(ast.nodes[1])
+	}
+
+	if len(ast.nodes) == 2 {
+		return cond
+	}
+
+	let alternative len(ast.nodes) == 3 ?
+		parse(ast.nodes[2]) :
+		parse({ast..., nodes: ast.nodes[2:]})
+
+	return {
+		cond...
+		alternative: alternative
+	}
 }
 
 fn parseSwitch(ast) {
+	let (
+		hasExpression ast.nodes[0].name != "case" && ast.nodes[0].name != "default"
+		expression hasExpression ? ast.nodes[0] : {}
+		nodes hasExpression ? ast.nodes[1:] : ast.nodes
+	)
+
+	fn groupLines() {
+		let ~ (
+			isDefault false
+			current []
+			cases []
+			defaults []
+		)
+
+		for n in nodes {
+			switch n.name {
+			case "case":
+				if len(current) > 0 {
+					if isDefault {
+						defaults = current
+					} else {
+						cases = [cases..., current]
+					}
+				}
+
+				current = [n]
+				isDefault = false
+			case "default":
+				if len(current) > 0 && !isDefault {
+					cases = [cases..., current]
+				}
+
+				current = []
+				isDefault = true
+			default:
+				current = [current..., n]
+			}
+		}
+
+		if len(current) > 0 {
+			if isDefault {
+				defaults = current
+			} else {
+				cases = [cases..., current]
+			}
+		}
+
+		return {cases: cases, defaults: defaults}
+	}
+
+	fn parseCases(c) {
+		return map(fn (c) {
+			type: "switch-case"
+			expression: parse(c[0])
+			body: {
+				type: "statement-list"
+				statements: map(parse, c[1:])
+			}
+		}, c)
+	}
+
+	let lines groupLines()
+	let s {
+		cases: parseCases(lines.cases)
+		defaultStatements: map(parse, lines.defaults)
+	}
+
+	return hasExpression ? {s..., expression: parse(expression)} : s
+}
+
+fn parseRangeOver(ast) {
+	if len(ast.nodes) == 0 {
+		return {type: "range-over"}
+	}
+
+	if len(ast.nodes) == 1 && ast.nodes[0].name == "symbol" {
+		return {
+			type: "range-over"
+			symbol: parse(ast.nodes[0]).name
+		}
+	}
+
+	fn parseExpression(nodes) {
+		let exp parse(nodes[0])
+		if !has("type", exp) || !exp.type == "range-expression" || !len(nodes) > 1 {
+			return exp
+		}
+
+		return {
+			exp...
+			to: parse(nodes[1]).to
+		}
+	}
+
+	if ast.nodes[0].name != "symbol" {
+		return {
+			type: "range-over"
+			expression: parseExpression(ast.nodes)
+		}
+	}
+
+	return {
+		type: "range-over"
+		symbol: parse(ast.nodes[0]).name
+		expression: parseExpression(ast.nodes[1:])
+	}
+}
+
+fn parseLoop(ast) {
+	let loop {type: "loop"}
+	if len(ast.nodes) == 1 {
+		return {loop..., body: parseStatementList(ast.nodes[0])}
+	}
+
+	let expression parse(ast.nodes[0])
+	let emptyRange
+		has("type", expression) &&
+		expression.type == "range-over" &&
+		!has("symbol", expression) &&
+		!has("expression", expression)
+	
+	return emptyRange ?
+		{loop..., body: parseStatementList(ast.nodes[1])} :
+		{loop..., expression: expression, body: parseStatementList(ast.nodes[1])}
+}
+
+fn parseValueCapture(ast) {
+	return {
+		type: "definition"
+		symbol:     parse(ast.nodes[0]).name
+		expression: parse(ast.nodes[1])
+		mutable: false
+		exported: false
+	}
+}
+
+fn parseMutableCapture(ast) {
+	return {parseValueCapture(ast)..., mutable: true}
+}
+
+fn parseValueDefinition(ast) {
+	return parse(ast.nodes[0])
+}
+
+fn parseDefinitions(ast) {
+	return {
+		type: "definition-list"
+		definitions: ast.nodes
+			-> map(parse)
+			-> filter(fn (c) !has("type", c) || c.type != "comment")
+	}
+}
+
+fn parseMutableDefinitions(ast) {
+	let dl parseDefinitions(ast)
+	return {
+		dl...
+		definitions: dl.definitions -> map(fn (d) {d..., mutable: true})
+	}
+}
+
+fn parseFunctionCapture(ast) {
+	return {
+		type: "definition"
+		symbol: parse(ast.nodes[0]).name
+		expression: parseFunctionFact(ast.nodes[1:])
+		exported: false
+	}
+}
+
+fn parseEffectCapture(ast) {
+	let f parseFunctionCapture(ast)
+	return {
+		f...
+		expression: {f.expression..., effect: true}
+	}
+}
+
+fn parseFunctionDefinition(ast) {
+	return parse(ast.nodes[0])
+}
+
+fn parseEffectDefinitions(ast) {
+	let dl parseDefinitions(ast)
+	return {
+		dl...
+		definitions: map(fn (d) {d..., effect: true}, dl.definitions)
+	}
+}
+
+fn parseAssignCaptures(nodes) {
+	if len(nodes) == 0 {
+		return []
+	}
+
+	return [
+		{
+			type: "assign"
+			capture: parse(nodes[0])
+			value: parse(nodes[1])
+		}
+		parseAssignCaptures(nodes[2:])...
+	]
+}
+
+fn parseAssign(ast) {
+	return {
+		type: "assign-list"
+		assignments: parseAssignCaptures(ast.nodes)
+	}
+}
+
+fn parseSend(ast) {
+	return {
+		type: "send"
+		channel: parse(ast.nodes[0])
+		value: parse(ast.nodes[1])
+	}
+}
+
+fn parseReceive(ast) {
+	return {type: "receive", channel: parse(ast.nodes[0])}
+}
+
+fn parseGo(ast) {
+	return {type: "go", application: parse(ast.nodes[1])}
+}
+
+fn parseDefer(ast) {
+	return {type: "defer", application: parse(ast.nodes[1])}
+}
+
+fn parseReceiveDefinition(ast) {
+	return parseValueCapture(ast)
+}
+
+fn parseSelect(ast) {
+	let nodes ast.nodes
+
+	fn groupLines() {
+		let ~ (
+			isDefault false
+			hasDefault false
+			current []
+			cases []
+			defaults []
+		)
+
+		for n in nodes {
+			switch n.name {
+			case "case":
+				if len(current) > 0 {
+					if isDefault {
+						defaults = current
+					} else {
+						cases = [cases..., current]
+					}
+				}
+
+				current = [n]
+				isDefault = false
+			case "default":
+				if len(current) > 0 && !isDefault {
+					cases = [cases..., current]
+				}
+
+				current = []
+				isDefault = true
+			default:
+				current = [current..., n]
+			}
+		}
+
+		if len(current) > 0 {
+			if isDefault {
+				defaults = current
+			} else {
+				cases = [cases..., current]
+			}
+		}
+
+		return {cases: cases, defaults: defaults, hasDefault: hasDefault}
+	}
+
+	fn parseCases(c) {
+		return map(fn (c) {
+			type: "select-case"
+			expression: parse(c[0])
+			body: {
+				type: "statement-list"
+				statements: map(parse, c[1:])
+			}
+		}, c)
+	}
+
+	let lines groupLines()
+	return {
+		cases: parseCases(lines.cases)
+		defaultStatements: map(parse, lines.defaults)
+		hasDefault: lines.hasDefault
+	}
+}
+
+fn parseExport(ast) {
+	let d parse(ast.nodes[0])
+	return {
+		type: "definition-list"
+		definitions:
+			(d.type == "definition" ? [d] : d.definitions)
+			-> map(fn (d) {d..., exported: true})
+	}
+}
+
+fn parseUseFact(ast) {
+	let (
+		~ capture ""
+		~ path ""
+	)
+
+	switch ast.nodes[0].name {
+	case "use-inline":
+		capture = "."
+		path = parse(ast.Nodes[1])
+	case "symbol":
+		capture = parse(ast.nodes[0]).name
+		path = parse(ast.Nodes[1])
+	default:
+		path = parse(ast.Nodes[0])
+	}
+
+	return {
+		type: "use"
+		capture: capture
+		path: path
+	}
+}
+
+fn parseUse(ast) {
+	return {
+		type: "use-list"
+		uses: map(parse, ast.nodes)
+	}
 }
 
 fn parseModule(ast) {;

@@ -369,15 +369,15 @@ func parserTernary(ast *parser.Node) cond {
 
 func parseIf(ast *parser.Node) cond {
 	n := ast.Nodes
-	var c *cond
+	var top, c *cond
 	for {
 		if len(n) == 0 {
-			return *c
+			return *top
 		}
 
 		if len(n) == 1 {
 			c.alternative = parse(n[0])
-			return *c
+			return *top
 		}
 
 		cc := cond{
@@ -390,6 +390,10 @@ func parseIf(ast *parser.Node) cond {
 		}
 
 		c = &cc
+		if top == nil {
+			top = c
+		}
+
 		n = n[2:]
 	}
 }
