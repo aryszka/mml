@@ -491,8 +491,12 @@ fn compileUse(u) {
 		-> join(";\n")
 
 		return joins(";", useStatement, assigns)
-	case len(u.capture) == "":
-		return ""
+	case u.capture != "":
+		return formats(
+			"_%s = mml.Modules.Use(\"%s.mml\")"
+			getModuleName(u.path)
+			u.path
+		)
 	default:
 		return formats(
 			"_%s = mml.Modules.Use(\"%s.mml\")"
