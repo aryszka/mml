@@ -5,13 +5,13 @@ SOURCES = $(shell find . -name "*.go") parser.treerack
 build: $(SOURCES)
 	go build ./...
 
-install: $(SOURCES)
-	go install ./...
-
 deps:
 	go get github.com/aryszka/treerack/...
 	make gen-parser
 	go get ./...
+
+boot:
+	go install ./boot/mml
 
 recompile:
 	mkdir -p build

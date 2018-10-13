@@ -36,6 +36,8 @@ var _builtins interface{};
 var _compileModuleCode interface{};
 var _compileModules interface{};
 var _modules interface{};
+var _compile interface{};
+var _parse interface{};
 var _fold interface{};
 var _foldr interface{};
 var _map interface{};
@@ -44,43 +46,27 @@ var _contains interface{};
 var _sort interface{};
 var _join interface{};
 var _joins interface{};
-var _joinTwo interface{};
 var _formats interface{};
-var _formatOne interface{};
-var _escape interface{};
-var _unescape interface{};
-var _ifErr interface{};
-var _not interface{};
-var _yes interface{};
-var _passErr interface{};
-var _onlyErr interface{};
-var _anyErr interface{};
+var _enum interface{};
 var _log interface{};
-var _compile interface{};
-var _parseModules interface{};
-mml.Nop(_builtin, _builtins, _compileModuleCode, _compileModules, _modules, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape, _ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _log, _compile, _parseModules);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"]
-;var __strings = mml.Modules.Use("strings.mml");;_join = __strings["join"];
-_joins = __strings["joins"];
-_joinTwo = __strings["joinTwo"];
-_formats = __strings["formats"];
-_formatOne = __strings["formatOne"];
-_escape = __strings["escape"];
-_unescape = __strings["unescape"]
-;var __errors = mml.Modules.Use("errors.mml");;_ifErr = __errors["ifErr"];
-_not = __errors["not"];
-_yes = __errors["yes"];
-_passErr = __errors["passErr"];
-_onlyErr = __errors["onlyErr"];
-_anyErr = __errors["anyErr"]
-;var __log = mml.Modules.Use("log.mml");;_log = __log["log"]
-;var __compile = mml.Modules.Use("compile.mml");;_compile = __compile["compile"]
-;var __parse = mml.Modules.Use("parse.mml");;_parseModules = __parse["parseModules"];
+var _onlyErr interface{};
+var _passErr interface{};
+mml.Nop(_builtin, _builtins, _compileModuleCode, _compileModules, _modules, _compile, _parse, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+var __lang = mml.Modules.Use("lang.mml");;_fold = __lang["fold"];
+_foldr = __lang["foldr"];
+_map = __lang["map"];
+_filter = __lang["filter"];
+_contains = __lang["contains"];
+_sort = __lang["sort"];
+_join = __lang["join"];
+_joins = __lang["joins"];
+_formats = __lang["formats"];
+_enum = __lang["enum"];
+_log = __lang["log"];
+_onlyErr = __lang["onlyErr"];
+_passErr = __lang["passErr"]
+;_compile = mml.Modules.Use("compile.mml")
+;_parse = mml.Modules.Use("parse.mml");
 _builtin = func() interface{} { s := make(map[string]interface{}); s["len"] = "Len";s["isError"] = "IsError";s["keys"] = "Keys";s["format"] = "Format";s["stdin"] = "Stdin";s["stdout"] = "Stdout";s["stderr"] = "Stderr";s["string"] = "String";s["has"] = "Has";s["isBool"] = "IsBool";s["isInt"] = "IsInt";s["isFloat"] = "IsFloat";s["isString"] = "IsString";s["error"] = "Error";s["open"] = "Open";s["close"] = "Close";s["args"] = "Args";s["parseAST"] = "ParseAST";s["parseInt"] = "ParseInt";s["parseFloat"] = "ParseFloat";; return s }();
 _builtins = _join.(*mml.Function).Call(append([]interface{}{}, ";\n")).(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
@@ -115,7 +101,7 @@ _compileModuleCode = &mml.Function{
 mml.Nop();
 _stdout.(*mml.Function).Call(append([]interface{}{}, _formats.(*mml.Function).Call(append([]interface{}{}, "modulePath = \"%s\"", mml.Ref(_moduleCode, "path")))));
 _stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t\tmml.Modules.Set(modulePath, func() map[string]interface{} {\n\t\t\texports := make(map[string]interface{})\n\n\t\t\tvar c interface{}\n\t\t\tmml.Nop(c)\n\t"));
-_onlyErr.(*mml.Function).Call(append([]interface{}{}, _log)).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _stdout)).(*mml.Function).Call(append([]interface{}{}, _compile.(*mml.Function).Call(append([]interface{}{}, _moduleCode))))));
+_onlyErr.(*mml.Function).Call(append([]interface{}{}, _log)).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _stdout)).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_compile, "compile").(*mml.Function).Call(append([]interface{}{}, _moduleCode))))));
 _stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t\t\treturn exports\n\t\t})\n\t"));
 				return nil
 			},
@@ -142,11 +128,458 @@ _compileModuleCode.(*mml.Function).Call(append([]interface{}{}, _mi))
 _stdout.(*mml.Function).Call(append([]interface{}{}, "// Generated code\n\n\tpackage main\n\n\timport \"github.com/aryszka/mml\"\n"));
 _stdout.(*mml.Function).Call(append([]interface{}{}, _builtins));
 _stdout.(*mml.Function).Call(append([]interface{}{}, "\n\tfunc init() {\n\t\tvar modulePath string\n"));
-_modules = _parseModules.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)));
+_modules = mml.Ref(_parse, "parseModules").(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)));
 _compileModules.(*mml.Function).Call(append([]interface{}{}, _modules));
 _stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t}\n\n\tfunc main() {\n\t\tmml.Modules.Use(\""));
 _stdout.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)));
 _stdout.(*mml.Function).Call(append([]interface{}{}, "\")\n\t}\n"))
+			return exports
+		})
+	modulePath = "lang.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
+var _enum interface{};
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+var _logger interface{};
+var _list interface{};
+var _strings interface{};
+var _ints interface{};
+var _errors interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _logger, _list, _strings, _ints, _errors);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml")
+;_ints = mml.Modules.Use("ints.mml")
+;_logger = mml.Modules.Use("log.mml")
+;_errors = mml.Modules.Use("errors.mml");
+_fold = mml.Ref(_list, "fold"); exports["fold"] = _fold;
+_foldr = mml.Ref(_list, "foldr"); exports["foldr"] = _foldr;
+_map = mml.Ref(_list, "map"); exports["map"] = _map;
+_filter = mml.Ref(_list, "filter"); exports["filter"] = _filter;
+_contains = mml.Ref(_list, "contains"); exports["contains"] = _contains;
+_sort = mml.Ref(_list, "sort"); exports["sort"] = _sort;
+_join = mml.Ref(_strings, "join"); exports["join"] = _join;
+_joins = mml.Ref(_strings, "joins"); exports["joins"] = _joins;
+_formats = mml.Ref(_strings, "formats"); exports["formats"] = _formats;
+_enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
+_log = mml.Ref(_logger, "log"); exports["log"] = _log;
+_onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
+_passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "strings.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _firstOr interface{};
+var _join interface{};
+var _joins interface{};
+var _joinTwo interface{};
+var _formats interface{};
+var _formatOne interface{};
+var _escape interface{};
+var _unescape interface{};
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
+			return exports
+		})
+	modulePath = "ints.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _counter interface{};
+var _enum interface{};
+mml.Nop(_counter, _enum);
+_counter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				;
+				;
+				mml.Nop();
+				var _c interface{};
+mml.Nop(_c);
+_c = mml.UnaryOp(2, 1);
+return &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				;
+				;
+				mml.Nop();
+				;
+mml.Nop();
+_c = mml.BinaryOp(9, _c, 1);
+return _c;
+				return nil
+			},
+			FixedArgs: 0,
+		};
+				return nil
+			},
+			FixedArgs: 0,
+		}; exports["counter"] = _counter;
+_enum = _counter; exports["enum"] = _enum
+			return exports
+		})
+	modulePath = "log.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _log interface{};
+var _list interface{};
+var _strings interface{};
+mml.Nop(_log, _list, _strings);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml");
+_log = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0:];
+				;
+				mml.Nop(_a);
+				;
+mml.Nop();
+_stderr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
+_stderr.(*mml.Function).Call(append([]interface{}{}, "\n"));
+return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 0); if c.(bool) { return "" } else { return mml.Ref(_a, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 1)) } }();
+				return nil
+			},
+			FixedArgs: 0,
+		}; exports["log"] = _log
 			return exports
 		})
 	modulePath = "list.mml"
@@ -489,22 +922,12 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 	var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
-var _passErr interface{};
-var _onlyErr interface{};
-var _anyErr interface{};
-var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-mml.Nop(_ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _fold, _foldr, _map, _filter, _contains, _sort);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"];
+var _pass interface{};
+var _only interface{};
+var _any interface{};
+var _list interface{};
+mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list);
+_list = mml.Modules.Use("list.mml");
 _ifErr = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -526,7 +949,7 @@ var _f = a[1];
 		}
 			},
 			FixedArgs: 2,
-		}; exports["ifErr"] = _ifErr;
+		};
 _not = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -537,7 +960,7 @@ _not = &mml.Function{
 				return !_x.(bool)
 			},
 			FixedArgs: 1,
-		}; exports["not"] = _not;
+		};
 _yes = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -548,8 +971,8 @@ _yes = &mml.Function{
 				return _x
 			},
 			FixedArgs: 1,
-		}; exports["yes"] = _yes;
-_passErr = &mml.Function{
+		};
+_pass = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -559,8 +982,8 @@ _passErr = &mml.Function{
 				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
 			},
 			FixedArgs: 1,
-		}; exports["passErr"] = _passErr;
-_onlyErr = &mml.Function{
+		}; exports["pass"] = _pass;
+_only = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -570,15 +993,15 @@ _onlyErr = &mml.Function{
 				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
 			},
 			FixedArgs: 1,
-		}; exports["onlyErr"] = _onlyErr;
-_anyErr = &mml.Function{
+		}; exports["only"] = _only;
+_any = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
 				var _l = a[0];
 				;
 				mml.Nop(_l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+				return mml.Ref(_list, "fold").(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -592,7 +1015,7 @@ var _r = a[1];
 		}, []interface{}{}, _l))
 			},
 			FixedArgs: 1,
-		}; exports["anyErr"] = _anyErr
+		}; exports["any"] = _any
 			return exports
 		})
 	modulePath = "list.mml"
@@ -724,389 +1147,6 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "log.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
-
-			var c interface{}
-			mml.Nop(c)
-	var _log interface{};
-var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-var _join interface{};
-var _joins interface{};
-var _joinTwo interface{};
-var _formats interface{};
-var _formatOne interface{};
-var _escape interface{};
-var _unescape interface{};
-mml.Nop(_log, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"]
-;var __strings = mml.Modules.Use("strings.mml");;_join = __strings["join"];
-_joins = __strings["joins"];
-_joinTwo = __strings["joinTwo"];
-_formats = __strings["formats"];
-_formatOne = __strings["formatOne"];
-_escape = __strings["escape"];
-_unescape = __strings["unescape"];
-_log = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _a = a[0:];
-				;
-				mml.Nop(_a);
-				;
-mml.Nop();
-_stderr.(*mml.Function).Call(append([]interface{}{}, _join.(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
-_stderr.(*mml.Function).Call(append([]interface{}{}, "\n"));
-return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 0); if c.(bool) { return "" } else { return mml.Ref(_a, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 1)) } }();
-				return nil
-			},
-			FixedArgs: 0,
-		}; exports["log"] = _log
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
-
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
-_fold = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-var _i = a[1];
-var _l = a[2];
-				;
-				mml.Nop(_f, _i, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
-			},
-			FixedArgs: 3,
-		}; exports["fold"] = _fold;
-_foldr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-var _i = a[1];
-var _l = a[2];
-				;
-				mml.Nop(_f, _i, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
-			},
-			FixedArgs: 3,
-		}; exports["foldr"] = _foldr;
-_map = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _m = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_m, _l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 2,
-		}; exports["map"] = _map;
-_filter = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _p = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_p, _l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 2,
-		}; exports["filter"] = _filter;
-_contains = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _i = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_i, _l);
-				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _ii = a[0];
-				;
-				mml.Nop(_ii);
-				return mml.BinaryOp(11, _ii, _i)
-			},
-			FixedArgs: 1,
-		}, _l)))), 0)
-			},
-			FixedArgs: 2,
-		}; exports["contains"] = _contains;
-_sort = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _less = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_less, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _i = a[0];
-				;
-				mml.Nop(_i);
-				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
-			},
-			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
-			},
-			FixedArgs: 2,
-		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
-
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
-var _join interface{};
-var _joins interface{};
-var _joinTwo interface{};
-var _formats interface{};
-var _formatOne interface{};
-var _escape interface{};
-var _unescape interface{};
-mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
-_firstOr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _v = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_v, _l);
-				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
-			},
-			FixedArgs: 2,
-		};
-_join = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _j = a[0];
-var _s = a[1];
-				;
-				mml.Nop(_j, _s);
-				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
-			},
-			FixedArgs: 2,
-		}; exports["join"] = _join;
-_joins = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _j = a[0];
-var _s = a[1:];
-				;
-				mml.Nop(_j, _s);
-				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
-			},
-			FixedArgs: 1,
-		}; exports["joins"] = _joins;
-_joinTwo = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _j = a[0];
-var _left = a[1];
-var _right = a[2];
-				;
-				mml.Nop(_j, _left, _right);
-				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
-			},
-			FixedArgs: 3,
-		}; exports["joinTwo"] = _joinTwo;
-_formats = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-var _a = a[1:];
-				;
-				mml.Nop(_f, _a);
-				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
-			},
-			FixedArgs: 1,
-		}; exports["formats"] = _formats;
-_formatOne = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-var _a = a[1];
-				;
-				mml.Nop(_f, _a);
-				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
-			},
-			FixedArgs: 2,
-		}; exports["formatOne"] = _formatOne;
-_escape = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _s = a[0];
-				;
-				mml.Nop(_s);
-				var _first interface{};
-mml.Nop(_first);
-c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
-mml.Nop();
-return "" };
-_first = mml.Ref(_s, 0);
-switch _first {
-case "\b":
-;
-mml.Nop();
-_first = "\\b"
-case "\f":
-;
-mml.Nop();
-_first = "\\f"
-case "\n":
-;
-mml.Nop();
-_first = "\\n"
-case "\r":
-;
-mml.Nop();
-_first = "\\r"
-case "\t":
-;
-mml.Nop();
-_first = "\\t"
-case "\v":
-;
-mml.Nop();
-_first = "\\v"
-case "\"":
-;
-mml.Nop();
-_first = "\\\""
-case "\\":
-;
-mml.Nop();
-_first = "\\\\"
-};
-return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
-				return nil
-			},
-			FixedArgs: 1,
-		}; exports["escape"] = _escape;
-_unescape = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _s = a[0];
-				;
-				mml.Nop(_s);
-				var _esc interface{};
-var _r interface{};
-mml.Nop(_esc, _r);
-_esc = false;
-_r = []interface{}{};
-for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
-var _c interface{};
-mml.Nop(_c);
-_c = mml.Ref(_s, _i);
-c = _esc; if c.(bool) { ;
-mml.Nop();
-switch _c {
-case "b":
-;
-mml.Nop();
-_c = "\b"
-case "f":
-;
-mml.Nop();
-_c = "\f"
-case "n":
-;
-mml.Nop();
-_c = "\n"
-case "r":
-;
-mml.Nop();
-_c = "\r"
-case "t":
-;
-mml.Nop();
-_c = "\t"
-case "v":
-;
-mml.Nop();
-_c = "\v"
-};
-_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
-_esc = false;
-continue };
-c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
-mml.Nop();
-_esc = true;
-continue };
-_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
-};
-return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
-				return nil
-			},
-			FixedArgs: 1,
-		}; exports["unescape"] = _unescape
 			return exports
 		})
 	modulePath = "compile.mml"
@@ -1161,109 +1201,39 @@ var _getModuleName interface{};
 var _compileUse interface{};
 var _compileUseList interface{};
 var _compile interface{};
+var _errors interface{};
+var _code interface{};
+var _strings interface{};
 var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
 var _contains interface{};
 var _sort interface{};
-var _ifErr interface{};
-var _not interface{};
-var _yes interface{};
-var _passErr interface{};
-var _onlyErr interface{};
-var _anyErr interface{};
 var _join interface{};
 var _joins interface{};
-var _joinTwo interface{};
 var _formats interface{};
-var _formatOne interface{};
-var _escape interface{};
-var _unescape interface{};
-var _counter interface{};
 var _enum interface{};
 var _log interface{};
-var _getFlattenedStatements interface{};
-var _controlStatement interface{};
-var _breakControl interface{};
-var _continueControl interface{};
-var _unaryOp interface{};
-var _binaryNot interface{};
-var _plus interface{};
-var _minus interface{};
-var _logicalNot interface{};
-var _binaryOp interface{};
-var _binaryAnd interface{};
-var _binaryOr interface{};
-var _xor interface{};
-var _andNot interface{};
-var _lshift interface{};
-var _rshift interface{};
-var _mul interface{};
-var _div interface{};
-var _mod interface{};
-var _add interface{};
-var _sub interface{};
-var _eq interface{};
-var _notEq interface{};
-var _less interface{};
-var _lessOrEq interface{};
-var _greater interface{};
-var _greaterOrEq interface{};
-var _logicalAnd interface{};
-var _logicalOr interface{};
-mml.Nop(_passErrFormat, _notEmpty, _compileInt, _compileFloat, _compileBool, _getScope, _mapCompile, _mapCompileJoin, _compileComment, _compileString, _compileSymbol, _compileCond, _compileSpread, _compileCase, _compileSend, _compileReceive, _compileGo, _compileDefer, _compileDefinitions, _compileAssigns, _compileRet, _compileControl, _compileList, _compileEntry, _compileStruct, _compileParamList, _compileFunction, _compileRangeExpression, _compileIndexer, _compileApplication, _compileUnary, _compileBinary, _compileTernary, _compileIf, _compileSwitch, _compileSelect, _compileRangeOver, _compileLoop, _compileDefinition, _compileAssign, _compileStatements, _compileModule, _getModuleName, _compileUse, _compileUseList, _compile, _fold, _foldr, _map, _filter, _contains, _sort, _ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape, _counter, _enum, _log, _getFlattenedStatements, _controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"]
-;var __errors = mml.Modules.Use("errors.mml");;_ifErr = __errors["ifErr"];
-_not = __errors["not"];
-_yes = __errors["yes"];
-_passErr = __errors["passErr"];
-_onlyErr = __errors["onlyErr"];
-_anyErr = __errors["anyErr"]
-;var __strings = mml.Modules.Use("strings.mml");;_join = __strings["join"];
-_joins = __strings["joins"];
-_joinTwo = __strings["joinTwo"];
-_formats = __strings["formats"];
-_formatOne = __strings["formatOne"];
-_escape = __strings["escape"];
-_unescape = __strings["unescape"]
-;var __ints = mml.Modules.Use("ints.mml");;_counter = __ints["counter"];
-_enum = __ints["enum"]
-;var __log = mml.Modules.Use("log.mml");;_log = __log["log"]
-;var __statements = mml.Modules.Use("statements.mml");;_getFlattenedStatements = __statements["getFlattenedStatements"]
-;var __code = mml.Modules.Use("code.mml");;_controlStatement = __code["controlStatement"];
-_breakControl = __code["breakControl"];
-_continueControl = __code["continueControl"];
-_unaryOp = __code["unaryOp"];
-_binaryNot = __code["binaryNot"];
-_plus = __code["plus"];
-_minus = __code["minus"];
-_logicalNot = __code["logicalNot"];
-_binaryOp = __code["binaryOp"];
-_binaryAnd = __code["binaryAnd"];
-_binaryOr = __code["binaryOr"];
-_xor = __code["xor"];
-_andNot = __code["andNot"];
-_lshift = __code["lshift"];
-_rshift = __code["rshift"];
-_mul = __code["mul"];
-_div = __code["div"];
-_mod = __code["mod"];
-_add = __code["add"];
-_sub = __code["sub"];
-_eq = __code["eq"];
-_notEq = __code["notEq"];
-_less = __code["less"];
-_lessOrEq = __code["lessOrEq"];
-_greater = __code["greater"];
-_greaterOrEq = __code["greaterOrEq"];
-_logicalAnd = __code["logicalAnd"];
-_logicalOr = __code["logicalOr"];
+var _onlyErr interface{};
+var _passErr interface{};
+mml.Nop(_passErrFormat, _notEmpty, _compileInt, _compileFloat, _compileBool, _getScope, _mapCompile, _mapCompileJoin, _compileComment, _compileString, _compileSymbol, _compileCond, _compileSpread, _compileCase, _compileSend, _compileReceive, _compileGo, _compileDefer, _compileDefinitions, _compileAssigns, _compileRet, _compileControl, _compileList, _compileEntry, _compileStruct, _compileParamList, _compileFunction, _compileRangeExpression, _compileIndexer, _compileApplication, _compileUnary, _compileBinary, _compileTernary, _compileIf, _compileSwitch, _compileSelect, _compileRangeOver, _compileLoop, _compileDefinition, _compileAssign, _compileStatements, _compileModule, _getModuleName, _compileUse, _compileUseList, _compile, _errors, _code, _strings, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+var __lang = mml.Modules.Use("lang.mml");;_fold = __lang["fold"];
+_foldr = __lang["foldr"];
+_map = __lang["map"];
+_filter = __lang["filter"];
+_contains = __lang["contains"];
+_sort = __lang["sort"];
+_join = __lang["join"];
+_joins = __lang["joins"];
+_formats = __lang["formats"];
+_enum = __lang["enum"];
+_log = __lang["log"];
+_onlyErr = __lang["onlyErr"];
+_passErr = __lang["passErr"]
+;_errors = mml.Modules.Use("errors.mml")
+;_code = mml.Modules.Use("code.mml")
+;_strings = mml.Modules.Use("strings.mml");
 _passErrFormat = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1272,7 +1242,7 @@ _passErrFormat = &mml.Function{
 var _p = a[1:];
 				;
 				mml.Nop(_fmt, _p);
-				return _passErr.(*mml.Function).Call(append([]interface{}{}, _format.(*mml.Function).Call(append([]interface{}{}, _fmt)))).(*mml.Function).Call(append([]interface{}{}, _anyErr.(*mml.Function).Call(append([]interface{}{}, _p))))
+				return _passErr.(*mml.Function).Call(append([]interface{}{}, _format.(*mml.Function).Call(append([]interface{}{}, _fmt)))).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_errors, "any").(*mml.Function).Call(append([]interface{}{}, _p))))
 			},
 			FixedArgs: 1,
 		};
@@ -1310,10 +1280,11 @@ _getScope = &mml.Function{
 				var _defs interface{};
 var _uses interface{};
 var _inlineUses interface{};
-var _notInlineUses interface{};
-mml.Nop(_defs, _uses, _inlineUses, _notInlineUses);
-_defs = _getFlattenedStatements.(*mml.Function).Call(append([]interface{}{}, "definition", "definition-list", "definitions", _statements));
-_uses = _getFlattenedStatements.(*mml.Function).Call(append([]interface{}{}, "use", "use-list", "uses", _statements));
+var _namedUses interface{};
+var _unnamedUses interface{};
+mml.Nop(_defs, _uses, _inlineUses, _namedUses, _unnamedUses);
+_defs = mml.Ref(_code, "getFlattenedStatements").(*mml.Function).Call(append([]interface{}{}, "definition", "definition-list", "definitions", _statements));
+_uses = mml.Ref(_code, "getFlattenedStatements").(*mml.Function).Call(append([]interface{}{}, "use", "use-list", "uses", _statements));
 _inlineUses = _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1346,18 +1317,29 @@ var _result = a[1];
 			},
 			FixedArgs: 1,
 		})).(*mml.Function).Call(append([]interface{}{}, _uses))))))));
-_notInlineUses = _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+_namedUses = _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
 				var _u = a[0];
 				;
 				mml.Nop(_u);
-				return mml.BinaryOp(12, mml.Ref(_u, "capture"), ".")
+				return (mml.BinaryOp(12, mml.Ref(_u, "capture"), ".").(bool) && mml.BinaryOp(12, mml.Ref(_u, "capture"), "").(bool))
 			},
 			FixedArgs: 1,
 		})).(*mml.Function).Call(append([]interface{}{}, _uses));
-return append(append(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+_unnamedUses = _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _u = a[0];
+				;
+				mml.Nop(_u);
+				return mml.BinaryOp(11, mml.Ref(_u, "capture"), "")
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, _uses));
+return append(append(append(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -1374,10 +1356,20 @@ return append(append(append([]interface{}{}, _map.(*mml.Function).Call(append([]
 				var _u = a[0];
 				;
 				mml.Nop(_u);
+				return mml.Ref(_u, "capture")
+			},
+			FixedArgs: 1,
+		}, _namedUses)).([]interface{})...), _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _u = a[0];
+				;
+				mml.Nop(_u);
 				return mml.Ref(_u, "path")
 			},
 			FixedArgs: 1,
-		}, _notInlineUses)).([]interface{})...), _inlineUses.([]interface{})...);
+		}, _unnamedUses)).([]interface{})...), _inlineUses.([]interface{})...);
 				return nil
 			},
 			FixedArgs: 0,
@@ -1389,7 +1381,7 @@ _mapCompile = &mml.Function{
 				var _l = a[0];
 				;
 				mml.Nop(_l);
-				return _anyErr.(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _compile)).(*mml.Function).Call(append([]interface{}{}, _l))))
+				return mml.Ref(_errors, "any").(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _compile)).(*mml.Function).Call(append([]interface{}{}, _l))))
 			},
 			FixedArgs: 1,
 		};
@@ -1423,7 +1415,7 @@ _compileString = &mml.Function{
 				var _s = a[0];
 				;
 				mml.Nop(_s);
-				return _formats.(*mml.Function).Call(append([]interface{}{}, "\"%s\"", _escape.(*mml.Function).Call(append([]interface{}{}, _s))))
+				return _formats.(*mml.Function).Call(append([]interface{}{}, "\"%s\"", mml.Ref(_strings, "escape").(*mml.Function).Call(append([]interface{}{}, _s))))
 			},
 			FixedArgs: 1,
 		};
@@ -1555,7 +1547,7 @@ _compileControl = &mml.Function{
 				var _c = a[0];
 				;
 				mml.Nop(_c);
-				return func () interface{} { c = mml.BinaryOp(11, mml.Ref(_c, "control"), _breakControl); if c.(bool) { return "break" } else { return "continue" } }()
+				return func () interface{} { c = mml.BinaryOp(11, mml.Ref(_c, "control"), mml.Ref(_code, "breakControl")); if c.(bool) { return "break" } else { return "continue" } }()
 			},
 			FixedArgs: 1,
 		};
@@ -1849,7 +1841,7 @@ mml.Nop(_multipleStatements, _scope, _paramNames, _scopeNames, _scopeDefs, _fmt,
 _multipleStatements = (_has.(*mml.Function).Call(append([]interface{}{}, "type", mml.Ref(_f, "statement"))).(bool) && mml.BinaryOp(11, mml.Ref(mml.Ref(_f, "statement"), "type"), "statement-list").(bool));
 _scope = _getScope.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_f, "statement")));
 _paramNames = func () interface{} { c = mml.BinaryOp(11, mml.Ref(_f, "collectParam"), ""); if c.(bool) { return mml.Ref(_f, "params") } else { return append(append([]interface{}{}, mml.Ref(_f, "params").([]interface{})...), mml.Ref(_f, "collectParam")) } }();
-_scopeNames = _join.(*mml.Function).Call(append([]interface{}{}, ", ", _map.(*mml.Function).Call(append([]interface{}{}, _formatOne.(*mml.Function).Call(append([]interface{}{}, "_%s")), append(append([]interface{}{}, _scope.([]interface{})...), _paramNames.([]interface{})...)))));
+_scopeNames = _join.(*mml.Function).Call(append([]interface{}{}, ", ", _map.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "formatOne").(*mml.Function).Call(append([]interface{}{}, "_%s")), append(append([]interface{}{}, _scope.([]interface{})...), _paramNames.([]interface{})...)))));
 _scopeDefs = _join.(*mml.Function).Call(append([]interface{}{}, ";\n")).(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1949,7 +1941,7 @@ c = _isError.(*mml.Function).Call(append([]interface{}{}, _arg)); if c.(bool) { 
 mml.Nop();
 return _arg };
 switch mml.Ref(_u, "op") {
-case _logicalNot:
+case mml.Ref(_code, "logicalNot"):
 ;
 mml.Nop();
 c = !_isBool.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_u, "arg"))).(bool); if c.(bool) { ;
@@ -1977,7 +1969,7 @@ var _left interface{};
 var _right interface{};
 var _op interface{};
 mml.Nop(_isBoolOp, _left, _right, _op);
-c = (mml.BinaryOp(12, mml.Ref(_b, "op"), _logicalAnd).(bool) && mml.BinaryOp(12, mml.Ref(_b, "op"), _logicalOr).(bool)); if c.(bool) { ;
+c = (mml.BinaryOp(12, mml.Ref(_b, "op"), mml.Ref(_code, "logicalAnd")).(bool) && mml.BinaryOp(12, mml.Ref(_b, "op"), mml.Ref(_code, "logicalOr")).(bool)); if c.(bool) { ;
 mml.Nop();
 return _passErrFormat.(*mml.Function).Call(append([]interface{}{}, "mml.BinaryOp(%s, %s, %s)", _compile.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_b, "op"))), _compile.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_b, "left"))), _compile.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_b, "right"))))) };
 _isBoolOp = &mml.Function{
@@ -1987,7 +1979,7 @@ _isBoolOp = &mml.Function{
 				var _c = a[0];
 				;
 				mml.Nop(_c);
-				return ((_has.(*mml.Function).Call(append([]interface{}{}, "type", _c)).(bool) && (mml.BinaryOp(11, mml.Ref(_c, "type"), "unary").(bool) && mml.BinaryOp(11, mml.Ref(_c, "op"), _logicalNot).(bool))) || (mml.BinaryOp(11, mml.Ref(_c, "type"), "binary").(bool) && (mml.BinaryOp(11, mml.Ref(_c, "op"), _logicalAnd).(bool) || mml.BinaryOp(11, mml.Ref(_c, "op"), _logicalOr).(bool))))
+				return ((_has.(*mml.Function).Call(append([]interface{}{}, "type", _c)).(bool) && (mml.BinaryOp(11, mml.Ref(_c, "type"), "unary").(bool) && mml.BinaryOp(11, mml.Ref(_c, "op"), mml.Ref(_code, "logicalNot")).(bool))) || (mml.BinaryOp(11, mml.Ref(_c, "type"), "binary").(bool) && (mml.BinaryOp(11, mml.Ref(_c, "op"), mml.Ref(_code, "logicalAnd")).(bool) || mml.BinaryOp(11, mml.Ref(_c, "op"), mml.Ref(_code, "logicalOr")).(bool))))
 			},
 			FixedArgs: 1,
 		};
@@ -2006,7 +1998,7 @@ c = (!_isBool.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_b, "right"))
 mml.Nop();
 _right = mml.BinaryOp(9, _right, ".(bool)") };
 _op = "&&";
-c = mml.BinaryOp(11, mml.Ref(_b, "op"), _logicalOr); if c.(bool) { ;
+c = mml.BinaryOp(11, mml.Ref(_b, "op"), mml.Ref(_code, "logicalOr")); if c.(bool) { ;
 mml.Nop();
 _op = "||" };
 return _formats.(*mml.Function).Call(append([]interface{}{}, "(%s %s %s)", _left, _op, _right));
@@ -2055,7 +2047,7 @@ _exp = func () interface{} { c = _has.(*mml.Function).Call(append([]interface{}{
 c = _isError.(*mml.Function).Call(append([]interface{}{}, _exp)); if c.(bool) { ;
 mml.Nop();
 return _exp };
-_cases = _anyErr.(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _compile)).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "cases")))));
+_cases = mml.Ref(_errors, "any").(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _compile)).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "cases")))));
 c = _isError.(*mml.Function).Call(append([]interface{}{}, _cases)); if c.(bool) { ;
 mml.Nop();
 return _cases };
@@ -2084,7 +2076,7 @@ _compileSelect = &mml.Function{
 				var _c = a[0];
 				;
 				mml.Nop(_c);
-				return _passErr.(*mml.Function).Call(append([]interface{}{}, _formatOne.(*mml.Function).Call(append([]interface{}{}, "func() interface{} {\nselect {\n%s\n} }()")))).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _join.(*mml.Function).Call(append([]interface{}{}, "\n")))).(*mml.Function).Call(append([]interface{}{}, _anyErr.(*mml.Function).Call(append([]interface{}{}, func () interface{} { c = mml.Ref(_s, "hasDefault"); if c.(bool) { return append(append([]interface{}{}, _c.([]interface{})...), _passErr.(*mml.Function).Call(append([]interface{}{}, _formatOne.(*mml.Function).Call(append([]interface{}{}, "default:\n%s")))).(*mml.Function).Call(append([]interface{}{}, _compile.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "defaultStatements")))))) } else { return _c } }()))))))
+				return _passErr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "formatOne").(*mml.Function).Call(append([]interface{}{}, "func() interface{} {\nselect {\n%s\n} }()")))).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _join.(*mml.Function).Call(append([]interface{}{}, "\n")))).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_errors, "any").(*mml.Function).Call(append([]interface{}{}, func () interface{} { c = mml.Ref(_s, "hasDefault"); if c.(bool) { return append(append([]interface{}{}, _c.([]interface{})...), _passErr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "formatOne").(*mml.Function).Call(append([]interface{}{}, "default:\n%s")))).(*mml.Function).Call(append([]interface{}{}, _compile.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "defaultStatements")))))) } else { return _c } }()))))))
 			},
 			FixedArgs: 1,
 		}).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _compile)).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "cases")))))
@@ -2216,7 +2208,7 @@ _scopeDefs = _join.(*mml.Function).Call(append([]interface{}{}, ";\n")).(*mml.Fu
 			},
 			FixedArgs: 1,
 		})).(*mml.Function).Call(append([]interface{}{}, _scope))));
-_scopeNames = _join.(*mml.Function).Call(append([]interface{}{}, ", ", _map.(*mml.Function).Call(append([]interface{}{}, _formatOne.(*mml.Function).Call(append([]interface{}{}, "_%s")), _scope))));
+_scopeNames = _join.(*mml.Function).Call(append([]interface{}{}, ", ", _map.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "formatOne").(*mml.Function).Call(append([]interface{}{}, "_%s")), _scope))));
 _statements = _passErr.(*mml.Function).Call(append([]interface{}{}, _join.(*mml.Function).Call(append([]interface{}{}, ";\n")))).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _notEmpty)).(*mml.Function).Call(append([]interface{}{}, _mapCompile.(*mml.Function).Call(append([]interface{}{}, _s))))));
 return _formats.(*mml.Function).Call(append([]interface{}{}, "%s;\nmml.Nop(%s);\n%s", _scopeDefs, _scopeNames, _statements));
 				return nil
@@ -2282,7 +2274,7 @@ return _joins.(*mml.Function).Call(append([]interface{}{}, ";", _useStatement, _
 case mml.BinaryOp(12, mml.Ref(_u, "capture"), ""):
 ;
 mml.Nop();
-return _formats.(*mml.Function).Call(append([]interface{}{}, "_%s = mml.Modules.Use(\"%s.mml\")", _getModuleName.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_u, "path"))), mml.Ref(_u, "path")))
+return _formats.(*mml.Function).Call(append([]interface{}{}, "_%s = mml.Modules.Use(\"%s.mml\")", mml.Ref(_u, "capture"), mml.Ref(_u, "path")))
 default:
 ;
 mml.Nop();
@@ -2474,7 +2466,7 @@ return _error.(*mml.Function).Call(append([]interface{}{}, _formats.(*mml.Functi
 		}; exports["compile"] = _compile
 			return exports
 		})
-	modulePath = "list.mml"
+	modulePath = "lang.mml"
 		mml.Modules.Set(modulePath, func() map[string]interface{} {
 			exports := make(map[string]interface{})
 
@@ -2486,238 +2478,37 @@ var _map interface{};
 var _filter interface{};
 var _contains interface{};
 var _sort interface{};
-mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
-_fold = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-var _i = a[1];
-var _l = a[2];
-				;
-				mml.Nop(_f, _i, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
-			},
-			FixedArgs: 3,
-		}; exports["fold"] = _fold;
-_foldr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-var _i = a[1];
-var _l = a[2];
-				;
-				mml.Nop(_f, _i, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
-			},
-			FixedArgs: 3,
-		}; exports["foldr"] = _foldr;
-_map = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _m = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_m, _l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 2,
-		}; exports["map"] = _map;
-_filter = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _p = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_p, _l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 2,
-		}; exports["filter"] = _filter;
-_contains = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _i = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_i, _l);
-				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _ii = a[0];
-				;
-				mml.Nop(_ii);
-				return mml.BinaryOp(11, _ii, _i)
-			},
-			FixedArgs: 1,
-		}, _l)))), 0)
-			},
-			FixedArgs: 2,
-		}; exports["contains"] = _contains;
-_sort = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _less = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_less, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _i = a[0];
-				;
-				mml.Nop(_i);
-				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
-			},
-			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
-			},
-			FixedArgs: 2,
-		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
-
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
-var _not interface{};
-var _yes interface{};
-var _passErr interface{};
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
+var _enum interface{};
+var _log interface{};
 var _onlyErr interface{};
-var _anyErr interface{};
-var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-mml.Nop(_ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _fold, _foldr, _map, _filter, _contains, _sort);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"];
-_ifErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _mod = a[0];
-var _f = a[1];
-				;
-				mml.Nop(_mod, _f);
-				return &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _a = a[0];
-				;
-				mml.Nop(_a);
-				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
-			},
-			FixedArgs: 1,
-		}
-			},
-			FixedArgs: 2,
-		}; exports["ifErr"] = _ifErr;
-_not = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _x = a[0];
-				;
-				mml.Nop(_x);
-				return !_x.(bool)
-			},
-			FixedArgs: 1,
-		}; exports["not"] = _not;
-_yes = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _x = a[0];
-				;
-				mml.Nop(_x);
-				return _x
-			},
-			FixedArgs: 1,
-		}; exports["yes"] = _yes;
-_passErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-				;
-				mml.Nop(_f);
-				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
-			},
-			FixedArgs: 1,
-		}; exports["passErr"] = _passErr;
-_onlyErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-				;
-				mml.Nop(_f);
-				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
-			},
-			FixedArgs: 1,
-		}; exports["onlyErr"] = _onlyErr;
-_anyErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _l = a[0];
-				;
-				mml.Nop(_l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 1,
-		}; exports["anyErr"] = _anyErr
+var _passErr interface{};
+var _logger interface{};
+var _list interface{};
+var _strings interface{};
+var _ints interface{};
+var _errors interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _logger, _list, _strings, _ints, _errors);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml")
+;_ints = mml.Modules.Use("ints.mml")
+;_logger = mml.Modules.Use("log.mml")
+;_errors = mml.Modules.Use("errors.mml");
+_fold = mml.Ref(_list, "fold"); exports["fold"] = _fold;
+_foldr = mml.Ref(_list, "foldr"); exports["foldr"] = _foldr;
+_map = mml.Ref(_list, "map"); exports["map"] = _map;
+_filter = mml.Ref(_list, "filter"); exports["filter"] = _filter;
+_contains = mml.Ref(_list, "contains"); exports["contains"] = _contains;
+_sort = mml.Ref(_list, "sort"); exports["sort"] = _sort;
+_join = mml.Ref(_strings, "join"); exports["join"] = _join;
+_joins = mml.Ref(_strings, "joins"); exports["joins"] = _joins;
+_formats = mml.Ref(_strings, "formats"); exports["formats"] = _formats;
+_enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
+_log = mml.Ref(_logger, "log"); exports["log"] = _log;
+_onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
+_passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
 			return exports
 		})
 	modulePath = "list.mml"
@@ -3099,33 +2890,11 @@ _enum = _counter; exports["enum"] = _enum
 			var c interface{}
 			mml.Nop(c)
 	var _log interface{};
-var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-var _join interface{};
-var _joins interface{};
-var _joinTwo interface{};
-var _formats interface{};
-var _formatOne interface{};
-var _escape interface{};
-var _unescape interface{};
-mml.Nop(_log, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"]
-;var __strings = mml.Modules.Use("strings.mml");;_join = __strings["join"];
-_joins = __strings["joins"];
-_joinTwo = __strings["joinTwo"];
-_formats = __strings["formats"];
-_formatOne = __strings["formatOne"];
-_escape = __strings["escape"];
-_unescape = __strings["unescape"];
+var _list interface{};
+var _strings interface{};
+mml.Nop(_log, _list, _strings);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml");
 _log = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -3135,7 +2904,7 @@ _log = &mml.Function{
 				mml.Nop(_a);
 				;
 mml.Nop();
-_stderr.(*mml.Function).Call(append([]interface{}{}, _join.(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
+_stderr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
 _stderr.(*mml.Function).Call(append([]interface{}{}, "\n"));
 return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 0); if c.(bool) { return "" } else { return mml.Ref(_a, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 1)) } }();
 				return nil
@@ -3475,75 +3244,345 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 		}; exports["unescape"] = _unescape
 			return exports
 		})
-	modulePath = "statements.mml"
+	modulePath = "errors.mml"
 		mml.Modules.Set(modulePath, func() map[string]interface{} {
 			exports := make(map[string]interface{})
 
 			var c interface{}
 			mml.Nop(c)
-	var _getFlattenedStatements interface{};
-var _fold interface{};
+	var _ifErr interface{};
+var _not interface{};
+var _yes interface{};
+var _pass interface{};
+var _only interface{};
+var _any interface{};
+var _list interface{};
+mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list);
+_list = mml.Modules.Use("list.mml");
+_ifErr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _mod = a[0];
+var _f = a[1];
+				;
+				mml.Nop(_mod, _f);
+				return &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0];
+				;
+				mml.Nop(_a);
+				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
+			},
+			FixedArgs: 1,
+		}
+			},
+			FixedArgs: 2,
+		};
+_not = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return !_x.(bool)
+			},
+			FixedArgs: 1,
+		};
+_yes = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return _x
+			},
+			FixedArgs: 1,
+		};
+_pass = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
+			},
+			FixedArgs: 1,
+		}; exports["pass"] = _pass;
+_only = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
+			},
+			FixedArgs: 1,
+		}; exports["only"] = _only;
+_any = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _l = a[0];
+				;
+				mml.Nop(_l);
+				return mml.Ref(_list, "fold").(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 1,
+		}; exports["any"] = _any
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
 var _contains interface{};
 var _sort interface{};
-mml.Nop(_getFlattenedStatements, _fold, _foldr, _map, _filter, _contains, _sort);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"];
-_getFlattenedStatements = &mml.Function{
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _itemType = a[0];
-var _listType = a[1];
-var _listProp = a[2];
-var _statements = a[3];
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
 				;
-				mml.Nop(_itemType, _listType, _listProp, _statements);
-				var _toList interface{};
-mml.Nop(_toList);
-_toList = &mml.Function{
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _s = a[0];
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
 				;
-				mml.Nop(_s);
-				return func () interface{} { c = mml.BinaryOp(11, mml.Ref(_s, "type"), _itemType); if c.(bool) { return append([]interface{}{}, _s) } else { return mml.Ref(_s, _listProp) } }()
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "errors.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _ifErr interface{};
+var _not interface{};
+var _yes interface{};
+var _pass interface{};
+var _only interface{};
+var _any interface{};
+var _list interface{};
+mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list);
+_list = mml.Modules.Use("list.mml");
+_ifErr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _mod = a[0];
+var _f = a[1];
+				;
+				mml.Nop(_mod, _f);
+				return &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0];
+				;
+				mml.Nop(_a);
+				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
+			},
+			FixedArgs: 1,
+		}
+			},
+			FixedArgs: 2,
+		};
+_not = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return !_x.(bool)
 			},
 			FixedArgs: 1,
 		};
-return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+_yes = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _s = a[0];
-var _result = a[1];
+				var _x = a[0];
 				;
-				mml.Nop(_s, _result);
-				return append(append([]interface{}{}, _result.([]interface{})...), _toList.(*mml.Function).Call(append([]interface{}{}, _s)).([]interface{})...)
-			},
-			FixedArgs: 2,
-		}, []interface{}{})).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _s = a[0];
-				;
-				mml.Nop(_s);
-				return (_has.(*mml.Function).Call(append([]interface{}{}, "type", _s)).(bool) && _contains.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "type"), append([]interface{}{}, _itemType, _listType))).(bool))
+				mml.Nop(_x);
+				return _x
 			},
 			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, _statements))));
-				return nil
+		};
+_pass = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
 			},
-			FixedArgs: 4,
-		}; exports["getFlattenedStatements"] = _getFlattenedStatements
+			FixedArgs: 1,
+		}; exports["pass"] = _pass;
+_only = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
+			},
+			FixedArgs: 1,
+		}; exports["only"] = _only;
+_any = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _l = a[0];
+				;
+				mml.Nop(_l);
+				return mml.Ref(_list, "fold").(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 1,
+		}; exports["any"] = _any
 			return exports
 		})
 	modulePath = "list.mml"
@@ -3711,11 +3750,34 @@ var _greater interface{};
 var _greaterOrEq interface{};
 var _logicalAnd interface{};
 var _logicalOr interface{};
-var _counter interface{};
+var _getFlattenedStatements interface{};
+var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
 var _enum interface{};
-mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _counter, _enum);
-var __ints = mml.Modules.Use("ints.mml");;_counter = __ints["counter"];
-_enum = __ints["enum"];
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _getFlattenedStatements, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+var __lang = mml.Modules.Use("lang.mml");;_fold = __lang["fold"];
+_foldr = __lang["foldr"];
+_map = __lang["map"];
+_filter = __lang["filter"];
+_contains = __lang["contains"];
+_sort = __lang["sort"];
+_join = __lang["join"];
+_joins = __lang["joins"];
+_formats = __lang["formats"];
+_enum = __lang["enum"];
+_log = __lang["log"];
+_onlyErr = __lang["onlyErr"];
+_passErr = __lang["passErr"];
 _controlStatement = _enum.(*mml.Function).Call([]interface{}{}); exports["controlStatement"] = _controlStatement;
 _breakControl = _controlStatement.(*mml.Function).Call([]interface{}{}); exports["breakControl"] = _breakControl;
 _continueControl = _controlStatement.(*mml.Function).Call([]interface{}{}); exports["continueControl"] = _continueControl;
@@ -3743,7 +3805,432 @@ _lessOrEq = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["lessOrEq"]
 _greater = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["greater"] = _greater;
 _greaterOrEq = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["greaterOrEq"] = _greaterOrEq;
 _logicalAnd = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["logicalAnd"] = _logicalAnd;
-_logicalOr = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["logicalOr"] = _logicalOr
+_logicalOr = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["logicalOr"] = _logicalOr;
+_getFlattenedStatements = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _itemType = a[0];
+var _listType = a[1];
+var _listProp = a[2];
+var _statements = a[3];
+				;
+				mml.Nop(_itemType, _listType, _listProp, _statements);
+				var _toList interface{};
+mml.Nop(_toList);
+_toList = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				return func () interface{} { c = mml.BinaryOp(11, mml.Ref(_s, "type"), _itemType); if c.(bool) { return append([]interface{}{}, _s) } else { return mml.Ref(_s, _listProp) } }()
+			},
+			FixedArgs: 1,
+		};
+return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+var _result = a[1];
+				;
+				mml.Nop(_s, _result);
+				return append(append([]interface{}{}, _result.([]interface{})...), _toList.(*mml.Function).Call(append([]interface{}{}, _s)).([]interface{})...)
+			},
+			FixedArgs: 2,
+		}, []interface{}{})).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				return (_has.(*mml.Function).Call(append([]interface{}{}, "type", _s)).(bool) && _contains.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "type"), append([]interface{}{}, _itemType, _listType))).(bool))
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, _statements))));
+				return nil
+			},
+			FixedArgs: 4,
+		}; exports["getFlattenedStatements"] = _getFlattenedStatements
+			return exports
+		})
+	modulePath = "lang.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
+var _enum interface{};
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+var _logger interface{};
+var _list interface{};
+var _strings interface{};
+var _ints interface{};
+var _errors interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _logger, _list, _strings, _ints, _errors);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml")
+;_ints = mml.Modules.Use("ints.mml")
+;_logger = mml.Modules.Use("log.mml")
+;_errors = mml.Modules.Use("errors.mml");
+_fold = mml.Ref(_list, "fold"); exports["fold"] = _fold;
+_foldr = mml.Ref(_list, "foldr"); exports["foldr"] = _foldr;
+_map = mml.Ref(_list, "map"); exports["map"] = _map;
+_filter = mml.Ref(_list, "filter"); exports["filter"] = _filter;
+_contains = mml.Ref(_list, "contains"); exports["contains"] = _contains;
+_sort = mml.Ref(_list, "sort"); exports["sort"] = _sort;
+_join = mml.Ref(_strings, "join"); exports["join"] = _join;
+_joins = mml.Ref(_strings, "joins"); exports["joins"] = _joins;
+_formats = mml.Ref(_strings, "formats"); exports["formats"] = _formats;
+_enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
+_log = mml.Ref(_logger, "log"); exports["log"] = _log;
+_onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
+_passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "strings.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _firstOr interface{};
+var _join interface{};
+var _joins interface{};
+var _joinTwo interface{};
+var _formats interface{};
+var _formatOne interface{};
+var _escape interface{};
+var _unescape interface{};
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
 			return exports
 		})
 	modulePath = "ints.mml"
@@ -3785,6 +4272,803 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
+			return exports
+		})
+	modulePath = "log.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _log interface{};
+var _list interface{};
+var _strings interface{};
+mml.Nop(_log, _list, _strings);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml");
+_log = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0:];
+				;
+				mml.Nop(_a);
+				;
+mml.Nop();
+_stderr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
+_stderr.(*mml.Function).Call(append([]interface{}{}, "\n"));
+return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 0); if c.(bool) { return "" } else { return mml.Ref(_a, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 1)) } }();
+				return nil
+			},
+			FixedArgs: 0,
+		}; exports["log"] = _log
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "strings.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _firstOr interface{};
+var _join interface{};
+var _joins interface{};
+var _joinTwo interface{};
+var _formats interface{};
+var _formatOne interface{};
+var _escape interface{};
+var _unescape interface{};
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
+			return exports
+		})
+	modulePath = "errors.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _ifErr interface{};
+var _not interface{};
+var _yes interface{};
+var _pass interface{};
+var _only interface{};
+var _any interface{};
+var _list interface{};
+mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list);
+_list = mml.Modules.Use("list.mml");
+_ifErr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _mod = a[0];
+var _f = a[1];
+				;
+				mml.Nop(_mod, _f);
+				return &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0];
+				;
+				mml.Nop(_a);
+				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
+			},
+			FixedArgs: 1,
+		}
+			},
+			FixedArgs: 2,
+		};
+_not = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return !_x.(bool)
+			},
+			FixedArgs: 1,
+		};
+_yes = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return _x
+			},
+			FixedArgs: 1,
+		};
+_pass = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
+			},
+			FixedArgs: 1,
+		}; exports["pass"] = _pass;
+_only = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
+			},
+			FixedArgs: 1,
+		}; exports["only"] = _only;
+_any = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _l = a[0];
+				;
+				mml.Nop(_l);
+				return mml.Ref(_list, "fold").(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 1,
+		}; exports["any"] = _any
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "strings.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _firstOr interface{};
+var _join interface{};
+var _joins interface{};
+var _joinTwo interface{};
+var _formats interface{};
+var _formatOne interface{};
+var _escape interface{};
+var _unescape interface{};
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
 			return exports
 		})
 	modulePath = "parse.mml"
@@ -3847,105 +5131,37 @@ var _parse interface{};
 var _parseFile interface{};
 var _findExportNames interface{};
 var _parseModules interface{};
-var _ifErr interface{};
-var _not interface{};
-var _yes interface{};
-var _passErr interface{};
-var _onlyErr interface{};
-var _anyErr interface{};
-var _log interface{};
+var _code interface{};
+var _strings interface{};
 var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
 var _contains interface{};
 var _sort interface{};
-var _getFlattenedStatements interface{};
-var _controlStatement interface{};
-var _breakControl interface{};
-var _continueControl interface{};
-var _unaryOp interface{};
-var _binaryNot interface{};
-var _plus interface{};
-var _minus interface{};
-var _logicalNot interface{};
-var _binaryOp interface{};
-var _binaryAnd interface{};
-var _binaryOr interface{};
-var _xor interface{};
-var _andNot interface{};
-var _lshift interface{};
-var _rshift interface{};
-var _mul interface{};
-var _div interface{};
-var _mod interface{};
-var _add interface{};
-var _sub interface{};
-var _eq interface{};
-var _notEq interface{};
-var _less interface{};
-var _lessOrEq interface{};
-var _greater interface{};
-var _greaterOrEq interface{};
-var _logicalAnd interface{};
-var _logicalOr interface{};
 var _join interface{};
 var _joins interface{};
-var _joinTwo interface{};
 var _formats interface{};
-var _formatOne interface{};
-var _escape interface{};
-var _unescape interface{};
-mml.Nop(_parseString, _parseSymbol, _parseSpread, _parseExpressionList, _parseList, _parseMutableList, _parseExpressionKey, _parseEntry, _parseStruct, _parseMutableStruct, _parseReturn, _parseStatementList, _parseFunctionFact, _parseFunction, _parseEffect, _parseRange, _parseSymbolIndex, _parseExpressionIndex, _parseRangeIndex, _parseIndexerNodes, _parseIndexer, _parseFunctionApplication, _parseUnaryExpression, _parseBinaryExpression, _parseChaining, _parserTernary, _parseIf, _parseSwitch, _parseRangeOver, _parseLoop, _parseValueCapture, _parseMutableCapture, _parseValueDefinition, _parseDefinitions, _parseMutableDefinitions, _parseFunctionCapture, _parseEffectCapture, _parseFunctionDefinition, _parseEffectDefinitions, _parseAssignCaptures, _parseAssign, _parseSend, _parseReceive, _parseGo, _parseDefer, _parseReceiveDefinition, _parseSelect, _parseExport, _parseUseFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModules, _ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _log, _fold, _foldr, _map, _filter, _contains, _sort, _getFlattenedStatements, _controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
-var __errors = mml.Modules.Use("errors.mml");;_ifErr = __errors["ifErr"];
-_not = __errors["not"];
-_yes = __errors["yes"];
-_passErr = __errors["passErr"];
-_onlyErr = __errors["onlyErr"];
-_anyErr = __errors["anyErr"]
-;var __log = mml.Modules.Use("log.mml");;_log = __log["log"]
-;var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"]
-;var __statements = mml.Modules.Use("statements.mml");;_getFlattenedStatements = __statements["getFlattenedStatements"]
-;var __code = mml.Modules.Use("code.mml");;_controlStatement = __code["controlStatement"];
-_breakControl = __code["breakControl"];
-_continueControl = __code["continueControl"];
-_unaryOp = __code["unaryOp"];
-_binaryNot = __code["binaryNot"];
-_plus = __code["plus"];
-_minus = __code["minus"];
-_logicalNot = __code["logicalNot"];
-_binaryOp = __code["binaryOp"];
-_binaryAnd = __code["binaryAnd"];
-_binaryOr = __code["binaryOr"];
-_xor = __code["xor"];
-_andNot = __code["andNot"];
-_lshift = __code["lshift"];
-_rshift = __code["rshift"];
-_mul = __code["mul"];
-_div = __code["div"];
-_mod = __code["mod"];
-_add = __code["add"];
-_sub = __code["sub"];
-_eq = __code["eq"];
-_notEq = __code["notEq"];
-_less = __code["less"];
-_lessOrEq = __code["lessOrEq"];
-_greater = __code["greater"];
-_greaterOrEq = __code["greaterOrEq"];
-_logicalAnd = __code["logicalAnd"];
-_logicalOr = __code["logicalOr"]
-;var __strings = mml.Modules.Use("strings.mml");;_join = __strings["join"];
-_joins = __strings["joins"];
-_joinTwo = __strings["joinTwo"];
-_formats = __strings["formats"];
-_formatOne = __strings["formatOne"];
-_escape = __strings["escape"];
-_unescape = __strings["unescape"];
+var _enum interface{};
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+mml.Nop(_parseString, _parseSymbol, _parseSpread, _parseExpressionList, _parseList, _parseMutableList, _parseExpressionKey, _parseEntry, _parseStruct, _parseMutableStruct, _parseReturn, _parseStatementList, _parseFunctionFact, _parseFunction, _parseEffect, _parseRange, _parseSymbolIndex, _parseExpressionIndex, _parseRangeIndex, _parseIndexerNodes, _parseIndexer, _parseFunctionApplication, _parseUnaryExpression, _parseBinaryExpression, _parseChaining, _parserTernary, _parseIf, _parseSwitch, _parseRangeOver, _parseLoop, _parseValueCapture, _parseMutableCapture, _parseValueDefinition, _parseDefinitions, _parseMutableDefinitions, _parseFunctionCapture, _parseEffectCapture, _parseFunctionDefinition, _parseEffectDefinitions, _parseAssignCaptures, _parseAssign, _parseSend, _parseReceive, _parseGo, _parseDefer, _parseReceiveDefinition, _parseSelect, _parseExport, _parseUseFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModules, _code, _strings, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+var __lang = mml.Modules.Use("lang.mml");;_fold = __lang["fold"];
+_foldr = __lang["foldr"];
+_map = __lang["map"];
+_filter = __lang["filter"];
+_contains = __lang["contains"];
+_sort = __lang["sort"];
+_join = __lang["join"];
+_joins = __lang["joins"];
+_formats = __lang["formats"];
+_enum = __lang["enum"];
+_log = __lang["log"];
+_onlyErr = __lang["onlyErr"];
+_passErr = __lang["passErr"]
+;_code = mml.Modules.Use("code.mml")
+;_strings = mml.Modules.Use("strings.mml");
 _parseString = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -3955,7 +5171,7 @@ _parseString = &mml.Function{
 				mml.Nop(_ast);
 				;
 mml.Nop();
-return _unescape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(mml.Ref(_ast, "text"), 1, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_ast, "text"))), 1))));
+return mml.Ref(_strings, "unescape").(*mml.Function).Call(append([]interface{}{}, mml.RefRange(mml.Ref(_ast, "text"), 1, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_ast, "text"))), 1))));
 				return nil
 			},
 			FixedArgs: 1,
@@ -3973,11 +5189,11 @@ switch mml.Ref(_ast, "text") {
 case "break":
 ;
 mml.Nop();
-return func() interface{} { s := make(map[string]interface{}); s["type"] = "control-statement";s["control"] = _breakControl;; return s }()
+return func() interface{} { s := make(map[string]interface{}); s["type"] = "control-statement";s["control"] = mml.Ref(_code, "breakControl");; return s }()
 case "continue":
 ;
 mml.Nop();
-return func() interface{} { s := make(map[string]interface{}); s["type"] = "control-statement";s["control"] = _continueControl;; return s }()
+return func() interface{} { s := make(map[string]interface{}); s["type"] = "control-statement";s["control"] = mml.Ref(_code, "continueControl");; return s }()
 default:
 ;
 mml.Nop();
@@ -4307,20 +5523,20 @@ _parseUnaryExpression = &mml.Function{
 				mml.Nop(_ast);
 				var _op interface{};
 mml.Nop(_op);
-_op = _binaryNot;
+_op = mml.Ref(_code, "binaryNot");
 switch mml.Ref(mml.Ref(mml.Ref(_ast, "nodes"), 0), "name") {
 case "plus":
 ;
 mml.Nop();
-_op = _plus
+_op = mml.Ref(_code, "plus")
 case "minus":
 ;
 mml.Nop();
-_op = _minus
+_op = mml.Ref(_code, "minus")
 case "logical-not":
 ;
 mml.Nop();
-_op = _logicalNot
+_op = mml.Ref(_code, "logicalNot")
 };
 return func() interface{} { s := make(map[string]interface{}); s["type"] = "unary";s["op"] = _op;s["arg"] = _parse.(*mml.Function).Call(append([]interface{}{}, mml.Ref(mml.Ref(_ast, "nodes"), 1)));; return s }();
 				return nil
@@ -4336,76 +5552,76 @@ _parseBinaryExpression = &mml.Function{
 				mml.Nop(_ast);
 				var _op interface{};
 mml.Nop(_op);
-_op = _binaryAnd;
+_op = mml.Ref(_code, "binaryAnd");
 switch mml.Ref(mml.Ref(mml.Ref(_ast, "nodes"), mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_ast, "nodes"))), 2)), "name") {
 case "xor":
 ;
 mml.Nop();
-_op = _xor
+_op = mml.Ref(_code, "xor")
 case "and-not":
 ;
 mml.Nop();
-_op = _andNot
+_op = mml.Ref(_code, "andNot")
 case "lshift":
 ;
 mml.Nop();
-_op = _lshift
+_op = mml.Ref(_code, "lshift")
 case "rshift":
 ;
 mml.Nop();
-_op = _rshift
+_op = mml.Ref(_code, "rshift")
 case "mul":
 ;
 mml.Nop();
-_op = _mul
+_op = mml.Ref(_code, "mul")
 case "div":
 ;
 mml.Nop();
-_op = _div
+_op = mml.Ref(_code, "div")
 case "mod":
 ;
 mml.Nop();
-_op = _mod
+_op = mml.Ref(_code, "mod")
 case "add":
 ;
 mml.Nop();
-_op = _add
+_op = mml.Ref(_code, "add")
 case "sub":
 ;
 mml.Nop();
-_op = _sub
+_op = mml.Ref(_code, "sub")
 case "eq":
 ;
 mml.Nop();
-_op = _eq
+_op = mml.Ref(_code, "eq")
 case "not-eq":
 ;
 mml.Nop();
-_op = _notEq
+_op = mml.Ref(_code, "notEq")
 case "less":
 ;
 mml.Nop();
-_op = _less
+_op = mml.Ref(_code, "less")
 case "less-or-eq":
 ;
 mml.Nop();
-_op = _lessOrEq
+_op = mml.Ref(_code, "lessOrEq")
 case "greater":
 ;
 mml.Nop();
-_op = _greater
+_op = mml.Ref(_code, "greater")
 case "greater-or-eq":
 ;
 mml.Nop();
-_op = _greaterOrEq
+_op = mml.Ref(_code, "greaterOrEq")
 case "logical-and":
 ;
 mml.Nop();
-_op = _logicalAnd
+_op = mml.Ref(_code, "logicalAnd")
 case "logical-or":
 ;
 mml.Nop();
-_op = _logicalOr
+_op = mml.Ref(_code, "logicalOr")
 };
 return func() interface{} { s := make(map[string]interface{}); s["type"] = "binary";s["op"] = _op;s["left"] = _parse.(*mml.Function).Call(append([]interface{}{}, func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_ast, "nodes"))), 3); if c.(bool) { return func() interface{} { s := make(map[string]interface{}); s["name"] = mml.Ref(_ast, "name");s["nodes"] = mml.RefRange(mml.Ref(_ast, "nodes"), nil, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_ast, "nodes"))), 2));; return s }() } else { return mml.Ref(mml.Ref(_ast, "nodes"), 0) } }()));s["right"] = _parse.(*mml.Function).Call(append([]interface{}{}, mml.Ref(mml.Ref(_ast, "nodes"), mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_ast, "nodes"))), 1))));; return s }();
 				return nil
@@ -5394,7 +6610,7 @@ _findExportNames = &mml.Function{
 				return mml.Ref(_d, "exported")
 			},
 			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, _getFlattenedStatements.(*mml.Function).Call(append([]interface{}{}, "definition", "definition-list", "definitions")).(*mml.Function).Call(append([]interface{}{}, _statements))))))
+		})).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_code, "getFlattenedStatements").(*mml.Function).Call(append([]interface{}{}, "definition", "definition-list", "definitions")).(*mml.Function).Call(append([]interface{}{}, _statements))))))
 			},
 			FixedArgs: 1,
 		};
@@ -5405,14 +6621,14 @@ _parseModules = &mml.Function{
 				var _path = a[0];
 				;
 				mml.Nop(_path);
-				var _code interface{};
+				var _module interface{};
 var _uses interface{};
 var _usesModules interface{};
 var _statements interface{};
 var _pimpedCode interface{};
-mml.Nop(_code, _uses, _usesModules, _statements, _pimpedCode);
-_code = _parseFile.(*mml.Function).Call(append([]interface{}{}, _path));
-_uses = _getFlattenedStatements.(*mml.Function).Call(append([]interface{}{}, "use", "use-list", "uses", mml.Ref(_code, "statements")));
+mml.Nop(_module, _uses, _usesModules, _statements, _pimpedCode);
+_module = _parseFile.(*mml.Function).Call(append([]interface{}{}, _path));
+_uses = mml.Ref(_code, "getFlattenedStatements").(*mml.Function).Call(append([]interface{}{}, "use", "use-list", "uses", mml.Ref(_module, "statements")));
 _usesModules = _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -5505,8 +6721,8 @@ return func() interface{} { s := make(map[string]interface{}); s["type"] = mml.R
 				return nil
 			},
 			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_code, "statements")));
-_pimpedCode = func() interface{} { s := make(map[string]interface{}); s["type"] = mml.Ref(_code, "type");s["path"] = _path;s["statements"] = _statements;; return s }();
+		})).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_module, "statements")));
+_pimpedCode = func() interface{} { s := make(map[string]interface{}); s["type"] = mml.Ref(_module, "type");s["path"] = _path;s["statements"] = _statements;; return s }();
 return append(append([]interface{}{}, _pimpedCode), _usesModules.([]interface{})...);
 				return nil
 			},
@@ -5514,119 +6730,49 @@ return append(append([]interface{}{}, _pimpedCode), _usesModules.([]interface{})
 		}; exports["parseModules"] = _parseModules
 			return exports
 		})
-	modulePath = "errors.mml"
+	modulePath = "lang.mml"
 		mml.Modules.Set(modulePath, func() map[string]interface{} {
 			exports := make(map[string]interface{})
 
 			var c interface{}
 			mml.Nop(c)
-	var _ifErr interface{};
-var _not interface{};
-var _yes interface{};
-var _passErr interface{};
-var _onlyErr interface{};
-var _anyErr interface{};
-var _fold interface{};
+	var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
 var _contains interface{};
 var _sort interface{};
-mml.Nop(_ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _fold, _foldr, _map, _filter, _contains, _sort);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"];
-_ifErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _mod = a[0];
-var _f = a[1];
-				;
-				mml.Nop(_mod, _f);
-				return &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _a = a[0];
-				;
-				mml.Nop(_a);
-				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
-			},
-			FixedArgs: 1,
-		}
-			},
-			FixedArgs: 2,
-		}; exports["ifErr"] = _ifErr;
-_not = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _x = a[0];
-				;
-				mml.Nop(_x);
-				return !_x.(bool)
-			},
-			FixedArgs: 1,
-		}; exports["not"] = _not;
-_yes = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _x = a[0];
-				;
-				mml.Nop(_x);
-				return _x
-			},
-			FixedArgs: 1,
-		}; exports["yes"] = _yes;
-_passErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-				;
-				mml.Nop(_f);
-				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
-			},
-			FixedArgs: 1,
-		}; exports["passErr"] = _passErr;
-_onlyErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0];
-				;
-				mml.Nop(_f);
-				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
-			},
-			FixedArgs: 1,
-		}; exports["onlyErr"] = _onlyErr;
-_anyErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _l = a[0];
-				;
-				mml.Nop(_l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 1,
-		}; exports["anyErr"] = _anyErr
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
+var _enum interface{};
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+var _logger interface{};
+var _list interface{};
+var _strings interface{};
+var _ints interface{};
+var _errors interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _logger, _list, _strings, _ints, _errors);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml")
+;_ints = mml.Modules.Use("ints.mml")
+;_logger = mml.Modules.Use("log.mml")
+;_errors = mml.Modules.Use("errors.mml");
+_fold = mml.Ref(_list, "fold"); exports["fold"] = _fold;
+_foldr = mml.Ref(_list, "foldr"); exports["foldr"] = _foldr;
+_map = mml.Ref(_list, "map"); exports["map"] = _map;
+_filter = mml.Ref(_list, "filter"); exports["filter"] = _filter;
+_contains = mml.Ref(_list, "contains"); exports["contains"] = _contains;
+_sort = mml.Ref(_list, "sort"); exports["sort"] = _sort;
+_join = mml.Ref(_strings, "join"); exports["join"] = _join;
+_joins = mml.Ref(_strings, "joins"); exports["joins"] = _joins;
+_formats = mml.Ref(_strings, "formats"); exports["formats"] = _formats;
+_enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
+_log = mml.Ref(_logger, "log"); exports["log"] = _log;
+_onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
+_passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
 			return exports
 		})
 	modulePath = "list.mml"
@@ -5760,19 +6906,13 @@ var _l = a[1];
 		}; exports["sort"] = _sort
 			return exports
 		})
-	modulePath = "log.mml"
+	modulePath = "strings.mml"
 		mml.Modules.Set(modulePath, func() map[string]interface{} {
 			exports := make(map[string]interface{})
 
 			var c interface{}
 			mml.Nop(c)
-	var _log interface{};
-var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
+	var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -5780,20 +6920,245 @@ var _formats interface{};
 var _formatOne interface{};
 var _escape interface{};
 var _unescape interface{};
-mml.Nop(_log, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"]
-;var __strings = mml.Modules.Use("strings.mml");;_join = __strings["join"];
-_joins = __strings["joins"];
-_joinTwo = __strings["joinTwo"];
-_formats = __strings["formats"];
-_formatOne = __strings["formatOne"];
-_escape = __strings["escape"];
-_unescape = __strings["unescape"];
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
+			return exports
+		})
+	modulePath = "ints.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _counter interface{};
+var _enum interface{};
+mml.Nop(_counter, _enum);
+_counter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				;
+				;
+				mml.Nop();
+				var _c interface{};
+mml.Nop(_c);
+_c = mml.UnaryOp(2, 1);
+return &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				;
+				;
+				mml.Nop();
+				;
+mml.Nop();
+_c = mml.BinaryOp(9, _c, 1);
+return _c;
+				return nil
+			},
+			FixedArgs: 0,
+		};
+				return nil
+			},
+			FixedArgs: 0,
+		}; exports["counter"] = _counter;
+_enum = _counter; exports["enum"] = _enum
+			return exports
+		})
+	modulePath = "log.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _log interface{};
+var _list interface{};
+var _strings interface{};
+mml.Nop(_log, _list, _strings);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml");
 _log = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -5803,7 +7168,7 @@ _log = &mml.Function{
 				mml.Nop(_a);
 				;
 mml.Nop();
-_stderr.(*mml.Function).Call(append([]interface{}{}, _join.(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
+_stderr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
 _stderr.(*mml.Function).Call(append([]interface{}{}, "\n"));
 return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 0); if c.(bool) { return "" } else { return mml.Ref(_a, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 1)) } }();
 				return nil
@@ -6143,206 +7508,109 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 		}; exports["unescape"] = _unescape
 			return exports
 		})
-	modulePath = "list.mml"
+	modulePath = "errors.mml"
 		mml.Modules.Set(modulePath, func() map[string]interface{} {
 			exports := make(map[string]interface{})
 
 			var c interface{}
 			mml.Nop(c)
-	var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
-_fold = &mml.Function{
+	var _ifErr interface{};
+var _not interface{};
+var _yes interface{};
+var _pass interface{};
+var _only interface{};
+var _any interface{};
+var _list interface{};
+mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list);
+_list = mml.Modules.Use("list.mml");
+_ifErr = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _f = a[0];
-var _i = a[1];
-var _l = a[2];
+				var _mod = a[0];
+var _f = a[1];
 				;
-				mml.Nop(_f, _i, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
-			},
-			FixedArgs: 3,
-		}; exports["fold"] = _fold;
-_foldr = &mml.Function{
+				mml.Nop(_mod, _f);
+				return &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _f = a[0];
-var _i = a[1];
-var _l = a[2];
+				var _a = a[0];
 				;
-				mml.Nop(_f, _i, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
-			},
-			FixedArgs: 3,
-		}; exports["foldr"] = _foldr;
-_map = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _m = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_m, _l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 2,
-		}; exports["map"] = _map;
-_filter = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _p = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_p, _l);
-				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _c = a[0];
-var _r = a[1];
-				;
-				mml.Nop(_c, _r);
-				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
-			},
-			FixedArgs: 2,
-		}, []interface{}{}, _l))
-			},
-			FixedArgs: 2,
-		}; exports["filter"] = _filter;
-_contains = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _i = a[0];
-var _l = a[1];
-				;
-				mml.Nop(_i, _l);
-				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _ii = a[0];
-				;
-				mml.Nop(_ii);
-				return mml.BinaryOp(11, _ii, _i)
+				mml.Nop(_a);
+				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
 			},
 			FixedArgs: 1,
-		}, _l)))), 0)
+		}
 			},
 			FixedArgs: 2,
-		}; exports["contains"] = _contains;
-_sort = &mml.Function{
+		};
+_not = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _less = a[0];
-var _l = a[1];
+				var _x = a[0];
 				;
-				mml.Nop(_less, _l);
-				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _i = a[0];
-				;
-				mml.Nop(_i);
-				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
-			},
-			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
-			},
-			FixedArgs: 2,
-		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "statements.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
-
-			var c interface{}
-			mml.Nop(c)
-	var _getFlattenedStatements interface{};
-var _fold interface{};
-var _foldr interface{};
-var _map interface{};
-var _filter interface{};
-var _contains interface{};
-var _sort interface{};
-mml.Nop(_getFlattenedStatements, _fold, _foldr, _map, _filter, _contains, _sort);
-var __list = mml.Modules.Use("list.mml");;_fold = __list["fold"];
-_foldr = __list["foldr"];
-_map = __list["map"];
-_filter = __list["filter"];
-_contains = __list["contains"];
-_sort = __list["sort"];
-_getFlattenedStatements = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _itemType = a[0];
-var _listType = a[1];
-var _listProp = a[2];
-var _statements = a[3];
-				;
-				mml.Nop(_itemType, _listType, _listProp, _statements);
-				var _toList interface{};
-mml.Nop(_toList);
-_toList = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _s = a[0];
-				;
-				mml.Nop(_s);
-				return func () interface{} { c = mml.BinaryOp(11, mml.Ref(_s, "type"), _itemType); if c.(bool) { return append([]interface{}{}, _s) } else { return mml.Ref(_s, _listProp) } }()
+				mml.Nop(_x);
+				return !_x.(bool)
 			},
 			FixedArgs: 1,
 		};
-return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+_yes = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _s = a[0];
-var _result = a[1];
+				var _x = a[0];
 				;
-				mml.Nop(_s, _result);
-				return append(append([]interface{}{}, _result.([]interface{})...), _toList.(*mml.Function).Call(append([]interface{}{}, _s)).([]interface{})...)
-			},
-			FixedArgs: 2,
-		}, []interface{}{})).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _s = a[0];
-				;
-				mml.Nop(_s);
-				return (_has.(*mml.Function).Call(append([]interface{}{}, "type", _s)).(bool) && _contains.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "type"), append([]interface{}{}, _itemType, _listType))).(bool))
+				mml.Nop(_x);
+				return _x
 			},
 			FixedArgs: 1,
-		})).(*mml.Function).Call(append([]interface{}{}, _statements))));
-				return nil
+		};
+_pass = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
 			},
-			FixedArgs: 4,
-		}; exports["getFlattenedStatements"] = _getFlattenedStatements
+			FixedArgs: 1,
+		}; exports["pass"] = _pass;
+_only = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
+			},
+			FixedArgs: 1,
+		}; exports["only"] = _only;
+_any = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _l = a[0];
+				;
+				mml.Nop(_l);
+				return mml.Ref(_list, "fold").(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 1,
+		}; exports["any"] = _any
 			return exports
 		})
 	modulePath = "list.mml"
@@ -6510,11 +7778,34 @@ var _greater interface{};
 var _greaterOrEq interface{};
 var _logicalAnd interface{};
 var _logicalOr interface{};
-var _counter interface{};
+var _getFlattenedStatements interface{};
+var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
 var _enum interface{};
-mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _counter, _enum);
-var __ints = mml.Modules.Use("ints.mml");;_counter = __ints["counter"];
-_enum = __ints["enum"];
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _getFlattenedStatements, _fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+var __lang = mml.Modules.Use("lang.mml");;_fold = __lang["fold"];
+_foldr = __lang["foldr"];
+_map = __lang["map"];
+_filter = __lang["filter"];
+_contains = __lang["contains"];
+_sort = __lang["sort"];
+_join = __lang["join"];
+_joins = __lang["joins"];
+_formats = __lang["formats"];
+_enum = __lang["enum"];
+_log = __lang["log"];
+_onlyErr = __lang["onlyErr"];
+_passErr = __lang["passErr"];
 _controlStatement = _enum.(*mml.Function).Call([]interface{}{}); exports["controlStatement"] = _controlStatement;
 _breakControl = _controlStatement.(*mml.Function).Call([]interface{}{}); exports["breakControl"] = _breakControl;
 _continueControl = _controlStatement.(*mml.Function).Call([]interface{}{}); exports["continueControl"] = _continueControl;
@@ -6542,7 +7833,432 @@ _lessOrEq = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["lessOrEq"]
 _greater = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["greater"] = _greater;
 _greaterOrEq = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["greaterOrEq"] = _greaterOrEq;
 _logicalAnd = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["logicalAnd"] = _logicalAnd;
-_logicalOr = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["logicalOr"] = _logicalOr
+_logicalOr = _binaryOp.(*mml.Function).Call([]interface{}{}); exports["logicalOr"] = _logicalOr;
+_getFlattenedStatements = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _itemType = a[0];
+var _listType = a[1];
+var _listProp = a[2];
+var _statements = a[3];
+				;
+				mml.Nop(_itemType, _listType, _listProp, _statements);
+				var _toList interface{};
+mml.Nop(_toList);
+_toList = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				return func () interface{} { c = mml.BinaryOp(11, mml.Ref(_s, "type"), _itemType); if c.(bool) { return append([]interface{}{}, _s) } else { return mml.Ref(_s, _listProp) } }()
+			},
+			FixedArgs: 1,
+		};
+return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+var _result = a[1];
+				;
+				mml.Nop(_s, _result);
+				return append(append([]interface{}{}, _result.([]interface{})...), _toList.(*mml.Function).Call(append([]interface{}{}, _s)).([]interface{})...)
+			},
+			FixedArgs: 2,
+		}, []interface{}{})).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				return (_has.(*mml.Function).Call(append([]interface{}{}, "type", _s)).(bool) && _contains.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_s, "type"), append([]interface{}{}, _itemType, _listType))).(bool))
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, _statements))));
+				return nil
+			},
+			FixedArgs: 4,
+		}; exports["getFlattenedStatements"] = _getFlattenedStatements
+			return exports
+		})
+	modulePath = "lang.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+var _join interface{};
+var _joins interface{};
+var _formats interface{};
+var _enum interface{};
+var _log interface{};
+var _onlyErr interface{};
+var _passErr interface{};
+var _logger interface{};
+var _list interface{};
+var _strings interface{};
+var _ints interface{};
+var _errors interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _logger, _list, _strings, _ints, _errors);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml")
+;_ints = mml.Modules.Use("ints.mml")
+;_logger = mml.Modules.Use("log.mml")
+;_errors = mml.Modules.Use("errors.mml");
+_fold = mml.Ref(_list, "fold"); exports["fold"] = _fold;
+_foldr = mml.Ref(_list, "foldr"); exports["foldr"] = _foldr;
+_map = mml.Ref(_list, "map"); exports["map"] = _map;
+_filter = mml.Ref(_list, "filter"); exports["filter"] = _filter;
+_contains = mml.Ref(_list, "contains"); exports["contains"] = _contains;
+_sort = mml.Ref(_list, "sort"); exports["sort"] = _sort;
+_join = mml.Ref(_strings, "join"); exports["join"] = _join;
+_joins = mml.Ref(_strings, "joins"); exports["joins"] = _joins;
+_formats = mml.Ref(_strings, "formats"); exports["formats"] = _formats;
+_enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
+_log = mml.Ref(_logger, "log"); exports["log"] = _log;
+_onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
+_passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "strings.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _firstOr interface{};
+var _join interface{};
+var _joins interface{};
+var _joinTwo interface{};
+var _formats interface{};
+var _formatOne interface{};
+var _escape interface{};
+var _unescape interface{};
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
 			return exports
 		})
 	modulePath = "ints.mml"
@@ -6584,6 +8300,603 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
+			return exports
+		})
+	modulePath = "log.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _log interface{};
+var _list interface{};
+var _strings interface{};
+mml.Nop(_log, _list, _strings);
+_list = mml.Modules.Use("list.mml")
+;_strings = mml.Modules.Use("strings.mml");
+_log = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0:];
+				;
+				mml.Nop(_a);
+				;
+mml.Nop();
+_stderr.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call(append([]interface{}{}, " ")).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call(append([]interface{}{}, _string)).(*mml.Function).Call(append([]interface{}{}, _a))))));
+_stderr.(*mml.Function).Call(append([]interface{}{}, "\n"));
+return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 0); if c.(bool) { return "" } else { return mml.Ref(_a, mml.BinaryOp(10, _len.(*mml.Function).Call(append([]interface{}{}, _a)), 1)) } }();
+				return nil
+			},
+			FixedArgs: 0,
+		}; exports["log"] = _log
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
+			return exports
+		})
+	modulePath = "strings.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _firstOr interface{};
+var _join interface{};
+var _joins interface{};
+var _joinTwo interface{};
+var _formats interface{};
+var _formatOne interface{};
+var _escape interface{};
+var _unescape interface{};
+mml.Nop(_firstOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape);
+_firstOr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_v, _l);
+				return func () interface{} { c = mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return mml.Ref(_l, 0) } else { return _v } }()
+			},
+			FixedArgs: 2,
+		};
+_join = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1];
+				;
+				mml.Nop(_j, _s);
+				return func () interface{} { c = mml.BinaryOp(13, _len.(*mml.Function).Call(append([]interface{}{}, _s)), 2); if c.(bool) { return _firstOr.(*mml.Function).Call(append([]interface{}{}, "", _s)) } else { return mml.BinaryOp(9, mml.BinaryOp(9, mml.Ref(_s, 0), _j), _join.(*mml.Function).Call(append([]interface{}{}, _j, mml.RefRange(_s, 1, nil)))) } }()
+			},
+			FixedArgs: 2,
+		}; exports["join"] = _join;
+_joins = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _s = a[1:];
+				;
+				mml.Nop(_j, _s);
+				return _join.(*mml.Function).Call(append([]interface{}{}, _j, _s))
+			},
+			FixedArgs: 1,
+		}; exports["joins"] = _joins;
+_joinTwo = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _j = a[0];
+var _left = a[1];
+var _right = a[2];
+				;
+				mml.Nop(_j, _left, _right);
+				return _joins.(*mml.Function).Call(append([]interface{}{}, _j, _left, _right))
+			},
+			FixedArgs: 3,
+		}; exports["joinTwo"] = _joinTwo;
+_formats = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1:];
+				;
+				mml.Nop(_f, _a);
+				return _format.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 1,
+		}; exports["formats"] = _formats;
+_formatOne = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _a = a[1];
+				;
+				mml.Nop(_f, _a);
+				return _formats.(*mml.Function).Call(append([]interface{}{}, _f, _a))
+			},
+			FixedArgs: 2,
+		}; exports["formatOne"] = _formatOne;
+_escape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _first interface{};
+mml.Nop(_first);
+c = mml.BinaryOp(11, _s, ""); if c.(bool) { ;
+mml.Nop();
+return "" };
+_first = mml.Ref(_s, 0);
+switch _first {
+case "\b":
+;
+mml.Nop();
+_first = "\\b"
+case "\f":
+;
+mml.Nop();
+_first = "\\f"
+case "\n":
+;
+mml.Nop();
+_first = "\\n"
+case "\r":
+;
+mml.Nop();
+_first = "\\r"
+case "\t":
+;
+mml.Nop();
+_first = "\\t"
+case "\v":
+;
+mml.Nop();
+_first = "\\v"
+case "\"":
+;
+mml.Nop();
+_first = "\\\""
+case "\\":
+;
+mml.Nop();
+_first = "\\\\"
+};
+return mml.BinaryOp(9, _first, _escape.(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_s, 1, nil))));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["escape"] = _escape;
+_unescape = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _s = a[0];
+				;
+				mml.Nop(_s);
+				var _esc interface{};
+var _r interface{};
+mml.Nop(_esc, _r);
+_esc = false;
+_r = []interface{}{};
+for _i := 0; _i < _len.(*mml.Function).Call(append([]interface{}{}, _s)).(int); _i++ {
+var _c interface{};
+mml.Nop(_c);
+_c = mml.Ref(_s, _i);
+c = _esc; if c.(bool) { ;
+mml.Nop();
+switch _c {
+case "b":
+;
+mml.Nop();
+_c = "\b"
+case "f":
+;
+mml.Nop();
+_c = "\f"
+case "n":
+;
+mml.Nop();
+_c = "\n"
+case "r":
+;
+mml.Nop();
+_c = "\r"
+case "t":
+;
+mml.Nop();
+_c = "\t"
+case "v":
+;
+mml.Nop();
+_c = "\v"
+};
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c);
+_esc = false;
+continue };
+c = mml.BinaryOp(11, _c, "\\"); if c.(bool) { ;
+mml.Nop();
+_esc = true;
+continue };
+_r = append(append([]interface{}{}, _r.([]interface{})...), _c)
+};
+return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
+				return nil
+			},
+			FixedArgs: 1,
+		}; exports["unescape"] = _unescape
+			return exports
+		})
+	modulePath = "errors.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _ifErr interface{};
+var _not interface{};
+var _yes interface{};
+var _pass interface{};
+var _only interface{};
+var _any interface{};
+var _list interface{};
+mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list);
+_list = mml.Modules.Use("list.mml");
+_ifErr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _mod = a[0];
+var _f = a[1];
+				;
+				mml.Nop(_mod, _f);
+				return &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _a = a[0];
+				;
+				mml.Nop(_a);
+				return func () interface{} { c = _mod.(*mml.Function).Call(append([]interface{}{}, _isError.(*mml.Function).Call(append([]interface{}{}, _a)))); if c.(bool) { return _f.(*mml.Function).Call(append([]interface{}{}, _a)) } else { return _a } }()
+			},
+			FixedArgs: 1,
+		}
+			},
+			FixedArgs: 2,
+		};
+_not = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return !_x.(bool)
+			},
+			FixedArgs: 1,
+		};
+_yes = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _x = a[0];
+				;
+				mml.Nop(_x);
+				return _x
+			},
+			FixedArgs: 1,
+		};
+_pass = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _not, _f))
+			},
+			FixedArgs: 1,
+		}; exports["pass"] = _pass;
+_only = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+				;
+				mml.Nop(_f);
+				return _ifErr.(*mml.Function).Call(append([]interface{}{}, _yes, _f))
+			},
+			FixedArgs: 1,
+		}; exports["only"] = _only;
+_any = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _l = a[0];
+				;
+				mml.Nop(_l);
+				return mml.Ref(_list, "fold").(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _r)); if c.(bool) { return _r } else { return func () interface{} { c = _isError.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return _c } else { return append(append([]interface{}{}, _r.([]interface{})...), _c) } }() } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 1,
+		}; exports["any"] = _any
+			return exports
+		})
+	modulePath = "list.mml"
+		mml.Modules.Set(modulePath, func() map[string]interface{} {
+			exports := make(map[string]interface{})
+
+			var c interface{}
+			mml.Nop(c)
+	var _fold interface{};
+var _foldr interface{};
+var _map interface{};
+var _filter interface{};
+var _contains interface{};
+var _sort interface{};
+mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort);
+_fold = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _fold.(*mml.Function).Call(append([]interface{}{}, _f, _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)), mml.RefRange(_l, 1, nil))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["fold"] = _fold;
+_foldr = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _f = a[0];
+var _i = a[1];
+var _l = a[2];
+				;
+				mml.Nop(_f, _i, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return _i } else { return _f.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _foldr.(*mml.Function).Call(append([]interface{}{}, _f, _i, mml.RefRange(_l, 1, nil))))) } }()
+			},
+			FixedArgs: 3,
+		}; exports["foldr"] = _foldr;
+_map = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _m = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_m, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return append(append([]interface{}{}, _r.([]interface{})...), _m.(*mml.Function).Call(append([]interface{}{}, _c)))
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["map"] = _map;
+_filter = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_p, _l);
+				return _fold.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _c = a[0];
+var _r = a[1];
+				;
+				mml.Nop(_c, _r);
+				return func () interface{} { c = _p.(*mml.Function).Call(append([]interface{}{}, _c)); if c.(bool) { return append(append([]interface{}{}, _r.([]interface{})...), _c) } else { return _r } }()
+			},
+			FixedArgs: 2,
+		}, []interface{}{}, _l))
+			},
+			FixedArgs: 2,
+		}; exports["filter"] = _filter;
+_contains = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_i, _l);
+				return mml.BinaryOp(15, _len.(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _ii = a[0];
+				;
+				mml.Nop(_ii);
+				return mml.BinaryOp(11, _ii, _i)
+			},
+			FixedArgs: 1,
+		}, _l)))), 0)
+			},
+			FixedArgs: 2,
+		}; exports["contains"] = _contains;
+_sort = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _less = a[0];
+var _l = a[1];
+				;
+				mml.Nop(_less, _l);
+				return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(append([]interface{}{}, _l)), 0); if c.(bool) { return []interface{}{} } else { return append(append(append([]interface{}{}, _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0];
+				;
+				mml.Nop(_i);
+				return !_less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0), _i)).(bool)
+			},
+			FixedArgs: 1,
+		})).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...), mml.Ref(_l, 0)), _sort.(*mml.Function).Call(append([]interface{}{}, _less)).(*mml.Function).Call(append([]interface{}{}, _filter.(*mml.Function).Call(append([]interface{}{}, _less.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_l, 0))))).(*mml.Function).Call(append([]interface{}{}, mml.RefRange(_l, 1, nil))))).([]interface{})...) } }()
+			},
+			FixedArgs: 2,
+		}; exports["sort"] = _sort
 			return exports
 		})
 	modulePath = "strings.mml"

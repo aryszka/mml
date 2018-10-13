@@ -1,22 +1,19 @@
 use (
-	. "errors"
-	. "log"
-	. "list"
-	. "statements"
-	. "code"
-	. "strings"
+	. "lang"
+	"code"
+	"strings"
 )
 
 fn parseString(ast) {
-	return unescape(ast.text[1:len(ast.text) - 1])
+	return strings.unescape(ast.text[1:len(ast.text) - 1])
 }
 
 fn parseSymbol(ast) {
 	switch ast.text {
 	case "break":
-		return {type: "control-statement", control: breakControl}
+		return {type: "control-statement", control: code.breakControl}
 	case "continue":
-		return {type: "control-statement", control: continueControl}
+		return {type: "control-statement", control: code.continueControl}
 	// TODO: all the keywords
 	default:
 		return {type: "symbol", name: ast.text}
@@ -152,14 +149,14 @@ fn parseFunctionApplication(ast) {
 }
 
 fn parseUnaryExpression(ast) {
-	let ~ op binaryNot
+	let ~ op code.binaryNot
 	switch ast.nodes[0].name {
 	case "plus":
-		op = plus
+		op = code.plus
 	case "minus":
-		op = minus
+		op = code.minus
 	case "logical-not":
-		op = logicalNot
+		op = code.logicalNot
 	}
 
 	return {
@@ -170,42 +167,42 @@ fn parseUnaryExpression(ast) {
 }
 
 fn parseBinaryExpression(ast) {
-	let ~ op binaryAnd
+	let ~ op code.binaryAnd
 	switch ast.nodes[len(ast.nodes)-2].name {
 	case "xor":
-		op = xor
+		op = code.xor
 	case "and-not":
-		op = andNot
+		op = code.andNot
 	case "lshift":
-		op = lshift
+		op = code.lshift
 	case "rshift":
-		op = rshift
+		op = code.rshift
 	case "mul":
-		op = mul
+		op = code.mul
 	case "div":
-		op = div
+		op = code.div
 	case "mod":
-		op = mod
+		op = code.mod
 	case "add":
-		op = add
+		op = code.add
 	case "sub":
-		op = sub
+		op = code.sub
 	case "eq":
-		op = eq
+		op = code.eq
 	case "not-eq":
-		op = notEq
+		op = code.notEq
 	case "less":
-		op = less
+		op = code.less
 	case "less-or-eq":
-		op = lessOrEq
+		op = code.lessOrEq
 	case "greater":
-		op = greater
+		op = code.greater
 	case "greater-or-eq":
-		op = greaterOrEq
+		op = code.greaterOrEq
 	case "logical-and":
-		op = logicalAnd
+		op = code.logicalAnd
 	case "logical-or":
-		op = logicalOr
+		op = code.logicalOr
 	}
 
 	return {
@@ -764,7 +761,7 @@ fn parseFile(path) {
 
 fn findExportNames(statements)
 	statements
-	-> getFlattenedStatements("definition", "definition-list", "definitions")
+	-> code.getFlattenedStatements("definition", "definition-list", "definitions")
 	-> filter(fn (d) d.exported)
 	-> map(fn (d) d.symbol)
 
@@ -774,8 +771,8 @@ export fn parseModules(path) {
 	// - this only considers the top level uses, while it is allowed to have lower level uses
 
 	let (
-		code parseFile(path)
-		uses getFlattenedStatements("use", "use-list", "uses", code.statements)
+		module parseFile(path)
+		uses code.getFlattenedStatements("use", "use-list", "uses", module.statements)
 	)
 
 	let usesModules uses
@@ -789,7 +786,7 @@ export fn parseModules(path) {
 		exportNames: findExportNames(m.statements)
 	})
 
-	let statements code.statements
+	let statements module.statements
 	-> map(fn (s) {
 		if !has("type", s) || s.type != "use" && s.type != "use-list" {
 			return s
@@ -828,7 +825,7 @@ export fn parseModules(path) {
 	})
 
 	let pimpedCode {
-		type: code.type
+		type: module.type
 		path: path
 		statements: statements
 	}

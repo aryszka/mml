@@ -1,10 +1,13 @@
-use . "list"
+use "list"
 
-export fn (
+fn (
 	ifErr(mod, f) fn~ (a) mod(isError(a)) ? f(a) : a
 	not(x)        !x
 	yes(x)        x
-	passErr(f)    ifErr(not, f)
-	onlyErr(f)    ifErr(yes, f)
-	anyErr(l)     fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
+)
+
+export fn (
+	pass(f)    ifErr(not, f)
+	only(f)    ifErr(yes, f)
+	any(l)     list.fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
 )

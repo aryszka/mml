@@ -1,15 +1,12 @@
 use (
-	. "list"
-	. "errors"
-	. "strings"
-	. "ints"
-	. "log"
-	. "statements"
-	. "code"
+	. "lang"
+	"errors"
+	"code"
+	"strings"
 )
 
 fn (
-	passErrFormat(fmt, ...p) p -> anyErr -> passErr(format(fmt))
+	passErrFormat(fmt, ...p) p -> errors.any -> passErr(format(fmt))
 	notEmpty(l)              l -> filter(fn (s) s != "")
 )
 
@@ -22,18 +19,25 @@ let (
 // TODO: take unique
 fn getScope(...statements) {
 	let (
-		defs getFlattenedStatements("definition", "definition-list", "definitions", statements)
-		uses getFlattenedStatements("use", "use-list", "uses", statements)
+		defs code.getFlattenedStatements("definition", "definition-list", "definitions", statements)
+		uses code.getFlattenedStatements("use", "use-list", "uses", statements)
 		inlineUses uses
 		-> filter(fn (u) u.capture == ".")
 		-> filter(has("exportNames"))
 		-> map(fn (u) u.exportNames)
 		-> fold(fn (current, result) [result..., current...], [])
-		notInlineUses uses
-		-> filter(fn (u) u.capture != ".")
+		namedUses uses
+		-> filter(fn (u) u.capture != "." && u.capture != "")
+		unnamedUses uses
+		-> filter(fn (u) u.capture == "")
 	)
 
-	return [map(fn (d) d.symbol, defs)..., map(fn (u) u.path, notInlineUses)..., inlineUses...]
+	return [
+		map(fn (d) d.symbol, defs)...
+		map(fn (u) u.capture, namedUses)...
+		map(fn (u) u.path, unnamedUses)...
+		inlineUses...
+	]
 }
 
 // TODO:
@@ -41,10 +45,10 @@ fn getScope(...statements) {
 // - struct keys should not be prefixed by "_"
 // - spread for maps
 fn (
-	mapCompile(l)         l -> map(compile) -> anyErr
+	mapCompile(l)         l -> map(compile) -> errors.any
 	mapCompileJoin(j, l)  l -> mapCompile -> passErr(join(j))
 	compileComment(_)     ""
-	compileString(s)      formats("\"%s\"", escape(s))
+	compileString(s)      formats("\"%s\"", strings.escape(s))
 	compileSymbol(s)      formats("_%s", s.name)
 	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
 	compileSpread(s)      passErrFormat("%s.([]interface{})...", compile(s.value))
@@ -56,7 +60,7 @@ fn (
 	compileDefinitions(l) mapCompileJoin(";\n", l.definitions)
 	compileAssigns(l)     mapCompileJoin(";\n", l.assignments)
 	compileRet(r)         passErrFormat("return %s", compile(r.value))
-	compileControl(c)     c.control == breakControl ? "break" : "continue"
+	compileControl(c)     c.control == code.breakControl ? "break" : "continue"
 )
 
 fn compileList(l) {
@@ -163,7 +167,7 @@ fn compileFunction(f) {
 		f.statement.type == "statement-list"
 	let scope getScope(f.statement)
 	let paramNames f.collectParam == "" ? f.params : [f.params..., f.collectParam]
-	let scopeNames join(", ", map(formatOne("_%s"), [scope..., paramNames...]))
+	let scopeNames join(", ", map(strings.formatOne("_%s"), [scope..., paramNames...]))
 	let scopeDefs scope
 		-> map(fn (s) formats("var _%s interface{}", s))
 		-> join(";\n")
@@ -260,7 +264,7 @@ fn compileUnary(u) {
 	}
 
 	switch u.op {
-	case logicalNot:
+	case code.logicalNot:
 		if !isBool(u.arg) {
 			arg = arg + ".(bool)"
 		}
@@ -272,7 +276,7 @@ fn compileUnary(u) {
 }
 
 fn compileBinary(b) {
-	if b.op != logicalAnd && b.op != logicalOr {
+	if b.op != code.logicalAnd && b.op != code.logicalOr {
 		return passErrFormat(
 			"mml.BinaryOp(%s, %s, %s)"
 			compile(b.op)
@@ -283,8 +287,8 @@ fn compileBinary(b) {
 
 	fn isBoolOp(c)
 		has("type", c) &&
-		(c.type == "unary" && c.op == logicalNot) ||
-		(c.type == "binary" && (c.op == logicalAnd || c.op == logicalOr))
+		(c.type == "unary" && c.op == code.logicalNot) ||
+		(c.type == "binary" && (c.op == code.logicalAnd || c.op == code.logicalOr))
 
 	let ~ left compile(b.left)
 	if isError(left) {
@@ -305,7 +309,7 @@ fn compileBinary(b) {
 	}
 
 	let ~ op "&&"
-	if b.op == logicalOr {
+	if b.op == code.logicalOr {
 		op = "||"
 	}
 
@@ -343,7 +347,7 @@ fn compileSwitch(s) {
 		return exp
 	}
 
-	let cases s.cases -> map(compile) -> anyErr
+	let cases s.cases -> map(compile) -> errors.any
 	if isError(cases) {
 		return cases
 	}
@@ -366,12 +370,12 @@ fn compileSelect(s)
 	-> map(compile)
 	-> fn (c) (
 		s.hasDefault ?
-		[c..., s.defaultStatements -> compile -> passErr(formatOne("default:\n%s")) ] :
+		[c..., s.defaultStatements -> compile -> passErr(strings.formatOne("default:\n%s")) ] :
 		c
 	)
-	-> anyErr
+	-> errors.any
 	-> passErr(join("\n"))
-	-> passErr(formatOne("func() interface{} {\nselect {\n%s\n} }()"))
+	-> passErr(strings.formatOne("func() interface{} {\nselect {\n%s\n} }()"))
 
 fn compileRangeOver(r) {
 	fn infiniteCounter() passErrFormat(
@@ -453,7 +457,7 @@ fn compileStatements(s) {
 	let scopeDefs scope
 		-> map(fn (s) formats("var _%s interface{}", s))
 		-> join(";\n")
-	let scopeNames join(", ", map(formatOne("_%s"), scope))
+	let scopeNames join(", ", map(strings.formatOne("_%s"), scope))
 	let statements mapCompile(s) -> passErr(notEmpty) -> passErr(join(";\n"))
 	return formats("%s;\nmml.Nop(%s);\n%s", scopeDefs, scopeNames, statements)
 }
@@ -494,7 +498,7 @@ fn compileUse(u) {
 	case u.capture != "":
 		return formats(
 			"_%s = mml.Modules.Use(\"%s.mml\")"
-			getModuleName(u.path)
+			u.capture
 			u.path
 		)
 	default:

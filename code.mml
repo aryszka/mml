@@ -1,4 +1,4 @@
-use . "ints"
+use . "lang"
 
 export let (
 	controlStatement enum()
@@ -36,3 +36,10 @@ export let (
 	logicalAnd  binaryOp()
 	logicalOr   binaryOp()
 )
+
+export fn getFlattenedStatements(itemType, listType, listProp, statements) {
+	fn toList(s) s.type == itemType ? [s] : s[listProp]
+	return statements
+	-> filter(fn (s) has("type", s) && contains(s.type, [itemType, listType]))
+	-> fold(fn (s, result) [result..., toList(s)...], [])
+}

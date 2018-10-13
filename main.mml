@@ -1,10 +1,7 @@
 use (
-	. "list"
-	. "strings"
-	. "errors"
-	. "log"
-	. "compile"
-	. "parse"
+	. "lang"
+	"compile"
+	"parse"
 )
 
 let builtin {
@@ -48,7 +45,7 @@ fn compileModuleCode(moduleCode) {
 	")
 
 	moduleCode
-	-> compile
+	-> compile.compile
 	-> passErr(stdout)
 	-> onlyErr(log)
 
@@ -79,7 +76,7 @@ stdout("
 		var modulePath string
 ")
 
-let modules parseModules(args[1])
+let modules parse.parseModules(args[1])
 compileModules(modules)
 
 stdout("

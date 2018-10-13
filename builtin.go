@@ -352,6 +352,46 @@ func BinaryOp(op int, left, right interface{}) interface{} {
 
 func Nop(...interface{}) {}
 
+var IsError = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(error)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsBool = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(bool)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsInt = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(int)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsFloat = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(float64)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsString = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(string)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
 var Len = &Function{
 	F: func(a []interface{}) interface{} {
 		switch at := a[0].(type) {
@@ -364,14 +404,6 @@ var Len = &Function{
 		default:
 			panic("len: unsupported code")
 		}
-	},
-	FixedArgs: 1,
-}
-
-var IsError = &Function{
-	F: func(a []interface{}) interface{} {
-		_, ok := a[0].(error)
-		return ok
 	},
 	FixedArgs: 1,
 }
@@ -554,38 +586,6 @@ var Has = &Function{
 		return ok
 	},
 	FixedArgs: 2,
-}
-
-var IsBool = &Function{
-	F: func(a []interface{}) interface{} {
-		_, ok := a[0].(bool)
-		return ok
-	},
-	FixedArgs: 1,
-}
-
-var IsInt = &Function{
-	F: func(a []interface{}) interface{} {
-		_, ok := a[0].(int)
-		return ok
-	},
-	FixedArgs: 1,
-}
-
-var IsFloat = &Function{
-	F: func(a []interface{}) interface{} {
-		_, ok := a[0].(float64)
-		return ok
-	},
-	FixedArgs: 1,
-}
-
-var IsString = &Function{
-	F: func(a []interface{}) interface{} {
-		_, ok := a[0].(string)
-		return ok
-	},
-	FixedArgs: 1,
 }
 
 var Error = &Function{
