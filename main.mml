@@ -1,7 +1,7 @@
 use (
 	. "lang"
-	"compile"
-	"parse"
+	  "compile"
+	  "parse"
 )
 
 let builtin {
@@ -19,6 +19,7 @@ let builtin {
 	isFloat:    "IsFloat"
 	isString:   "IsString"
 	error:      "Error"
+	panic:      "Panic"
 	open:       "Open"
 	close:      "Close"
 	args:       "Args"

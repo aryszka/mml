@@ -7,7 +7,7 @@ fn (
 )
 
 export fn (
-	pass(f)    ifErr(not, f)
-	only(f)    ifErr(yes, f)
-	any(l)     list.fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
+	pass(f) ifErr(not, f)
+	only(f) ifErr(yes, f)
+	any(l)  list.fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
 )

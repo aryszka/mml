@@ -14,6 +14,7 @@ export let (
 	filter list.filter
 	contains list.contains
 	sort list.sort
+	flat list.flat
 )
 
 // strings

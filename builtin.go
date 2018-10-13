@@ -595,6 +595,18 @@ var Error = &Function{
 	FixedArgs: 1,
 }
 
+var Panic = &Function{
+	F: func(a []interface{}) interface{} {
+		err, ok := a[0].(error)
+		if !ok {
+			err = fmt.Errorf("%v", a[0])
+		}
+
+		panic(err)
+	},
+	FixedArgs: 1,
+}
+
 var Open = &Function{
 	F: func(a []interface{}) interface{} {
 		f, err := os.Open(a[0].(string))
