@@ -31,12 +31,12 @@ fn getScope(...statements) {
 	let unnamedUses uses
 	-> filter(fn (u) u.capture == "")
 
-	return [
-		map(fn (d) d.symbol, defs)...
-		map(fn (u) u.capture, namedUses)...
-		map(fn (u) u.path, unnamedUses)...
-		inlineUses...
-	]
+	return flat([
+		map(fn (d) d.symbol, defs)
+		map(fn (u) u.capture, namedUses)
+		map(fn (u) u.path, unnamedUses)
+		inlineUses
+	])
 }
 
 fn (
@@ -120,7 +120,7 @@ fn compileStruct(s) {
 		let v compile(e.value)
 		if e.type == "spread" {
 			let (
-				var formats("sp := %s.(map[string]interface{});", v)
+				var    formats("sp := %s.(map[string]interface{});", v)
 				assign "for k, v := range sp { s[k] = v };"
 			)
 
@@ -162,7 +162,7 @@ fn compileParamList(params, collectParam) {
 
 fn compileFunction(f) {
 	let (
-		scope getScope(f.statement)
+		scope      getScope(f.statement)
 		paramNames f.collectParam == "" ? f.params : [f.params..., f.collectParam]
 	)
 
@@ -255,7 +255,7 @@ fn compileBinary(b) {
 		(c.type == "binary" && (c.op == code.logicalAnd || c.op == code.logicalOr))
 
 	let ~ (
-		left compile(b.left)
+		left  compile(b.left)
 		right compile(b.right)
 	)
 
@@ -298,9 +298,9 @@ fn compileIf(c)
 
 fn compileSwitch(s) {
 	let (
-		hasDefault len(s.defaultStatements.statements) > 0
-		cases s.cases -> map(compile)
-		def hasDefault ? compile(s.defaultStatements) : ""
+		hasDefault  len(s.defaultStatements.statements) > 0
+		cases       s.cases -> map(compile)
+		def         hasDefault ? compile(s.defaultStatements) : ""
 		defaultCode hasDefault ? formats("default:\n%s", def) : ""
 	)
 
@@ -401,7 +401,7 @@ fn compileAssign(a)
 
 fn compileStatements(s) {
 	let (
-		scope getScope(s...)
+		scope      getScope(s...)
 		scopeNames join(", ", map(strings.formatOne("_%s"), scope))
 		statements map(compile, s) -> notEmpty -> join(";\n")
 	)

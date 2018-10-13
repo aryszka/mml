@@ -1,8 +1,7 @@
 // Generated code
+package main
 
-	package main
-
-	import "github.com/aryszka/mml"
+import "github.com/aryszka/mml"
 var _args interface{} = mml.Args;
 var _close interface{} = mml.Close;
 var _error interface{} = mml.Error;
@@ -24,16 +23,23 @@ var _stderr interface{} = mml.Stderr;
 var _stdin interface{} = mml.Stdin;
 var _stdout interface{} = mml.Stdout;
 var _string interface{} = mml.String
-	func init() {
-		var modulePath string
+func init() {
+	var modulePath string
 modulePath = "main.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _builtin interface{};
+		var c interface{}
+		mml.Nop(c)
+var _builtin interface{};
 var _builtins interface{};
+var _head interface{};
+var _initHead interface{};
+var _initFooter interface{};
+var _setModuleHead interface{};
+var _setModuleFooter interface{};
+var _mainHead interface{};
+var _mainFooter interface{};
 var _compileModuleCode interface{};
 var _compileModules interface{};
 var _modules interface{};
@@ -53,7 +59,7 @@ var _enum interface{};
 var _log interface{};
 var _onlyErr interface{};
 var _passErr interface{};
-mml.Nop(_builtin, _builtins, _compileModuleCode, _compileModules, _modules, _compile, _parse, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+mml.Nop(_builtin, _builtins, _head, _initHead, _initFooter, _setModuleHead, _setModuleFooter, _mainHead, _mainFooter, _compileModuleCode, _compileModules, _modules, _compile, _parse, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
 var __lang = mml.Modules.Use("lang.mml");;_fold = __lang["fold"];
 _foldr = __lang["foldr"];
 _map = __lang["map"];
@@ -93,6 +99,13 @@ var _right = a[1];
 			},
 			FixedArgs: 2,
 		})).(*mml.Function).Call(append([]interface{}{}, _keys.(*mml.Function).Call(append([]interface{}{}, _builtin))))))));
+_head = "// Generated code\npackage main\n\nimport \"github.com/aryszka/mml\"\n";
+_initHead = "\nfunc init() {\n\tvar modulePath string\n";
+_initFooter = "\n}\n";
+_setModuleHead = "\n\tmml.Modules.Set(modulePath, func() map[string]interface{} {\n\t\texports := make(map[string]interface{})\n\n\t\tvar c interface{}\n\t\tmml.Nop(c)\n";
+_setModuleFooter = "\n\t\treturn exports\n\t})\n";
+_mainHead = "\nfunc main() {\n\tmml.Modules.Use(\"";
+_mainFooter = "\")\n}\n";
 _compileModuleCode = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -103,9 +116,9 @@ _compileModuleCode = &mml.Function{
 				;
 mml.Nop();
 _stdout.(*mml.Function).Call(append([]interface{}{}, _formats.(*mml.Function).Call(append([]interface{}{}, "modulePath = \"%s\"", mml.Ref(_moduleCode, "path")))));
-_stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t\tmml.Modules.Set(modulePath, func() map[string]interface{} {\n\t\t\texports := make(map[string]interface{})\n\n\t\t\tvar c interface{}\n\t\t\tmml.Nop(c)\n\t"));
+_stdout.(*mml.Function).Call(append([]interface{}{}, _setModuleHead));
 _onlyErr.(*mml.Function).Call(append([]interface{}{}, _log)).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _stdout)).(*mml.Function).Call(append([]interface{}{}, mml.Ref(_compile, "compile").(*mml.Function).Call(append([]interface{}{}, _moduleCode))))));
-_stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t\t\treturn exports\n\t\t})\n\t"));
+_stdout.(*mml.Function).Call(append([]interface{}{}, _setModuleFooter));
 				return nil
 			},
 			FixedArgs: 1,
@@ -128,23 +141,27 @@ _compileModuleCode.(*mml.Function).Call(append([]interface{}{}, _mi))
 			},
 			FixedArgs: 1,
 		};
-_stdout.(*mml.Function).Call(append([]interface{}{}, "// Generated code\n\n\tpackage main\n\n\timport \"github.com/aryszka/mml\"\n"));
-_stdout.(*mml.Function).Call(append([]interface{}{}, _builtins));
-_stdout.(*mml.Function).Call(append([]interface{}{}, "\n\tfunc init() {\n\t\tvar modulePath string\n"));
 _modules = mml.Ref(_parse, "parseModules").(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)));
+c = _isError.(*mml.Function).Call(append([]interface{}{}, _modules)); if c.(bool) { ;
+mml.Nop();
+_panic.(*mml.Function).Call(append([]interface{}{}, _modules)) };
+_stdout.(*mml.Function).Call(append([]interface{}{}, _head));
+_stdout.(*mml.Function).Call(append([]interface{}{}, _builtins));
+_stdout.(*mml.Function).Call(append([]interface{}{}, _initHead));
 _compileModules.(*mml.Function).Call(append([]interface{}{}, _modules));
-_stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t}\n\n\tfunc main() {\n\t\tmml.Modules.Use(\""));
+_stdout.(*mml.Function).Call(append([]interface{}{}, _initFooter));
+_stdout.(*mml.Function).Call(append([]interface{}{}, _mainHead));
 _stdout.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)));
-_stdout.(*mml.Function).Call(append([]interface{}{}, "\")\n\t}\n"))
-			return exports
-		})
-	modulePath = "lang.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+_stdout.(*mml.Function).Call(append([]interface{}{}, _mainFooter))
+		return exports
+	})
+modulePath = "lang.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -183,15 +200,15 @@ _enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
 _log = mml.Ref(_logger, "log"); exports["log"] = _log;
 _onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
 _passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -337,15 +354,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -537,15 +554,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "ints.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "ints.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _counter interface{};
+		var c interface{}
+		mml.Nop(c)
+var _counter interface{};
 var _enum interface{};
 mml.Nop(_counter, _enum);
 _counter = &mml.Function{
@@ -578,15 +595,15 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
-			return exports
-		})
-	modulePath = "log.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "log.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _log interface{};
+		var c interface{}
+		mml.Nop(c)
+var _log interface{};
 var _list interface{};
 var _strings interface{};
 mml.Nop(_log, _list, _strings);
@@ -608,15 +625,15 @@ return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(appe
 			},
 			FixedArgs: 0,
 		}; exports["log"] = _log
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -762,15 +779,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -962,15 +979,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -1067,15 +1084,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -1221,15 +1238,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "compile.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "compile.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _notEmpty interface{};
+		var c interface{}
+		mml.Nop(c)
+var _notEmpty interface{};
 var _compileInt interface{};
 var _compileFloat interface{};
 var _compileBool interface{};
@@ -1400,7 +1417,7 @@ _unnamedUses = _filter.(*mml.Function).Call(append([]interface{}{}, &mml.Functio
 			},
 			FixedArgs: 1,
 		})).(*mml.Function).Call(append([]interface{}{}, _uses));
-return append(append(append(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+return _flat.(*mml.Function).Call(append([]interface{}{}, append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -1410,7 +1427,7 @@ return append(append(append(append([]interface{}{}, _map.(*mml.Function).Call(ap
 				return mml.Ref(_d, "symbol")
 			},
 			FixedArgs: 1,
-		}, _defs)).([]interface{})...), _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+		}, _defs)), _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -1420,7 +1437,7 @@ return append(append(append(append([]interface{}{}, _map.(*mml.Function).Call(ap
 				return mml.Ref(_u, "capture")
 			},
 			FixedArgs: 1,
-		}, _namedUses)).([]interface{})...), _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
+		}, _namedUses)), _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -1430,7 +1447,7 @@ return append(append(append(append([]interface{}{}, _map.(*mml.Function).Call(ap
 				return mml.Ref(_u, "path")
 			},
 			FixedArgs: 1,
-		}, _unnamedUses)).([]interface{})...), _inlineUses.([]interface{})...);
+		}, _unnamedUses)), _inlineUses)));
 				return nil
 			},
 			FixedArgs: 0,
@@ -2396,15 +2413,15 @@ return _compileStatements.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_
 			},
 			FixedArgs: 1,
 		}; exports["compile"] = _compile
-			return exports
-		})
-	modulePath = "lang.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "lang.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -2443,15 +2460,15 @@ _enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
 _log = mml.Ref(_logger, "log"); exports["log"] = _log;
 _onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
 _passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -2597,15 +2614,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -2797,15 +2814,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "ints.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "ints.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _counter interface{};
+		var c interface{}
+		mml.Nop(c)
+var _counter interface{};
 var _enum interface{};
 mml.Nop(_counter, _enum);
 _counter = &mml.Function{
@@ -2838,15 +2855,15 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
-			return exports
-		})
-	modulePath = "log.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "log.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _log interface{};
+		var c interface{}
+		mml.Nop(c)
+var _log interface{};
 var _list interface{};
 var _strings interface{};
 mml.Nop(_log, _list, _strings);
@@ -2868,15 +2885,15 @@ return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(appe
 			},
 			FixedArgs: 0,
 		}; exports["log"] = _log
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -3022,15 +3039,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -3222,15 +3239,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -3327,15 +3344,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -3481,15 +3498,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -3586,15 +3603,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -3740,15 +3757,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "code.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "code.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _controlStatement interface{};
+		var c interface{}
+		mml.Nop(c)
+var _controlStatement interface{};
 var _breakControl interface{};
 var _continueControl interface{};
 var _unaryOp interface{};
@@ -3876,15 +3893,15 @@ return mml.Ref(_list, "flat").(*mml.Function).Call(append([]interface{}{}, _map.
 			},
 			FixedArgs: 4,
 		}; exports["flattenedStatements"] = _flattenedStatements
-			return exports
-		})
-	modulePath = "lang.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "lang.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -3923,15 +3940,15 @@ _enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
 _log = mml.Ref(_logger, "log"); exports["log"] = _log;
 _onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
 _passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -4077,15 +4094,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -4277,15 +4294,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "ints.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "ints.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _counter interface{};
+		var c interface{}
+		mml.Nop(c)
+var _counter interface{};
 var _enum interface{};
 mml.Nop(_counter, _enum);
 _counter = &mml.Function{
@@ -4318,15 +4335,15 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
-			return exports
-		})
-	modulePath = "log.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "log.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _log interface{};
+		var c interface{}
+		mml.Nop(c)
+var _log interface{};
 var _list interface{};
 var _strings interface{};
 mml.Nop(_log, _list, _strings);
@@ -4348,15 +4365,15 @@ return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(appe
 			},
 			FixedArgs: 0,
 		}; exports["log"] = _log
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -4502,15 +4519,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -4702,15 +4719,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -4807,15 +4824,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -4961,15 +4978,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -5115,15 +5132,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -5315,15 +5332,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "parse.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "parse.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _parseString interface{};
+		var c interface{}
+		mml.Nop(c)
+var _parseString interface{};
 var _parseSpread interface{};
 var _parseExpressionList interface{};
 var _parseList interface{};
@@ -6872,15 +6889,15 @@ return append(append([]interface{}{}, _currentCode), _usesModules.([]interface{}
 			},
 			FixedArgs: 1,
 		}; exports["parseModules"] = _parseModules
-			return exports
-		})
-	modulePath = "lang.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "lang.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -6919,15 +6936,15 @@ _enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
 _log = mml.Ref(_logger, "log"); exports["log"] = _log;
 _onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
 _passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -7073,15 +7090,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -7273,15 +7290,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "ints.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "ints.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _counter interface{};
+		var c interface{}
+		mml.Nop(c)
+var _counter interface{};
 var _enum interface{};
 mml.Nop(_counter, _enum);
 _counter = &mml.Function{
@@ -7314,15 +7331,15 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
-			return exports
-		})
-	modulePath = "log.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "log.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _log interface{};
+		var c interface{}
+		mml.Nop(c)
+var _log interface{};
 var _list interface{};
 var _strings interface{};
 mml.Nop(_log, _list, _strings);
@@ -7344,15 +7361,15 @@ return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(appe
 			},
 			FixedArgs: 0,
 		}; exports["log"] = _log
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -7498,15 +7515,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -7698,15 +7715,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -7803,15 +7820,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -7957,15 +7974,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "code.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "code.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _controlStatement interface{};
+		var c interface{}
+		mml.Nop(c)
+var _controlStatement interface{};
 var _breakControl interface{};
 var _continueControl interface{};
 var _unaryOp interface{};
@@ -8093,15 +8110,15 @@ return mml.Ref(_list, "flat").(*mml.Function).Call(append([]interface{}{}, _map.
 			},
 			FixedArgs: 4,
 		}; exports["flattenedStatements"] = _flattenedStatements
-			return exports
-		})
-	modulePath = "lang.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "lang.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -8140,15 +8157,15 @@ _enum = mml.Ref(_ints, "enum"); exports["enum"] = _enum;
 _log = mml.Ref(_logger, "log"); exports["log"] = _log;
 _onlyErr = mml.Ref(_errors, "only"); exports["onlyErr"] = _onlyErr;
 _passErr = mml.Ref(_errors, "pass"); exports["passErr"] = _passErr
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -8294,15 +8311,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -8494,15 +8511,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "ints.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "ints.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _counter interface{};
+		var c interface{}
+		mml.Nop(c)
+var _counter interface{};
 var _enum interface{};
 mml.Nop(_counter, _enum);
 _counter = &mml.Function{
@@ -8535,15 +8552,15 @@ return _c;
 			FixedArgs: 0,
 		}; exports["counter"] = _counter;
 _enum = _counter; exports["enum"] = _enum
-			return exports
-		})
-	modulePath = "log.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "log.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _log interface{};
+		var c interface{}
+		mml.Nop(c)
+var _log interface{};
 var _list interface{};
 var _strings interface{};
 mml.Nop(_log, _list, _strings);
@@ -8565,15 +8582,15 @@ return func () interface{} { c = mml.BinaryOp(11, _len.(*mml.Function).Call(appe
 			},
 			FixedArgs: 0,
 		}; exports["log"] = _log
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -8719,15 +8736,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -8919,15 +8936,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -9024,15 +9041,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -9178,15 +9195,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -9332,15 +9349,15 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	modulePath = "strings.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "strings.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _firstOr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _firstOr interface{};
 var _join interface{};
 var _joins interface{};
 var _joinTwo interface{};
@@ -9532,15 +9549,15 @@ return _join.(*mml.Function).Call(append([]interface{}{}, "", _r));
 			},
 			FixedArgs: 1,
 		}; exports["unescape"] = _unescape
-			return exports
-		})
-	modulePath = "errors.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "errors.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _ifErr interface{};
+		var c interface{}
+		mml.Nop(c)
+var _ifErr interface{};
 var _not interface{};
 var _yes interface{};
 var _pass interface{};
@@ -9637,15 +9654,15 @@ var _r = a[1];
 			},
 			FixedArgs: 1,
 		}; exports["any"] = _any
-			return exports
-		})
-	modulePath = "list.mml"
-		mml.Modules.Set(modulePath, func() map[string]interface{} {
-			exports := make(map[string]interface{})
+		return exports
+	})
+modulePath = "list.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
 
-			var c interface{}
-			mml.Nop(c)
-	var _fold interface{};
+		var c interface{}
+		mml.Nop(c)
+var _fold interface{};
 var _foldr interface{};
 var _map interface{};
 var _filter interface{};
@@ -9791,11 +9808,11 @@ var _l = a[1];
 			},
 			FixedArgs: 2,
 		}; exports["sort"] = _sort
-			return exports
-		})
-	
-	}
+		return exports
+	})
 
-	func main() {
-		mml.Modules.Use("main.mml")
-	}
+}
+
+func main() {
+	mml.Modules.Use("main.mml")
+}

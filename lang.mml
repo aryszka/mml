@@ -8,19 +8,19 @@ use (
 
 // list
 export let (
-	fold list.fold
-	foldr list.foldr
-	map list.map
-	filter list.filter
+	fold     list.fold
+	foldr    list.foldr
+	map      list.map
+	filter   list.filter
 	contains list.contains
-	sort list.sort
-	flat list.flat
+	sort     list.sort
+	flat     list.flat
 )
 
 // strings
 export let (
-	join strings.join
-	joins strings.joins
+	join    strings.join
+	joins   strings.joins
 	formats strings.formats
 )
 
