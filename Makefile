@@ -1,6 +1,6 @@
-SOURCES = $(shell find . -name "*.go") syntax.treerack
+SOURCES = $(shell find . -name "*.go") parser.treerack
 
-.PHONY: recompile
+.PHONY: recompile boot
 
 build: $(SOURCES)
 	go build ./...
@@ -20,18 +20,18 @@ recompile:
 	go run build/main.2.go main.mml > build/main.3.go
 	diff build/main.2.go build/main.3.go
 	rm build/main.1.go build/main.2.go
-	mv build/main.3.go cmd/mml/main.go
-	go install ./cmd/mml
+	mv build/main.3.go boot/mml/main.go
+	go install ./boot/mml
 
-check-syntax: syntax.treerack
-	treerack check-syntax syntax.treerack
+check-syntax: parser.treerack
+	treerack check-syntax parser.treerack
 
 parser/parser.go: check-syntax
 	@mkdir -p parser
 	treerack generate \
 		-export \
 		-package-name parser \
-		-syntax syntax.treerack \
+		-syntax parser.treerack \
 		> parser/parser.go
 	go fmt ./parser
 
@@ -44,4 +44,4 @@ fmt:
 	go fmt ./...
 
 clean:
-	rm -rf boot
+	rm -rf build

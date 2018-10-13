@@ -760,16 +760,6 @@ fn parseFile(path) {
 	return parse(ast)
 }
 
-fn parseFile1(path) {
-	let in open(path)
-	if isError(in) {
-		return in
-	}
-
-	defer close(in)
-	return in(-1) -> passErr(parseMML) -> onlyErr(log)
-}
-
 // TODO: can there be an export below the top level?
 
 fn findExportNames(statements)

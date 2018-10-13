@@ -1,326 +1,659 @@
 package mml
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
+	"sync"
+
+	"github.com/aryszka/mml/parser"
 )
 
-type errPanic struct {
-	value interface{}
+type unaryOperator int
+
+const (
+	binaryNot unaryOperator = iota
+	plus
+	minus
+	logicalNot
+)
+
+type unary struct {
+	op  unaryOperator
+	arg interface{}
 }
 
-func (ep errPanic) Error() string { return fmt.Sprint(ep.value) }
+type binaryOperator int
 
-func callRecover(e *env) (interface{}, error) {
-	if e.pendingErr == nil {
-		return nil, nil
+const (
+	binaryAnd binaryOperator = iota
+	binaryOr
+	xor
+	andNot
+	lshift
+	rshift
+	mul
+	div
+	mod
+	add
+	sub
+	eq
+	notEq
+	less
+	lessOrEq
+	greater
+	greaterOrEq
+	logicalAnd
+	logicalOr
+)
+
+type Function struct {
+	F         func([]interface{}) interface{}
+	FixedArgs int
+	args      []interface{}
+}
+
+type ModuleContext struct {
+	lock         sync.Mutex
+	moduleLocks  map[string]*sync.Mutex
+	initializers map[string]func() map[string]interface{}
+	cache        map[string]map[string]interface{}
+}
+
+var Modules = &ModuleContext{
+	moduleLocks:  make(map[string]*sync.Mutex),
+	initializers: make(map[string]func() map[string]interface{}),
+	cache:        make(map[string]map[string]interface{}),
+}
+
+func (f *Function) Bind(a []interface{}) *Function {
+	b := *f
+	b.args = a
+	return &b
+}
+
+func (f *Function) Call(a []interface{}) interface{} {
+	a = append(f.args, a...)
+	if len(a) < f.FixedArgs {
+		return f.Bind(a)
 	}
 
-	err := e.pendingErr
-	e.pendingErr = nil
-	return eval(e, functionApplication{function: symbol{name: "recovery"}, args: []interface{}{err}})
+	return f.F(a)
 }
 
-func callPanic(e *env) (interface{}, error) {
-	a, err := eval(e, symbol{name: "err"})
-	if err != nil {
-		return nil, err
+func (c *ModuleContext) Set(path string, i func() map[string]interface{}) {
+	c.initializers[path] = i
+}
+
+func (c *ModuleContext) Use(path string) map[string]interface{} {
+	c.lock.Lock()
+	m, ok := c.cache[path]
+	if ok {
+		c.lock.Unlock()
+		return m
 	}
 
-	if err, ok := a.(error); ok {
-		return nil, err
+	init := c.initializers[path]
+	ml, ok := c.moduleLocks[path]
+	if !ok {
+		ml = &sync.Mutex{}
+		c.moduleLocks[path] = ml
 	}
 
-	return nil, errPanic{value: a}
+	ml.Lock()
+	c.lock.Unlock()
+
+	m = init()
+
+	c.lock.Lock()
+	c.cache[path] = m
+	c.lock.Unlock()
+	ml.Unlock()
+
+	return m
 }
 
-func recoverFunction(e *env) function {
-	return function{
-		primitive: callRecover,
-		effect:    true,
-		params:    []string{"recovery"},
-		env:       e,
-	}
-}
+func Ref(v, k interface{}) interface{} {
+	switch vt := v.(type) {
+	case string:
+		return string(vt[k.(int)])
+	case []interface{}:
+		return vt[k.(int)]
+	case map[string]interface{}:
+		return vt[k.(string)]
+	default:
+		// TMP:
+		if err, ok := v.(error); ok {
+			println("ref failed", err.Error())
+		}
 
-func panicFunction(e *env) function {
-	return function{
-		primitive: callPanic,
-		effect:    true,
-		params:    []string{"err"},
-		env:       e,
-	}
-}
-
-func makeChannel(e *env) function {
-	return function{
-		primitive: func(*env) (interface{}, error) { return newChan(defaultScheduler, 0), nil },
-		env:       e,
-	}
-}
-
-func createBufferedChannel(e *env) (interface{}, error) {
-	size, err := eval(e, symbol{name: "size"})
-	if err != nil {
-		return nil, err
-	}
-
-	return newChan(defaultScheduler, size.(int)), nil
-}
-
-func makeBufferedChannel(e *env) function {
-	return function{
-		primitive: createBufferedChannel,
-		params:    []string{"size"},
-		env:       e,
-	}
-}
-
-func makeParse(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			return structure{}, nil
-		},
-		params: []string{"doc"},
-		env:    e,
-	}
-}
-
-func makeStdin(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			l, err := eval(e, symbol{name: "len"})
-			if err != nil {
-				return nil, err
-			}
-
-			ll := l.(int)
-			if ll < 0 {
-				b, err := ioutil.ReadAll(os.Stdin)
-				return string(b), err
-			}
-
-			b := make([]byte, l.(int))
-			_, err = os.Stdin.Read(b)
-			return string(b), err
-		},
-		params: []string{"len"},
-		env:    e,
-	}
-}
-
-func makeIOWriter(e *env, w io.Writer) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			s, err := eval(e, symbol{name: "s"})
-			if err != nil {
-				return nil, err
-			}
-
-			_, err = w.Write([]byte(s.(string)))
-			return nil, err
-		},
-		params: []string{"s"},
-		env:    e,
-	}
-}
-
-func makeStdout(e *env) function {
-	return makeIOWriter(e, os.Stdout)
-}
-
-func makeStderr(e *env) function {
-	return makeIOWriter(e, os.Stderr)
-}
-
-func parseForMML(e *env) (interface{}, error) {
-	doc, err := eval(e, symbol{name: "doc"})
-	if err != nil {
-		return nil, err
-	}
-
-	code, err := parseModule(doc.(string))
-	if err != nil {
-		return nil, err
-	}
-
-	return codeMML(code), nil
-}
-
-func makeParseForMML(e *env) function {
-	return function{
-		primitive: parseForMML,
-		params:    []string{"doc"},
-		env:       e,
+		panic("ref: unsupported code")
 	}
 }
 
-func toString(e *env) (interface{}, error) {
-	a, err := eval(e, symbol{name: "a"})
-	if err != nil {
-		return nil, err
-	}
-
-	return fmt.Sprint(a), nil
-}
-
-func makeString(e *env) function {
-	return function{
-		primitive: toString,
-		params:    []string{"a"},
-		env:       e,
-	}
-}
-
-func makeFormat(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			f, err := eval(e, symbol{name: "f"})
-			if err != nil {
-				return nil, err
-			}
-
-			args, err := eval(e, symbol{name: "args"})
-			if err != nil {
-				return nil, err
-			}
-
-			return fmt.Sprintf(f.(string), args.(list).values...), nil
-		},
-		params: []string{"f", "args"},
-		env:    e,
+func RefRange(v, from, to interface{}) interface{} {
+	switch vt := v.(type) {
+	case string:
+		switch {
+		case from == nil && to == nil:
+			return vt[:]
+		case from == nil:
+			return vt[:to.(int)]
+		case to == nil:
+			return vt[from.(int):]
+		default:
+			return vt[from.(int):to.(int)]
+		}
+	case []interface{}:
+		switch {
+		case from == nil && to == nil:
+			return vt[:]
+		case from == nil:
+			return vt[:to.(int)]
+		case to == nil:
+			return vt[from.(int):]
+		default:
+			return vt[from.(int):to.(int)]
+		}
+	default:
+		panic("ref range: unsupported code")
 	}
 }
 
-func makeTypeCheck(e *env, check func(a interface{}) bool) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
-			if err != nil {
-				return nil, err
-			}
-
-			return check(a), nil
-		},
-		params: []string{"a"},
-		env:    e,
+func SetRef(e, k, v interface{}) {
+	switch et := e.(type) {
+	case []interface{}:
+		et[k.(int)] = v
+	case map[string]interface{}:
+		et[k.(string)] = v
+	default:
+		panic("set-ref: unsupported code")
 	}
 }
 
-func makeIsInt(e *env) function {
-	return makeTypeCheck(e, func(a interface{}) bool {
-		_, ok := a.(int)
+func UnaryOp(op int, arg interface{}) interface{} {
+	switch unaryOperator(op) {
+	case binaryNot:
+		switch at := arg.(type) {
+		case int:
+			return +at
+		default:
+			panic("unary: unsupported code")
+		}
+	case plus:
+		switch at := arg.(type) {
+		case int:
+			return +at
+		case float64:
+			return +at
+		default:
+			panic("unary: unsupported code")
+		}
+	case minus:
+		switch at := arg.(type) {
+		case int:
+			return -at
+		case float64:
+			return -at
+		default:
+			panic("unary: unsupported code")
+		}
+	default:
+		panic("unary: unsupported code")
+	}
+}
+
+func BinaryOp(op int, left, right interface{}) interface{} {
+	switch binaryOperator(op) {
+	case binaryAnd:
+		switch lt := left.(type) {
+		case int:
+			return lt & right.(int)
+		default:
+			panic("binary: unsupported code")
+		}
+	case binaryOr:
+		switch lt := left.(type) {
+		case int:
+			return lt | right.(int)
+		default:
+			panic("binary: unsupported code")
+		}
+	case xor:
+		switch lt := left.(type) {
+		case int:
+			return lt ^ right.(int)
+		default:
+			panic("binary: unsupported code")
+		}
+	case andNot:
+		switch lt := left.(type) {
+		case int:
+			return lt &^ right.(int)
+		default:
+			panic("binary: unsupported code")
+		}
+	case lshift:
+		switch lt := left.(type) {
+		case int:
+			return lt << right.(uint)
+		default:
+			panic("binary: unsupported code")
+		}
+	case rshift:
+		switch lt := left.(type) {
+		case int:
+			return lt >> right.(uint)
+		default:
+			panic("binary: unsupported code")
+		}
+	case mul:
+		switch lt := left.(type) {
+		case int:
+			return lt * right.(int)
+		case float64:
+			return lt * right.(float64)
+		default:
+			panic("binary: unsupported code")
+		}
+	case div:
+		switch lt := left.(type) {
+		case int:
+			return lt / right.(int)
+		case float64:
+			return lt / right.(float64)
+		default:
+			panic("binary: unsupported code")
+		}
+	case mod:
+		switch lt := left.(type) {
+		case int:
+			return lt % right.(int)
+		default:
+			panic("binary: unsupported code")
+		}
+	case add:
+		switch lt := left.(type) {
+		case int:
+			return lt + right.(int)
+		case float64:
+			return lt + right.(float64)
+		case string:
+			return lt + right.(string)
+		default:
+			panic("binary: add: unsupported code")
+		}
+	case sub:
+		switch lt := left.(type) {
+		case int:
+			return lt - right.(int)
+		case float64:
+			return lt - right.(float64)
+		default:
+			panic("binary: sub: unsupported code")
+		}
+	case eq:
+		return left == right
+	case notEq:
+		return left != right
+	case less:
+		switch lt := left.(type) {
+		case int:
+			return lt < right.(int)
+		case float64:
+			return lt < right.(float64)
+		case string:
+			return lt < right.(string)
+		default:
+			panic("binary: less: unsupported code")
+		}
+	case lessOrEq:
+		switch lt := left.(type) {
+		case int:
+			return lt <= right.(int)
+		case float64:
+			return lt <= right.(float64)
+		case string:
+			return lt <= right.(string)
+		default:
+			panic("binary: less-or-eq: unsupported code")
+		}
+	case greater:
+		switch lt := left.(type) {
+		case int:
+			return lt > right.(int)
+		case float64:
+			return lt > right.(float64)
+		case string:
+			return lt > right.(string)
+		default:
+			panic("binary: greater: unsupported code")
+		}
+	case greaterOrEq:
+		switch lt := left.(type) {
+		case int:
+			return lt >= right.(int)
+		case float64:
+			return lt >= right.(float64)
+		case string:
+			return lt >= right.(string)
+		default:
+			panic("binary: greater-or-eq: unsupported code")
+		}
+	default:
+		panic("binary: unsupported code")
+	}
+}
+
+func Nop(...interface{}) {}
+
+var Len = &Function{
+	F: func(a []interface{}) interface{} {
+		switch at := a[0].(type) {
+		case []interface{}:
+			return len(at)
+		case map[string]interface{}:
+			return len(at)
+		case string:
+			return len(at)
+		default:
+			panic("len: unsupported code")
+		}
+	},
+	FixedArgs: 1,
+}
+
+var IsError = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(error)
 		return ok
-	})
+	},
+	FixedArgs: 1,
 }
 
-func makeIsFloat(e *env) function {
-	return makeTypeCheck(e, func(a interface{}) bool {
-		_, ok := a.(float64)
-		return ok
-	})
+var Keys = &Function{
+	F: func(a []interface{}) interface{} {
+		s, ok := a[0].(map[string]interface{})
+		if !ok {
+			panic("keys: unsupported code")
+		}
+
+		var keys []interface{}
+		for k := range s {
+			keys = append(keys, k)
+		}
+
+		return keys
+	},
+	FixedArgs: 1,
 }
 
-func makeIsString(e *env) function {
-	return makeTypeCheck(e, func(a interface{}) bool {
-		_, ok := a.(string)
-		return ok
-	})
+var Format = &Function{
+	F: func(a []interface{}) interface{} {
+		f, ok := a[0].(string)
+		if !ok {
+			panic("format: unsupported code")
+		}
+
+		args, ok := a[1].([]interface{})
+		if !ok {
+			panic("format: unsupported code")
+		}
+
+		return fmt.Sprintf(f, args...)
+	},
+	FixedArgs: 2,
 }
 
-func makeIsBool(e *env) function {
-	return makeTypeCheck(e, func(a interface{}) bool {
-		_, ok := a.(bool)
-		return ok
-	})
+var Stderr = &Function{
+	F: func(a []interface{}) interface{} {
+		s, ok := a[0].(string)
+		if !ok {
+			panic("stderr: unsupported code")
+		}
+
+		_, err := os.Stderr.Write([]byte(s))
+		return err
+	},
+	FixedArgs: 1,
 }
 
-func makeIsError(e *env) function {
-	return makeTypeCheck(e, func(a interface{}) bool {
-		_, ok := a.(error)
-		return ok
-	})
+var Stdout = &Function{
+	F: func(a []interface{}) interface{} {
+		s, ok := a[0].(string)
+		if !ok {
+			panic("stderr: unsupported code")
+		}
+
+		_, err := os.Stdout.Write([]byte(s))
+		return err
+	},
+	FixedArgs: 1,
 }
 
-func makeLen(e *env) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			a, err := eval(e, symbol{name: "a"})
+var Stdin = &Function{
+	F: func(a []interface{}) interface{} {
+		if a[0].(int) < 0 {
+			b, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
-			switch at := a.(type) {
-			case list:
-				return len(at.values), nil
-			case string:
-				return len(at), nil
-			default:
-				return nil, errUnsupportedCode
-			}
-		},
-		params: []string{"a"},
-		env:    e,
-	}
+			return string(b)
+		}
+
+		b := make([]byte, a[0].(int))
+		n, err := os.Stdin.Read(b)
+		if err != nil {
+			return err
+		}
+
+		return string(b[:n])
+	},
+	FixedArgs: 1,
 }
 
-func makeWithParams(e *env, p []string, f func(e *env, a []interface{}) (interface{}, error)) function {
-	return function{
-		primitive: func(e *env) (interface{}, error) {
-			var a []interface{}
-			for _, pi := range p {
-				ai, err := eval(e, symbol{name: pi})
-				if err != nil {
-					return nil, err
+var String = &Function{
+	F: func(a []interface{}) interface{} {
+		return fmt.Sprint(a[0])
+	},
+	FixedArgs: 1,
+}
+
+var ParseInt = &Function{
+	F: func(a []interface{}) interface{} {
+		s := a[0].(string)
+
+		var base int
+		switch {
+		case strings.HasPrefix(s, "0x"):
+			base = 16
+			s = s[2:]
+		case strings.HasPrefix(s, "0"):
+			if s == "0" {
+				return 0
+			}
+
+			base = 8
+			s = s[1:]
+		default:
+			base = 10
+		}
+
+		i, err := strconv.ParseInt(s, base, 64)
+		if err != nil {
+			return err
+		}
+
+		return int(i)
+	},
+	FixedArgs: 1,
+}
+
+var ParseFloat = &Function{
+	F: func(a []interface{}) interface{} {
+		v, err := strconv.ParseFloat(a[0].(string), 64)
+		if err != nil {
+			return err
+		}
+
+		return v
+	},
+	FixedArgs: 1,
+}
+
+func convertAST(goAST *parser.Node) map[string]interface{} {
+	ast := make(map[string]interface{})
+	ast["name"] = goAST.Name
+	ast["text"] = goAST.Text()
+
+	var nodes []interface{}
+	for i := range goAST.Nodes {
+		nodes = append(nodes, convertAST(goAST.Nodes[i]))
+	}
+
+	ast["nodes"] = nodes
+	return ast
+}
+
+func parseAST(doc string) (ast map[string]interface{}, err error) {
+	var goAST *parser.Node
+	goAST, err = parser.Parse(bytes.NewBufferString(doc))
+	if err != nil {
+		return
+	}
+
+	return convertAST(goAST), nil
+}
+
+var ParseAST = &Function{
+	F: func(a []interface{}) interface{} {
+		ast, err := parseAST(a[0].(string))
+		if err != nil {
+			return err
+		}
+
+		return ast
+	},
+	FixedArgs: 1,
+}
+
+var Has = &Function{
+	F: func(a []interface{}) interface{} {
+		s, ok := a[1].(map[string]interface{})
+		if !ok {
+			return false
+		}
+
+		_, ok = s[a[0].(string)]
+		return ok
+	},
+	FixedArgs: 2,
+}
+
+var IsBool = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(bool)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsInt = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(int)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsFloat = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(float64)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsString = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(string)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var Error = &Function{
+	F: func(a []interface{}) interface{} {
+		return errors.New(a[0].(string))
+	},
+	FixedArgs: 1,
+}
+
+var Open = &Function{
+	F: func(a []interface{}) interface{} {
+		f, err := os.Open(a[0].(string))
+		if err != nil {
+			return err
+		}
+
+		return &Function{
+			F: func(a []interface{}) interface{} {
+				l, ok := a[0].(int)
+				if !ok {
+					f.Close()
+					return nil
 				}
 
-				a = append(a, ai)
-			}
+				if l < 0 {
+					b, err := ioutil.ReadAll(f)
+					if err != nil {
+						return err
+					}
 
-			return f(e, a)
+					return string(b)
+				}
+
+				b := make([]byte, l)
+				n, err := f.Read(b)
+				if err != nil && err != io.EOF {
+					return err
+				}
+
+				if err == io.EOF {
+					f.Close()
+				}
+
+				return string(b[:n])
+			},
+			FixedArgs: 1,
+		}
+	},
+	FixedArgs: 1,
+}
+
+var (
+	Close *Function
+	Args  interface{}
+)
+
+func init() {
+	Close = &Function{
+		F: func(a []interface{}) interface{} {
+			return a[0].(*Function).F([]interface{}{Close})
 		},
-		params: p,
-		env:    e,
+		FixedArgs: 1,
 	}
-}
 
-func makeError(e *env) function {
-	return makeWithParams(e, []string{"message"}, func(e *env, a []interface{}) (interface{}, error) {
-		return errors.New(a[0].(string)), nil
-	})
-}
-
-func makeHas(e *env) function {
-	return makeWithParams(e, []string{"k", "o"}, func(e *env, a []interface{}) (interface{}, error) {
-		s, ok := a[1].(structure)
-		if !ok {
-			return false, nil
-		}
-
-		_, ok = s.values[a[0].(string)]
-		return ok, nil
-	})
-}
-
-func makeKeys(e *env) function {
-	return makeWithParams(e, []string{"s"}, func(e *env, a []interface{}) (interface{}, error) {
-		var keys list
-		for k := range a[0].(structure).values {
-			keys.values = append(keys.values, k)
-		}
-
-		return keys, nil
-	})
-}
-
-func makeArgs(*env) list {
-	var values []interface{}
+	var args []interface{}
 	for i := range os.Args {
-		values = append(values, os.Args[i])
+		args = append(args, os.Args[i])
 	}
 
-	return list{values: values}
+	Args = args
 }

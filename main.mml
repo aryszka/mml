@@ -16,7 +16,6 @@ let builtin {
 	stdout:     "Stdout"
 	stderr:     "Stderr"
 	string:     "String"
-	parseMML:   "Parse"
 	has:        "Has"
 	isBool:     "IsBool"
 	isInt:      "IsInt"
@@ -28,7 +27,7 @@ let builtin {
 	args:       "Args"
 	parseAST:   "ParseAST"
 	parseInt:   "ParseInt"
-	parseFloat: "ParseInt"
+	parseFloat: "ParseFloat"
 }
 
 let builtins builtin
@@ -81,7 +80,6 @@ stdout("
 ")
 
 let modules parseModules(args[1])
-log("compiling")
 compileModules(modules)
 
 stdout("

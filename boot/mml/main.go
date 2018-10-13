@@ -18,9 +18,8 @@ var _keys interface{} = mml.Keys
 var _len interface{} = mml.Len
 var _open interface{} = mml.Open
 var _parseAST interface{} = mml.ParseAST
-var _parseFloat interface{} = mml.ParseInt
+var _parseFloat interface{} = mml.ParseFloat
 var _parseInt interface{} = mml.ParseInt
-var _parseMML interface{} = mml.Parse
 var _stderr interface{} = mml.Stderr
 var _stdin interface{} = mml.Stdin
 var _stdout interface{} = mml.Stdout
@@ -100,7 +99,6 @@ func init() {
 			s["stdout"] = "Stdout"
 			s["stderr"] = "Stderr"
 			s["string"] = "String"
-			s["parseMML"] = "Parse"
 			s["has"] = "Has"
 			s["isBool"] = "IsBool"
 			s["isInt"] = "IsInt"
@@ -112,7 +110,7 @@ func init() {
 			s["args"] = "Args"
 			s["parseAST"] = "ParseAST"
 			s["parseInt"] = "ParseInt"
-			s["parseFloat"] = "ParseInt"
+			s["parseFloat"] = "ParseFloat"
 			return s
 		}()
 		_builtins = _join.(*mml.Function).Call(append([]interface{}{}, ";\n")).(*mml.Function).Call(append([]interface{}{}, _map.(*mml.Function).Call(append([]interface{}{}, &mml.Function{
@@ -176,7 +174,6 @@ func init() {
 		_stdout.(*mml.Function).Call(append([]interface{}{}, _builtins))
 		_stdout.(*mml.Function).Call(append([]interface{}{}, "\n\tfunc init() {\n\t\tvar modulePath string\n"))
 		_modules = _parseModules.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)))
-		_log.(*mml.Function).Call(append([]interface{}{}, "compiling"))
 		_compileModules.(*mml.Function).Call(append([]interface{}{}, _modules))
 		_stdout.(*mml.Function).Call(append([]interface{}{}, "\n\t}\n\n\tfunc main() {\n\t\tmml.Modules.Use(\""))
 		_stdout.(*mml.Function).Call(append([]interface{}{}, mml.Ref(_args, 1)))
@@ -4551,7 +4548,6 @@ func init() {
 		var _parseUse interface{}
 		var _parse interface{}
 		var _parseFile interface{}
-		var _parseFile1 interface{}
 		var _findExportNames interface{}
 		var _parseModules interface{}
 		var _ifErr interface{}
@@ -4603,7 +4599,7 @@ func init() {
 		var _formatOne interface{}
 		var _escape interface{}
 		var _unescape interface{}
-		mml.Nop(_parseString, _parseSymbol, _parseSpread, _parseExpressionList, _parseList, _parseMutableList, _parseExpressionKey, _parseEntry, _parseStruct, _parseMutableStruct, _parseReturn, _parseStatementList, _parseFunctionFact, _parseFunction, _parseEffect, _parseRange, _parseSymbolIndex, _parseExpressionIndex, _parseRangeIndex, _parseIndexerNodes, _parseIndexer, _parseFunctionApplication, _parseUnaryExpression, _parseBinaryExpression, _parseChaining, _parserTernary, _parseIf, _parseSwitch, _parseRangeOver, _parseLoop, _parseValueCapture, _parseMutableCapture, _parseValueDefinition, _parseDefinitions, _parseMutableDefinitions, _parseFunctionCapture, _parseEffectCapture, _parseFunctionDefinition, _parseEffectDefinitions, _parseAssignCaptures, _parseAssign, _parseSend, _parseReceive, _parseGo, _parseDefer, _parseReceiveDefinition, _parseSelect, _parseExport, _parseUseFact, _parseUse, _parse, _parseFile, _parseFile1, _findExportNames, _parseModules, _ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _log, _fold, _foldr, _map, _filter, _contains, _sort, _getFlattenedStatements, _controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape)
+		mml.Nop(_parseString, _parseSymbol, _parseSpread, _parseExpressionList, _parseList, _parseMutableList, _parseExpressionKey, _parseEntry, _parseStruct, _parseMutableStruct, _parseReturn, _parseStatementList, _parseFunctionFact, _parseFunction, _parseEffect, _parseRange, _parseSymbolIndex, _parseExpressionIndex, _parseRangeIndex, _parseIndexerNodes, _parseIndexer, _parseFunctionApplication, _parseUnaryExpression, _parseBinaryExpression, _parseChaining, _parserTernary, _parseIf, _parseSwitch, _parseRangeOver, _parseLoop, _parseValueCapture, _parseMutableCapture, _parseValueDefinition, _parseDefinitions, _parseMutableDefinitions, _parseFunctionCapture, _parseEffectCapture, _parseFunctionDefinition, _parseEffectDefinitions, _parseAssignCaptures, _parseAssign, _parseSend, _parseReceive, _parseGo, _parseDefer, _parseReceiveDefinition, _parseSelect, _parseExport, _parseUseFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModules, _ifErr, _not, _yes, _passErr, _onlyErr, _anyErr, _log, _fold, _foldr, _map, _filter, _contains, _sort, _getFlattenedStatements, _controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _eq, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _join, _joins, _joinTwo, _formats, _formatOne, _escape, _unescape)
 		var __errors = mml.Modules.Use("errors.mml")
 		_ifErr = __errors["ifErr"]
 		_not = __errors["not"]
@@ -6601,27 +6597,6 @@ func init() {
 					return _ast
 				}
 				return _parse.(*mml.Function).Call(append([]interface{}{}, _ast))
-				return nil
-			},
-			FixedArgs: 1,
-		}
-		_parseFile1 = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _path = a[0]
-
-				mml.Nop(_path)
-				var _in interface{}
-				mml.Nop(_in)
-				_in = _open.(*mml.Function).Call(append([]interface{}{}, _path))
-				c = _isError.(*mml.Function).Call(append([]interface{}{}, _in))
-				if c.(bool) {
-					mml.Nop()
-					return _in
-				}
-				defer _close.(*mml.Function).Call(append([]interface{}{}, _in))
-				return _onlyErr.(*mml.Function).Call(append([]interface{}{}, _log)).(*mml.Function).Call(append([]interface{}{}, _passErr.(*mml.Function).Call(append([]interface{}{}, _parseMML)).(*mml.Function).Call(append([]interface{}{}, _in.(*mml.Function).Call(append([]interface{}{}, mml.UnaryOp(2, 1)))))))
 				return nil
 			},
 			FixedArgs: 1,
