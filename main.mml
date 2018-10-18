@@ -74,7 +74,7 @@ fn compileModuleCode(moduleCode) {
 	stdout(formats("modulePath = \"%s\"", moduleCode.path))
 	stdout(setModuleHead)
 	moduleCode
-	-> compile.compile
+	-> compile.do
 	-> passErr(stdout)
 	-> onlyErr(log)
 	stdout(setModuleFooter)
@@ -86,7 +86,7 @@ fn compileModules(m) {
 	}
 }
 
-let modules parse.parseModules(args[1])
+let modules parse.modules(args[1])
 if isError(modules) {
 	panic(modules)
 }

@@ -23,7 +23,7 @@ fn getScope(...statements) {
 	-> filter(fn (u) u.capture == ".")
 	-> filter(has("exportNames"))
 	-> map(fn (u) u.exportNames)
-	-> fold(fn (current, result) [result..., current...], [])
+	-> flat
 
 	let namedUses uses
 	-> filter(fn (u) u.capture != "." && u.capture != "")
@@ -40,24 +40,23 @@ fn getScope(...statements) {
 }
 
 fn (
-	compileComment(_)     ""
-	compileString(s)      formats("\"%s\"", strings.escape(s))
-	compileSymbol(s)      formats("_%s", s.name)
-	compileCond(c)        c.ternary ? compileTernary(c) : compileIf(c)
-	compileSpread(s)      formats("%s.([]interface{})...", compile(s.value))
-	compileCase(c)        formats("case %s:\n%s", compile(c.expression), compile(c.body))
-	compileSend(s)        formats("%s <- %s", compile(s.channel), compile(s.value))
-	compileReceive(r)     formats("<- %s", compile(r.channel))
-	compileGo(g)          formats("go %s", compile(g.application))
-	compileDefer(d)       formats("defer %s", compile(d.application))
-	compileDefinitions(l) l.definitions -> map(compile) -> join(";\n")
-	compileAssigns(l)     l.assignments -> map(compile) -> join(";\n")
-	compileRet(r)         formats("return %s", compile(r.value))
-	compileControl(c)     c.control == code.breakControl ? "break" : "continue"
-	compileUseList(u)     u.uses -> map(compile) -> join(";\n")
+	comment(_)        ""
+	compileString(s)  formats("\"%s\"", strings.escape(s))
+	symbol(s)         formats("_%s", s.name)
+	cond(c)           c.ternary ? ternary(c) : compileIf(c)
+	spreadList(s)     formats("%s.(*mml.List).Values...", do(s.value))
+	compileCase(c)    formats("case %s:\n%s", do(c.expression), do(c.body))
+	compileSend(s)    formats("%s <- %s", do(s.channel), do(s.value))
+	compileReceive(r) formats("<- %s", do(r.channel))
+	compileGo(g)      formats("go %s", do(g.application))
+	definitions(l)    l.definitions -> map(do) -> join(";\n")
+	assigns(l)        l.assignments -> map(do) -> join(";\n")
+	ret(r)            formats("return %s", do(r.value))
+	control(c)        c.control == code.breakControl ? "break" : "continue"
+	useList(u)        u.uses -> map(do) -> join(";\n")
 )
 
-fn compileList(l) {
+fn list(l) {
 	fn (
 		isSpread(c)     len(c) > 3 && c[len(c) - 3:] == "..."
 		selectSpread(c) isSpread(c) ? {spread: c} : c
@@ -101,66 +100,69 @@ fn compileList(l) {
 		appendSimples(code, group.simple)
 
 	return l.values
-	-> map(compile)
+	-> map(do)
 	-> map(selectSpread)
 	-> groupSpread
 	-> appendGroups
+	-> fn (c) formats("&mml.List{Values: %s}", c)
 }
 
-fn compileEntry(e) formats(
+fn entry(e) formats(
 	"\"%s\":%s"
 	has("type", e.key) && e.key.type == "symbol" ?
 		e.key.name :
-		compile(e.key)
-	compile(e.value)
+		do(e.key)
+	do(e.value)
 )
 
-fn compileStruct(s) {
-	fn compileEntry(e) {
-		let v compile(e.value)
+fn expressionKey(k) do(k.value)
+
+fn struct(s) {
+	fn entry(e) {
+		let v do(e.value)
 		if e.type == "spread" {
 			let (
-				var    formats("sp := %s.(map[string]interface{});", v)
-				assign "for k, v := range sp { s[k] = v };"
+				var    formats("sp := %s.(*mml.Struct);", v)
+				assign "for k, v := range sp.Values { s.Values[k] = v };"
 			)
 
 			return joins("\n", var, assign)
 		}
 
 		if isString(e.key) {
-			return formats("s[\"%s\"] = %s;", e.key, v)
+			return formats("s.Values[\"%s\"] = %s;", e.key, v)
 		}
 		
 		if e.key.type == "symbol" {
-			return formats("s[\"%s\"] = %s;", e.key.name, v)
+			return formats("s.Values[\"%s\"] = %s;", e.key.name, v)
 		}
 
-		return formats("s[%s] = %s;", compile(e.key), v)
+		return formats("s.Values[%s.(string)] = %s;", do(e.key), v)
 	}
 
 	let entries s.entries
-	-> map(compileEntry)
+	-> map(entry)
 
 	return formats(
-		"func() interface{} { s := make(map[string]interface{}); %s; return s }()"
+		"func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; %s; return s }()"
 		entries -> join("")
 	)
 }
 
-fn compileParamList(params, collectParam) {
+fn paramList(params, collectParam) {
 	let ~ p []
 	for i in 0:len(params) {
 		p = [p..., formats("var _%s = a[%d]", params[i], i)]
 	}
 
 	if collectParam != "" {
-		p = [p..., formats("var _%s = a[%d:]", collectParam, len(params))]
+		p = [p..., formats("var _%s = &mml.List{a[%d:]}", collectParam, len(params))]
 	}
 
 	return join(";\n", p)
 }
 
-fn compileFunction(f) {
+fn function(f) {
 	let (
 		scope      getScope(f.statement)
 		paramNames f.collectParam == "" ? f.params : [f.params..., f.collectParam]
@@ -191,61 +193,55 @@ fn compileFunction(f) {
 			},
 			FixedArgs: %d,
 		}"
-		compileParamList(f.params, f.collectParam)
+		paramList(f.params, f.collectParam)
 		scope -> map(fn (s) formats("var _%s interface{}", s)) -> join(";\n")
 		join(", ", map(strings.formatOne("_%s"), [scope..., paramNames...]))
-		compile(f.statement)
+		do(f.statement)
 		len(f.params)
 	)
 }
 
-fn compileRangeExpression(e) formats(
-	"%s:%s"
-	has("from", e) ? compile(e.from) : ""
-	has("to", e) ? compile(e.to) : ""
-)
-
-fn compileIndexer(i)
+fn indexer(i)
 	!has("type", i.index) || i.index.type != "range-expression" ?
 	formats(
 		"mml.Ref(%s, %s)"
-		compile(i.expression)
-		compile(i.index)
+		do(i.expression)
+		do(i.index)
 	) :
 	formats(
 		"mml.RefRange(%s, %s, %s)"
-		compile(i.expression)
-		has("from", i.index) ? compile(i.index.from) : "nil"
-		has("to", i.index) ? compile(i.index.to) : "nil"
+		do(i.expression)
+		has("from", i.index) ? do(i.index.from) : "nil"
+		has("to", i.index) ? do(i.index.to) : "nil"
 	)
 
-fn compileApplication(a) formats(
+fn application(a) formats(
 	has("type", a.function) && a.function.type == "function" ?
-		"(%s).Call(%s)" :
-		"%s.(*mml.Function).Call(%s)"
-	compile(a.function)
-	compileList({values: a.args})
+		"(%s).Call((%s).Values)" :
+		"%s.(*mml.Function).Call((%s).Values)"
+	do(a.function)
+	list({values: a.args})
 )
 
-fn compileUnary(u)
+fn unary(u)
 	u.op == code.logicalNot ?
 	formats(
 		isBool(u.arg) ? "!%s" : "!%s.(bool)"
-		compile(u.arg)
+		do(u.arg)
 	) :
 	formats(
 		"mml.UnaryOp(%d, %s)"
 		u.op
-		compile(u.arg)
+		do(u.arg)
 	)
 
-fn compileBinary(b) {
+fn binary(b) {
 	if b.op != code.logicalAnd && b.op != code.logicalOr {
 		return formats(
 			"mml.BinaryOp(%s, %s, %s)"
-			compile(b.op)
-			compile(b.left)
-			compile(b.right)
+			do(b.op)
+			do(b.left)
+			do(b.right)
 		)
 	}
 
@@ -255,8 +251,8 @@ fn compileBinary(b) {
 		(c.type == "binary" && (c.op == code.logicalAnd || c.op == code.logicalOr))
 
 	let ~ (
-		left  compile(b.left)
-		right compile(b.right)
+		left  do(b.left)
+		right do(b.right)
 	)
 
 	if !isBool(b.left) && !isBoolOp(b.left) {
@@ -275,51 +271,51 @@ fn compileBinary(b) {
 	return formats("(%s %s %s)", left, op, right)
 }
 
-fn compileTernary(c) formats(
+fn ternary(c) formats(
 	"func () interface{} { c = %s; if c.(bool) { return %s } else { return %s } }()"
-	compile(c.condition)
-	compile(c.consequent)
-	compile(c.alternative)
+	do(c.condition)
+	do(c.consequent)
+	do(c.alternative)
 )
 
 fn compileIf(c)
 	has("alternative", c) ?
 	formats(
 		"c = %s; if c.(bool) { %s } else { %s }"
-		compile(c.condition)
-		compile(c.consequent)
-		compile(c.alternative)
+		do(c.condition)
+		do(c.consequent)
+		do(c.alternative)
 	) :
 	formats(
 		"c = %s; if c.(bool) { %s }"
-		compile(c.condition)
-		compile(c.consequent)
+		do(c.condition)
+		do(c.consequent)
 	)
 
 fn compileSwitch(s) {
 	let (
 		hasDefault  len(s.defaultStatements.statements) > 0
-		cases       s.cases -> map(compile)
-		def         hasDefault ? compile(s.defaultStatements) : ""
+		cases       s.cases -> map(do)
+		def         hasDefault ? do(s.defaultStatements) : ""
 		defaultCode hasDefault ? formats("default:\n%s", def) : ""
 	)
 
 	return formats(
 		"switch %s {\n%s\n}"
-		has("expression", s) ? compile(s.expression) : ""
+		has("expression", s) ? do(s.expression) : ""
 		(hasDefault ? [cases..., defaultCode] : cases) -> join("\n")
 	)
 }
 
 fn compileSelect(s)
 	s.cases
-	-> map(compile)
+	-> map(do)
 	-> fn (c) (
 		s.hasDefault ?
 		[
 			c...
 			s.defaultStatements
-			-> compile
+			-> do
 			-> strings.formatOne("default:\n%s")
 		] :
 		c
@@ -327,7 +323,17 @@ fn compileSelect(s)
 	-> join("\n")
 	-> strings.formatOne("func() interface{} {\nselect {\n%s\n} }()")
 
-fn compileRangeOver(r) {
+fn compileDefer(d) {
+	return formats(
+		has("type", d.application.function) && d.application.function.type == "function" ?
+			"c = (%s); defer c.Call((%s).Values)" :
+			"defer %s.(*mml.Function).Call((%s).Values)"
+		do(d.application.function)
+		list({values: d.application.args})
+	)
+}
+
+fn rangeOver(r) {
 	fn infiniteCounter() formats(
 		"_%s := 0; true; _%s++"
 		r.symbol
@@ -337,9 +343,9 @@ fn compileRangeOver(r) {
 	fn withRangeExpression() formats(
 		"_%s := %s; %s; _%s++"
 		r.symbol
-		has("from", r.expression) ? compile(r.expression.from) : "0"
+		has("from", r.expression) ? do(r.expression.from) : "0"
 		has("to", r.expression) ?
-			formats("_%s < %s.(int)", r.symbol, compile(r.expression.to)) :
+			formats("_%s < %s.(int)", r.symbol, do(r.expression.to)) :
 			"true"
 		r.symbol
 	)
@@ -348,9 +354,9 @@ fn compileRangeOver(r) {
 	// - should work for struct, too
 	// - the arg should be called with nop()
 	fn listStyleRange() formats(
-		"_, _%s := range %s.([]interface{})"
+		"_, _%s := range %s.(*mml.List).Values"
 		r.symbol
-		compile(r.expression)
+		do(r.expression)
 	)
 
 	switch {
@@ -364,46 +370,46 @@ fn compileRangeOver(r) {
 }
 
 // TODO: nop call for the loop variable
-fn compileLoop(l) formats(
+fn loop(l) formats(
 	"for %s {\n%s\n}"
-	has("expression", l) ? compile(l.expression) : ""
-	compile(l.body)
+	has("expression", l) ? do(l.expression) : ""
+	do(l.body)
 )
 
-fn compileDefinition(d)
+fn definition(d)
 	d.exported ?
 	formats(
 		"_%s = %s; exports[\"%s\"] = _%s"
 		d.symbol
-		compile(d.expression)
+		do(d.expression)
 		d.symbol
 		d.symbol
 	) :
 	formats(
 		"_%s = %s"
 		d.symbol
-		compile(d.expression)
+		do(d.expression)
 	)
 
-fn compileAssign(a)
+fn assign(a)
 	a.capture.type == "symbol" ?
 	formats(
 		"%s = %s"
-		compile(a.capture)
-		compile(a.value)
+		do(a.capture)
+		do(a.value)
 	) :
 	formats(
 		"mml.SetRef(%s, %s, %s)"
-		compile(a.capture.expression)
-		compile(a.capture.index)
-		compile(a.value)
+		do(a.capture.expression)
+		do(a.capture.index)
+		do(a.value)
 	)
 
-fn compileStatements(s) {
+fn statements(s) {
 	let (
 		scope      getScope(s...)
 		scopeNames join(", ", map(strings.formatOne("_%s"), scope))
-		statements map(compile, s) -> notEmpty -> join(";\n")
+		statements map(do, s) -> notEmpty -> join(";\n")
 	)
 
 	let scopeDefs scope
@@ -418,28 +424,20 @@ fn compileStatements(s) {
 	)
 }
 
-fn compileModule(m) formats(
-	"%s"
-	compileStatements(m.statements)
-)
-
-// TODO
-fn getModuleName(path) path
-
 fn compileUse(u) {
 	switch {
 	case u.capture == ".":
 		let useStatement formats(
 			"var __%s = mml.Modules.Use(\"%s.mml\");"
-			getModuleName(u.path)
+			code.getModuleName(u.path)
 			u.path
 		)
 
 		let assigns map(fn (name)
 			formats(
-				"_%s = __%s[\"%s\"]"
+				"_%s = __%s.Values[\"%s\"]"
 				name
-				getModuleName(u.path)
+				code.getModuleName(u.path)
 				name
 			)
 			u.exportNames
@@ -456,7 +454,7 @@ fn compileUse(u) {
 	default:
 		return formats(
 			"_%s = mml.Modules.Use(\"%s.mml\")"
-			getModuleName(u.path)
+			code.getModuleName(u.path)
 			u.path
 		)
 	}
@@ -464,7 +462,7 @@ fn compileUse(u) {
 
 // TODO: trim comments from everywhere
 
-export fn compile(code) {
+export fn do(code) {
 	switch {
 	case isInt(code):
 		return compileInt(code)
@@ -478,33 +476,31 @@ export fn compile(code) {
 
 	switch code.type {
 	case "comment":
-		return compileComment(code)
+		return comment(code)
 	case "symbol":
-		return compileSymbol(code)
-	case "module":
-		return compileModule(code)
+		return symbol(code)
 	case "list":
-		return compileList(code)
+		return list(code)
+	case "expression-key":
+		return expressionKey(code)
 	case "entry":
-		return compileEntry(code)
+		return entry(code)
 	case "struct":
-		return compileStruct(code)
+		return struct(code)
 	case "function":
-		return compileFunction(code)
-	case "range-expression":
-		return compileRangeExpression(code)
+		return function(code)
 	case "indexer":
-		return compileIndexer(code)
+		return indexer(code)
 	case "spread":
-		return compileSpread(code)
+		return spreadList(code)
 	case "function-application":
-		return compileApplication(code)
+		return application(code)
 	case "unary":
-		return compileUnary(code)
+		return unary(code)
 	case "binary":
-		return compileBinary(code)
+		return binary(code)
 	case "cond":
-		return compileCond(code)
+		return cond(code)
 	case "switch-case":
 		return compileCase(code)
 	case "switch-statement":
@@ -522,26 +518,26 @@ export fn compile(code) {
 	case "select":
 		return compileSelect(code)
 	case "range-over":
-		return compileRangeOver(code)
+		return rangeOver(code)
 	case "loop":
-		return compileLoop(code)
+		return loop(code)
 	case "definition":
-		return compileDefinition(code)
+		return definition(code)
 	case "definition-list":
-		return compileDefinitions(code)
+		return definitions(code)
 	case "assign":
-		return compileAssign(code)
+		return assign(code)
 	case "assign-list":
-		return compileAssigns(code)
+		return assigns(code)
 	case "ret":
-		return compileRet(code)
+		return ret(code)
 	case "control-statement":
-		return compileControl(code)
+		return control(code)
 	case "use":
 		return compileUse(code)
 	case "use-list":
-		return compileUseList(code)
+		return useList(code)
 	default:
-		return compileStatements(code.statements)
+		return statements(code.statements)
 	}
 }

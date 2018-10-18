@@ -52,6 +52,14 @@ const (
 	logicalOr
 )
 
+type List struct {
+	Values []interface{}
+}
+
+type Struct struct {
+	Values map[string]interface{}
+}
+
 type Function struct {
 	F         func([]interface{}) interface{}
 	FixedArgs int
@@ -90,12 +98,12 @@ func (c *ModuleContext) Set(path string, i func() map[string]interface{}) {
 	c.initializers[path] = i
 }
 
-func (c *ModuleContext) Use(path string) map[string]interface{} {
+func (c *ModuleContext) Use(path string) *Struct {
 	c.lock.Lock()
 	m, ok := c.cache[path]
 	if ok {
 		c.lock.Unlock()
-		return m
+		return &Struct{m}
 	}
 
 	init := c.initializers[path]
@@ -115,13 +123,17 @@ func (c *ModuleContext) Use(path string) map[string]interface{} {
 	c.lock.Unlock()
 	ml.Unlock()
 
-	return m
+	return &Struct{m}
 }
 
 func Ref(v, k interface{}) interface{} {
 	switch vt := v.(type) {
 	case string:
 		return string(vt[k.(int)])
+	case *List:
+		return vt.Values[k.(int)]
+	case *Struct:
+		return vt.Values[k.(string)]
 	case []interface{}:
 		return vt[k.(int)]
 	case map[string]interface{}:
@@ -132,7 +144,7 @@ func Ref(v, k interface{}) interface{} {
 			println("ref failed", err.Error())
 		}
 
-		panic("ref: unsupported code")
+		panic("ref: unsupported code" + fmt.Sprint(v))
 	}
 }
 
@@ -149,16 +161,27 @@ func RefRange(v, from, to interface{}) interface{} {
 		default:
 			return vt[from.(int):to.(int)]
 		}
+	case *List:
+		switch {
+		case from == nil && to == nil:
+			return &List{vt.Values[:]}
+		case from == nil:
+			return &List{vt.Values[:to.(int)]}
+		case to == nil:
+			return &List{vt.Values[from.(int):]}
+		default:
+			return &List{vt.Values[from.(int):to.(int)]}
+		}
 	case []interface{}:
 		switch {
 		case from == nil && to == nil:
-			return vt[:]
+			return &List{vt[:]}
 		case from == nil:
-			return vt[:to.(int)]
+			return &List{vt[:to.(int)]}
 		case to == nil:
-			return vt[from.(int):]
+			return &List{vt[from.(int):]}
 		default:
-			return vt[from.(int):to.(int)]
+			return &List{vt[from.(int):to.(int)]}
 		}
 	default:
 		panic("ref range: unsupported code")
@@ -167,6 +190,10 @@ func RefRange(v, from, to interface{}) interface{} {
 
 func SetRef(e, k, v interface{}) {
 	switch et := e.(type) {
+	case *List:
+		et.Values[k.(int)] = v
+	case *Struct:
+		et.Values[k.(string)] = v
 	case []interface{}:
 		et[k.(int)] = v
 	case map[string]interface{}:
@@ -395,14 +422,18 @@ var IsString = &Function{
 var Len = &Function{
 	F: func(a []interface{}) interface{} {
 		switch at := a[0].(type) {
+		case *List:
+			return len(at.Values)
+		case *Struct:
+			return len(at.Values)
+		case string:
+			return len(at)
 		case []interface{}:
 			return len(at)
 		case map[string]interface{}:
 			return len(at)
-		case string:
-			return len(at)
 		default:
-			panic("len: unsupported code")
+			panic("len: unsupported code" + fmt.Sprint(a[0]))
 		}
 	},
 	FixedArgs: 1,
@@ -410,17 +441,27 @@ var Len = &Function{
 
 var Keys = &Function{
 	F: func(a []interface{}) interface{} {
-		s, ok := a[0].(map[string]interface{})
+		s, ok := a[0].(*Struct)
 		if !ok {
-			panic("keys: unsupported code")
+			s, ok := a[0].(map[string]interface{})
+			if !ok {
+				panic("keys: unsupported code" + fmt.Sprint(a[0]))
+			}
+
+			var keys []interface{}
+			for k := range s {
+				keys = append(keys, k)
+			}
+
+			return &List{Values: keys}
 		}
 
 		var keys []interface{}
-		for k := range s {
+		for k := range s.Values {
 			keys = append(keys, k)
 		}
 
-		return keys
+		return &List{Values: keys}
 	},
 	FixedArgs: 1,
 }
@@ -429,15 +470,15 @@ var Format = &Function{
 	F: func(a []interface{}) interface{} {
 		f, ok := a[0].(string)
 		if !ok {
-			panic("format: unsupported code")
+			panic("format: unsupported code: " + fmt.Sprint(a[0]))
 		}
 
-		args, ok := a[1].([]interface{})
+		args, ok := a[1].(*List)
 		if !ok {
-			panic("format: unsupported code")
+			panic("format: unsupported code: " + fmt.Sprint(a[1]))
 		}
 
-		return fmt.Sprintf(f, args...)
+		return fmt.Sprintf(f, args.Values...)
 	},
 	FixedArgs: 2,
 }
@@ -539,7 +580,7 @@ var ParseFloat = &Function{
 	FixedArgs: 1,
 }
 
-func convertAST(goAST *parser.Node) map[string]interface{} {
+func convertAST(goAST *parser.Node) *Struct {
 	ast := make(map[string]interface{})
 	ast["name"] = goAST.Name
 	ast["text"] = goAST.Text()
@@ -549,11 +590,11 @@ func convertAST(goAST *parser.Node) map[string]interface{} {
 		nodes = append(nodes, convertAST(goAST.Nodes[i]))
 	}
 
-	ast["nodes"] = nodes
-	return ast
+	ast["nodes"] = &List{nodes}
+	return &Struct{ast}
 }
 
-func parseAST(doc string) (ast map[string]interface{}, err error) {
+func parseAST(doc string) (ast *Struct, err error) {
 	var goAST *parser.Node
 	goAST, err = parser.Parse(bytes.NewBufferString(doc))
 	if err != nil {
@@ -577,12 +618,18 @@ var ParseAST = &Function{
 
 var Has = &Function{
 	F: func(a []interface{}) interface{} {
-		s, ok := a[1].(map[string]interface{})
+		s, ok := a[1].(*Struct)
 		if !ok {
-			return false
+			ss, ok := a[1].(map[string]interface{})
+			if !ok {
+				return false
+			}
+
+			_, ok = ss[a[0].(string)]
+			return ok
 		}
 
-		_, ok = s[a[0].(string)]
+		_, ok = s.Values[a[0].(string)]
 		return ok
 	},
 	FixedArgs: 2,

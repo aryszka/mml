@@ -6,33 +6,33 @@ use (
 )
 
 fn (
-	parseString(ast)             strings.unescape(ast.text[1:len(ast.text) - 1])
-	parseSpread(ast)             {type: "spread", value: parse(ast.nodes[0])}
-	parseExpressionList(nodes)   map(parse, nodes)
-	parseList(ast)               {type: "list", values: parseExpressionList(ast.nodes), mutable: false}
-	parseMutableList(ast)        {parseList(ast)..., mutable: true}
-	parseExpressionKey(ast)      {type: "expression-key", value: parse(ast.nodes[0])}
-	parseEntry(ast)              {type: "entry", key: parse(ast.nodes[0]), value: parse(ast.nodes[1])}
-	parseStruct(ast)             {type: "struct", entries: map(parse, ast.nodes), mutable: false}
-	parseMutableStruct(ast)      {parseStruct(ast)..., mutable: true}
-	parseStatementList(ast)      {type: "statement-list", statements: map(parse, ast.nodes)}
-	parseFunction(ast)           parseFunctionFact(ast.nodes)
-	parseEffect(ast)             {parseFunction(ast)..., effect: true}
-	parseSymbolIndex(ast)        parse(ast.nodes[0]).name
-	parseExpressionIndex(ast)    parse(ast.nodes[0])
-	parseIndexer(ast)            parseIndexerNodes(ast.nodes)
-	parseMutableCapture(ast)     {parseValueCapture(ast)..., mutable: true}
-	parseValueDefinition(ast)    parse(ast.nodes[0])
-	parseFunctionDefinition(ast) parse(ast.nodes[0])
-	parseAssign(ast)             {type: "assign-list", assignments: parseAssignCaptures(ast.nodes)}
-	parseSend(ast)               {type: "send", channel: parse(ast.nodes[0]), value: parse(ast.nodes[1])}
-	parseReceive(ast)            {type: "receive", channel: parse(ast.nodes[0])}
-	parseGo(ast)                 {type: "go", application: parse(ast.nodes[0])}
-	parseDefer(ast)              {type: "defer", application: parse(ast.nodes[0])}
-	parseReceiveDefinition(ast)  parseValueCapture(ast)
+	parseString(ast)           strings.unescape(ast.text[1:len(ast.text) - 1])
+	spread(ast)                {type: "spread", value: parse(ast.nodes[0])}
+	expressionList(nodes) map(parse, nodes)
+	list(ast)                  {type: "list", values: expressionList(ast.nodes), mutable: false}
+	mutableList(ast)           {list(ast)..., mutable: true}
+	expressionKey(ast)         {type: "expression-key", value: parse(ast.nodes[0])}
+	entry(ast)                 {type: "entry", key: parse(ast.nodes[0]), value: parse(ast.nodes[1])}
+	struct(ast)                {type: "struct", entries: map(parse, ast.nodes), mutable: false}
+	mutableStruct(ast)         {struct(ast)..., mutable: true}
+	statementList(ast)         {type: "statement-list", statements: map(parse, ast.nodes)}
+	function(ast)              functionFact(ast.nodes)
+	effect(ast)                {function(ast)..., effect: true}
+	symbolIndex(ast)           parse(ast.nodes[0]).name
+	expressionIndex(ast)       parse(ast.nodes[0])
+	indexer(ast)               indexerNodes(ast.nodes)
+	mutableCapture(ast)        {valueCapture(ast)..., mutable: true}
+	valueDefinition(ast)       parse(ast.nodes[0])
+	functionDefinition(ast)    parse(ast.nodes[0])
+	assign(ast)                {type: "assign-list", assignments: assignCaptures(ast.nodes)}
+	parseSend(ast)             {type: "send", channel: parse(ast.nodes[0]), value: parse(ast.nodes[1])}
+	parseReceive(ast)          {type: "receive", channel: parse(ast.nodes[0])}
+	parseGo(ast)               {type: "go", application: parse(ast.nodes[0])}
+	parseDefer(ast)            {type: "defer", application: parse(ast.nodes[0])}
+	receiveDefinition(ast)     valueCapture(ast)
 )
 
-fn parseSymbol(ast) {
+fn symbol(ast) {
 	switch ast.text {
 	case "break":
 		return {type: "control-statement", control: code.breakControl}
@@ -44,9 +44,9 @@ fn parseSymbol(ast) {
 	}
 }
 
-fn parseReturn(ast) len(ast.nodes) == 0 ? {type: "ret"} : {type: "ret", value: parse(ast.nodes[0])}
+fn ret(ast) len(ast.nodes) == 0 ? {type: "ret"} : {type: "ret", value: parse(ast.nodes[0])}
 
-fn parseFunctionFact(nodes) {
+fn functionFact(nodes) {
 	let (
 		last len(nodes) - 1
 		params nodes[:last]
@@ -64,7 +64,7 @@ fn parseFunctionFact(nodes) {
 	}
 }
 
-fn parseRange(ast) {
+fn range(ast) {
 	let v = parse(ast.nodes[0])
 	return ast.name == "range-from" ? {
 		type: "range-expression"
@@ -75,7 +75,7 @@ fn parseRange(ast) {
 	}
 }
 
-fn parseRangeIndex(ast) {
+fn rangeIndex(ast) {
 	if len(ast.nodes) == 0 {
 		return {type: "range-expression"}
 	}
@@ -88,19 +88,19 @@ fn parseRangeIndex(ast) {
 	return {r..., to: parse(ast.nodes[1]).to}
 }
 
-fn parseIndexerNodes(n) {
+fn indexerNodes(n) {
 	type:       "indexer"
-	expression: len(n) == 2 ? parse(n[0]) : parseIndexerNodes(n[:len(n) - 1])
+	expression: len(n) == 2 ? parse(n[0]) : indexerNodes(n[:len(n) - 1])
 	index:      parse(n[len(n) - 1])
 }
 
-fn parseFunctionApplication(ast) {
+fn application(ast) {
 	type:     "function-application"
 	function: parse(ast.nodes[0])
-	args:     parseExpressionList(ast.nodes[1:])
+	args:     expressionList(ast.nodes[1:])
 }
 
-fn parseUnaryExpression(ast) {
+fn unary(ast) {
 	let ~ op code.binaryNot
 	switch ast.nodes[0].name {
 	case "plus":
@@ -118,7 +118,7 @@ fn parseUnaryExpression(ast) {
 	}
 }
 
-fn parseBinaryExpression(ast) {
+fn binary(ast) {
 	let ~ op code.binaryAnd
 	switch ast.nodes[len(ast.nodes)-2].name {
 	case "xor":
@@ -170,7 +170,7 @@ fn parseBinaryExpression(ast) {
 	}
 }
 
-fn parseChaining(ast) {
+fn chaining(ast) {
 	let (
 		~ a parse(ast.nodes[0])
 		~ n ast.nodes[1:]
@@ -191,7 +191,7 @@ fn parseChaining(ast) {
 	}
 }
 
-fn parserTernary(ast) {
+fn ternary(ast) {
 	type:        "cond"
 	condition:   parse(ast.nodes[0])
 	consequent:  parse(ast.nodes[1])
@@ -272,7 +272,7 @@ fn parseSwitch(ast) {
 		return {cases: cases, defaults: defaults}
 	}
 
-	fn parseCases(c) {
+	fn cases(c) {
 		return map(fn (c) {
 			type:       "switch-case"
 			expression: parse(c[0])
@@ -286,14 +286,14 @@ fn parseSwitch(ast) {
 	let lines groupLines()
 	let s {
 		type:              "switch-statement"
-		cases:             parseCases(lines.cases)
+		cases:             cases(lines.cases)
 		defaultStatements: {type: "statement-list", statements: map(parse, lines.defaults)}
 	}
 
 	return hasExpression ? {s..., expression: parse(expression)} : s
 }
 
-fn parseRangeOver(ast) {
+fn rangeOver(ast) {
 	if len(ast.nodes) == 0 {
 		return {type: "range-over"}
 	}
@@ -305,7 +305,7 @@ fn parseRangeOver(ast) {
 		}
 	}
 
-	fn parseExpression(nodes) {
+	fn expression(nodes) {
 		let exp parse(nodes[0])
 		if !has("type", exp) || exp.type != "range-expression" || len(nodes) == 1 {
 			return exp
@@ -320,21 +320,21 @@ fn parseRangeOver(ast) {
 	if ast.nodes[0].name != "symbol" {
 		return {
 			type:       "range-over"
-			expression: parseExpression(ast.nodes)
+			expression: expression(ast.nodes)
 		}
 	}
 
 	return {
 		type:       "range-over"
 		symbol:     parse(ast.nodes[0]).name
-		expression: parseExpression(ast.nodes[1:])
+		expression: expression(ast.nodes[1:])
 	}
 }
 
-fn parseLoop(ast) {
+fn loop(ast) {
 	let loop {type: "loop"}
 	if len(ast.nodes) == 1 {
-		return {loop..., body: parseStatementList(ast.nodes[0])}
+		return {loop..., body: statementList(ast.nodes[0])}
 	}
 
 	let expression parse(ast.nodes[0])
@@ -345,11 +345,11 @@ fn parseLoop(ast) {
 		!has("expression", expression)
 	
 	return emptyRange ?
-		{loop..., body: parseStatementList(ast.nodes[1])} :
-		{loop..., expression: expression, body: parseStatementList(ast.nodes[1])}
+		{loop..., body: statementList(ast.nodes[1])} :
+		{loop..., expression: expression, body: statementList(ast.nodes[1])}
 }
 
-fn parseValueCapture(ast) {
+fn valueCapture(ast) {
 	type:       "definition"
 	symbol:     parse(ast.nodes[0]).name
 	expression: parse(ast.nodes[1])
@@ -357,45 +357,46 @@ fn parseValueCapture(ast) {
 	exported:   false
 }
 
-fn parseDefinitions(ast) {
+fn definitions(ast) {
 	type:        "definition-list"
 	definitions: ast.nodes
 		-> map(parse)
 		-> filter(fn (c) !has("type", c) || c.type != "comment")
 }
 
-fn parseMutableDefinitions(ast) {
-	let dl parseDefinitions(ast)
+fn mutableDefinitions(ast) {
+	let dl definitions(ast)
 	return {
 		dl...
 		definitions: dl.definitions -> map(fn (d) {d..., mutable: true})
 	}
 }
 
-fn parseFunctionCapture(ast) {
+fn functionCapture(ast) {
 	type:       "definition"
 	symbol:     parse(ast.nodes[0]).name
-	expression: parseFunctionFact(ast.nodes[1:])
+	expression: functionFact(ast.nodes[1:])
+	mutable:    false
 	exported:   false
 }
 
-fn parseEffectCapture(ast) {
-	let f parseFunctionCapture(ast)
+fn effectCapture(ast) {
+	let f functionCapture(ast)
 	return {
 		f...
 		expression: {f.expression..., effect: true}
 	}
 }
 
-fn parseEffectDefinitions(ast) {
-	let dl parseDefinitions(ast)
+fn effectDefinitions(ast) {
+	let dl definitions(ast)
 	return {
 		dl...
 		definitions: map(fn (d) {d..., effect: true}, dl.definitions)
 	}
 }
 
-fn parseAssignCaptures(nodes) {
+fn assignCaptures(nodes) {
 	if len(nodes) == 0 {
 		return []
 	}
@@ -406,7 +407,7 @@ fn parseAssignCaptures(nodes) {
 			capture: parse(nodes[0])
 			value:   parse(nodes[1])
 		}
-		parseAssignCaptures(nodes[2:])...
+		assignCaptures(nodes[2:])...
 	]
 }
 
@@ -442,6 +443,7 @@ fn parseSelect(ast) {
 
 				current = []
 				isDefault = true
+				hasDefault = true
 			default:
 				current = [current..., n]
 			}
@@ -458,7 +460,7 @@ fn parseSelect(ast) {
 		return {cases: cases, defaults: defaults, hasDefault: hasDefault}
 	}
 
-	fn parseCases(c) {
+	fn cases(c) {
 		return map(fn (c) {
 			type:       "select-case"
 			expression: parse(c[0])
@@ -471,7 +473,7 @@ fn parseSelect(ast) {
 
 	let lines groupLines()
 	return {
-		cases:             parseCases(lines.cases)
+		cases:             cases(lines.cases)
 		defaultStatements: {type: "statement-list", statements: map(parse, lines.defaults)}
 		hasDefault:        lines.hasDefault
 	}
@@ -487,7 +489,7 @@ fn parseExport(ast) {
 	}
 }
 
-fn parseUseFact(ast) {
+fn useFact(ast) {
 	let (
 		~ capture ""
 		~ path    ""
@@ -531,89 +533,89 @@ fn parse(ast) {
 	case "false":
 		return false
 	case "symbol":
-		return parseSymbol(ast)
+		return symbol(ast)
 	case "spread-expression":
-		return parseSpread(ast)
+		return spread(ast)
 	case "list":
-		return parseList(ast)
+		return list(ast)
 	case "mutable-list":
-		return parseMutableList(ast)
+		return mutableList(ast)
 	case "expression-key":
-		return parseExpressionKey(ast)
+		return expressionKey(ast)
 	case "entry":
-		return parseEntry(ast)
+		return entry(ast)
 	case "struct":
-		return parseStruct(ast)
+		return struct(ast)
 	case "mutable-struct":
-		return parseMutableStruct(ast)
+		return mutableStruct(ast)
 	case "return":
-		return parseReturn(ast)
+		return ret(ast)
 	case "block":
-		return parseStatementList(ast)
+		return statementList(ast)
 	case "function":
-		return parseFunction(ast)
+		return function(ast)
 	case "effect":
-		return parseEffect(ast)
+		return effect(ast)
 	case "range-from":
-		return parseRange(ast)
+		return range(ast)
 	case "range-to":
-		return parseRange(ast)
+		return range(ast)
 	case "symbol-index":
-		return parseSymbolIndex(ast)
+		return symbolIndex(ast)
 	case "expression-index":
-		return parseExpressionIndex(ast)
+		return expressionIndex(ast)
 	case "range-index":
-		return parseRangeIndex(ast)
+		return rangeIndex(ast)
 	case "indexer":
-		return parseIndexer(ast)
+		return indexer(ast)
 	case "function-application":
-		return parseFunctionApplication(ast)
+		return application(ast)
 	case "unary-expression":
-		return parseUnaryExpression(ast)
+		return unary(ast)
 	case "binary0":
-		return parseBinaryExpression(ast)
+		return binary(ast)
 	case "binary1":
-		return parseBinaryExpression(ast)
+		return binary(ast)
 	case "binary2":
-		return parseBinaryExpression(ast)
+		return binary(ast)
 	case "binary3":
-		return parseBinaryExpression(ast)
+		return binary(ast)
 	case "binary4":
-		return parseBinaryExpression(ast)
+		return binary(ast)
 	case "chaining":
-		return parseChaining(ast)
+		return chaining(ast)
 	case "ternary-expression":
-		return parserTernary(ast)
+		return ternary(ast)
 	case "if":
 		return parseIf(ast)
 	case "switch":
 		return parseSwitch(ast)
 	case "range-over-expression":
-		return parseRangeOver(ast)
+		return rangeOver(ast)
 	case "loop":
-		return parseLoop(ast)
+		return loop(ast)
 	case "value-capture":
-		return parseValueCapture(ast)
+		return valueCapture(ast)
 	case "mutable-capture":
-		return parseMutableCapture(ast)
+		return mutableCapture(ast)
 	case "value-definition":
-		return parseValueDefinition(ast)
+		return valueDefinition(ast)
 	case "value-definition-group":
-		return parseDefinitions(ast)
+		return definitions(ast)
 	case "mutable-definition-group":
-		return parseMutableDefinitions(ast)
+		return mutableDefinitions(ast)
 	case "function-capture":
-		return parseFunctionCapture(ast)
+		return functionCapture(ast)
 	case "effect-capture":
-		return parseEffectCapture(ast)
+		return effectCapture(ast)
 	case "function-definition":
-		return parseFunctionDefinition(ast)
+		return functionDefinition(ast)
 	case "function-definition-group":
-		return parseDefinitions(ast)
+		return definitions(ast)
 	case "effect-definition-group":
-		return parseEffectDefinitions(ast)
+		return effectDefinitions(ast)
 	case "assignment":
-		return parseAssign(ast)
+		return assign(ast)
 	case "send":
 		return parseSend(ast)
 	case "receive":
@@ -623,17 +625,17 @@ fn parse(ast) {
 	case "defer":
 		return parseDefer(ast)
 	case "receive-definition":
-		return parseReceiveDefinition(ast)
+		return receiveDefinition(ast)
 	case "select":
 		return parseSelect(ast)
 	case "export":
 		return parseExport(ast)
 	case "use-fact":
-		return parseUseFact(ast)
+		return useFact(ast)
 	case "use":
 		return parseUse(ast)
 	default:
-		return parseStatementList(ast)
+		return statementList(ast)
 	}
 }
 
@@ -654,6 +656,7 @@ fn parseFile(path) {
 }
 
 // TODO: can there be an export below the top level?
+// - nope: disable it in the syntax
 
 fn findExportNames(statements)
 	statements
@@ -661,7 +664,7 @@ fn findExportNames(statements)
 	-> filter(fn (d) d.exported)
 	-> map(fn (d) d.symbol)
 
-export fn parseModules(path) {
+export fn modules(path) {
 	// TODO:
 	// - this only considers the top level uses, while it is allowed to have lower level uses
 
@@ -676,7 +679,7 @@ export fn parseModules(path) {
 
 	let usesModules uses
 	-> map(fn (u) u.path + ".mml")
-	-> map(parseModules)
+	-> map(modules)
 	-> errors.any
 	-> passErr(flat)
 	-> passErr(map(fn (m) {
@@ -703,9 +706,7 @@ export fn parseModules(path) {
 			}
 
 			return {
-				type:        s.type
-				path:        s.path
-				capture:     s.capture
+				s...
 				exportNames: m[0].exportNames
 			}
 		}
@@ -719,9 +720,7 @@ export fn parseModules(path) {
 				}
 
 				return {
-					type:        u.type
-					path:        u.path
-					capture:     u.capture
+					u...
 					exportNames: m[0].exportNames
 				}
 			}, s.uses)

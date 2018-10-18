@@ -42,9 +42,12 @@ export let (
 
 export fn flattenedStatements(itemType, listType, listProp, statements) {
 	fn (
-		type(s) has("type", s) && contains(s.type, [itemType, listType])
+		type(s)   has("type", s) && contains(s.type, [itemType, listType])
 		toList(s) s.type == itemType ? [s] : s[listProp]
 	)
 
 	return statements -> filter(type) -> map(toList) -> list.flat
 }
+
+// TODO
+export fn getModuleName(path) path
