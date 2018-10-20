@@ -1,0 +1,373 @@
+// TODO:
+// - handle scope and `let a a` properly in all kinds of scopes, see loop
+// - this should be more like an evaluator
+// - check the uncalled functions only in production build
+// - optimization: remove args and indexes from the results
+
+use (
+	. "lang"
+	mmlcode "code"
+)
+
+fn newContext() ~{definitions: {}, capturing: false}
+
+fn~ (
+	extend(context)            ~{newContext()..., parent: context}
+	definedCurrent(context, n) has(n, context.definitions)
+	define(context, n, v)      capture(context, n, v)
+	assign(context, n, v)      capture(context, n, v)
+)
+
+fn~ defined(context, n)
+	has(n, context.definitions) ||
+	has("parent", context) && defined(context.parent, n)
+
+fn~ capture(context, n, v)
+	context.definitions[n] = has(n, context.definitions) ?
+		[context.definitions[n]..., v...] :
+		v
+
+fn~ values(context, n) has(n, context.definitions) ?
+	context.definitions[n] :
+	has("parent", context) ?
+		values(context.parent, n) :
+		[]
+
+// always return: {values: [], errors: []}
+fn results(v, e) {values: v, errors: e}
+
+fn resultValues(...v) results(v, [])
+
+fn resultErrors(...e) results([], e)
+
+let emptyResults results([], [])
+
+fn mergeResults(...r) {
+	fn mergeTwo(left, right) results(
+		[left.values..., right.values...]
+		[left.errors..., right.errors...]
+	)
+
+	return fold(mergeTwo, emptyResults, r)
+}
+
+fn~ (
+	all(context, l)             l -> map(do(context)) -> fn (r) mergeResults(r...)
+	scoped(context, code)       do(extend(context), code)
+	allScoped(context, l)       l -> map(scoped(context)) -> fn (r) mergeResults(r...)
+	fields(context, s, f)       f -> map(fn (f) s[f]) -> all(context)
+	fieldsIfHas(context, f, s)  f -> filter(fn (f) has(f, s)) -> fields(context, s)
+	list(context, l)            all(context, l.values)
+	struct(context, s)          all(context, s.entries)
+	rangeExpression(context, r) fieldsIfHas(context, ["from", "to"], r)
+	indexer(context, i)         all(context, [i.index, i.expression])
+	spread(context, s)          do(context, s.value)
+	unary(context, u)           do(context, u.arg)
+	binary(context, b)          fields(context, b, ["left", "right"])
+	validateSend(context, s)    fields(context, s, ["channel", "value"])
+	validateGo(context, g)      fields(context, g, ["application"])
+	validateDefer(context, d)   do(context, d.application)
+	definitions(context, d)     all(context, d.definitions)
+	assignments(context, a)     all(context, a.assignments)
+	ret(context, r)             fieldsIfHas(context, ["value"], r)
+	useList(context, u)         all(context, u.uses)
+)
+
+fn undefined(name) error(formats("undefined: %s", name))
+
+fn duplicate(name) error(formats("duplicate definition: %s", name))
+
+fn~ expandFunction(f) {
+	f.expanded = true
+
+	let c extend(f.context)
+	for p in f.params {
+		define(c, p, [])
+	}
+
+	if f.collectParam != "" {
+		define(c, f.collectParam, [])
+	}
+
+	return do(c, f.statement)
+}
+
+fn~ symbol(context, s) {
+	let ~ r defined(context, s.name) ?
+		resultValues(values(context, s.name)...) :
+		resultErrors(undefined(s.name))
+	if context.capturing {
+		return r
+	}
+
+	for v in r.values {
+		if !has("type", v) || v.type != "function" || v.expanded {
+			continue
+		}
+
+		r = mergeResults(r, expandFunction(v))
+	}
+
+	return r
+}
+
+fn~ entry(context, e) {
+	let kr do(context, has("type", e.key) && e.key.type == "symbol" ? e.key.name : e.key)
+	return mergeResults(
+		kr
+		do(context, e.value)
+	)
+}
+
+fn~ function(context, f) {
+	let ff ~{f..., context: context, expanded: false}
+	if context.capturing {
+		return resultValues(ff)
+	}
+
+	return expandFunction(ff)
+}
+
+fn~ application(context, a) {
+	let capturing context.capturing
+	context.capturing = false
+	let r mergeResults(
+		do(context, a.function)
+		all(context, a.args)
+	)
+
+	context.capturing = capturing
+	return r
+}
+
+fn~ cond(context, c) {
+	return mergeResults(
+		do(context, c.condition)
+		scoped(context, c.consequent)
+		fieldsIfHas(extend(context), ["alternative"], c)
+	)
+}
+
+fn~ validateCase(context, c) {
+	return mergeResults(
+		do(context, c.expression)
+		do(context, c.body)
+	)
+}
+
+fn~ validateSwitch(context, s) {
+	return mergeResults(
+		fieldsIfHas(context, ["expression"], s)
+		allScoped(context, s.cases)
+		scoped(context, s.defaultStatements)
+	)
+}
+
+fn~ validateReceive(context, r) {
+	return do(context, r.channel)
+}
+
+fn~ validateSelect(context, s) {
+	return mergeResults(
+		allScoped(context, s.cases)
+		s.hasDefault ? scoped(context, s.defaultStatements) : emptyResults
+	)
+}
+
+fn~ rangeOver(context, r) {
+	if !has("expression", r) {
+		define(context, r.symbol, [0])
+		return emptyResults
+	}
+
+	context.capturing = true
+	let result do(context, r.expression)
+	define(context, r.symbol, result.values)
+	context.capturing = false
+
+	return result
+}
+
+fn~ loop(context, l) {
+	let c extend(context)
+	return mergeResults(
+		has("expression", l) ? do(c, l.expression) : emptyResults
+		do(c, l.body)
+	)
+}
+
+fn~ definition(context, d) {
+	if definedCurrent(context, d.symbol) {
+		return resultErrors(duplicate(d.symbol))
+	}
+
+	context.capturing = true
+	let r do(context, d.expression)
+	context.capturing = false
+
+	define(context, d.symbol, r.values)
+	return r
+}
+
+fn~ assignment(context, a) {
+	let cr do(context, a.capture) 
+	context.capturing = true
+	let er do(context, a.value)
+	context.capturing = false
+	return mergeResults(cr, er)
+}
+
+fn~ validateUse(context, u) {
+	if u.capture == "" {
+		if definedCurrent(context, u.path) {
+			return resultErrors(duplicate(u.path))
+		}
+
+		define(context, u.path, [{}])
+		return emptyResults
+	}
+
+	if u.capture == "." {
+		for name in u.exportNames {
+			if definedCurrent(context, name) {
+				return resultErrors(duplicate(name))
+			}
+
+			define(context, name, [{}])
+		}
+
+		return emptyResults
+	}
+
+	if definedCurrent(context, u.capture) {
+		return resultErrors(duplicate(u.path))
+	}
+
+	define(context, u.capture, [{}])
+	return emptyResults
+}
+
+fn~ statements(context, s) {
+	let ~ (
+		r emptyResults
+		exports []
+	)
+
+	for si in s {
+		let ri do(context, si)
+		if has("type", si) && si.type == "ret" {
+			r = mergeResults(r, ri)
+		} else {
+			r = mergeResults(r, resultErrors(ri.errors...))
+		}
+
+		if has("type", si) {
+			if si.type == "definition" && si.exported {
+				exports = [exports..., si]
+			}
+
+			if si.type == "definition-list" {
+				for d in si.definitions {
+					if d.exported {
+						exports = [exports..., d]
+					}
+				}
+			}
+		}
+	}
+
+	for e in exports {
+		let v values(context, e.symbol)
+		for vi in v {
+			if has("type", vi) && vi.type == "function" {
+				r = mergeResults(r, expandFunction(vi))
+			}
+		}
+	}
+
+	return r
+}
+
+fn~ do(context, code) {
+	if !has("type", code) {
+		return emptyResults
+	}
+
+	switch code.type {
+	case "comment":
+		return emptyResults
+	case "symbol":
+		return symbol(context, code)
+	case "list":
+		return list(context, code)
+	case "entry":
+		return entry(context, code)
+	case "struct":
+		return struct(context, code)
+	case "function":
+		return function(context, code)
+	case "range-expression":
+		return rangeExpression(context, code)
+	case "indexer":
+		return indexer(context, code)
+	case "spread":
+		return spread(context, code)
+	case "function-application":
+		return application(context, code)
+	case "unary":
+		return unary(context, code)
+	case "binary":
+		return binary(context, code)
+	case "cond":
+		return cond(context, code)
+	case "switch-case":
+		return validateCase(context, code)
+	case "switch-statement":
+		return validateSwitch(context, code)
+	case "send":
+		return validateSend(context, code)
+	case "receive":
+		return validateReceive(context, code)
+	case "go":
+		return validateGo(context, code)
+	case "defer":
+		return validateDefer(context, code)
+	case "select-case":
+		return validateCase(context, code)
+	case "select":
+		return validateSelect(context, code)
+	case "range-over":
+		return rangeOver(context, code)
+	case "loop":
+		return loop(context, code)
+	case "definition":
+		return definition(context, code)
+	case "definition-list":
+		return definitions(context, code)
+	case "assign":
+		return assignment(context, code)
+	case "assign-list":
+		return assignments(context, code)
+	case "ret":
+		return ret(context, code)
+	case "control-statement":
+		return emptyResults
+	case "use":
+		return validateUse(context, code)
+	case "use-list":
+		return useList(context, code)
+	default:
+		return statements(context, code.statements)
+	}
+}
+
+// TODO: validate exported functions
+export fn validate(code) {
+	let context newContext()
+	for b in keys(mmlcode.builtin) {
+		define(context, b, [])
+	}
+
+	let result do(context, code)
+	return result.errors
+}

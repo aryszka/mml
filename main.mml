@@ -3,6 +3,7 @@ use (
 	  "compile"
 	  "parse"
 	  "code"
+	  "definitions"
 )
 
 let builtins code.builtin
@@ -47,6 +48,24 @@ let mainFooter "\")
 }
 "
 
+fn validateDefinitions(modules) {
+	let ~ hasErrors false
+	for m in modules {
+		let errors definitions.validate(m)
+		if len(errors) > 0 {
+			hasErrors = true
+			log(formats("%s:", m.path))
+			for e in errors {
+				log(e)
+			}
+		}
+	}
+
+	if hasErrors {
+		return error("undefined reference(s) found")
+	}
+}
+
 fn compileModuleCode(moduleCode) {
 	stdout(formats("modulePath = \"%s\"", moduleCode.path))
 	stdout(setModuleHead)
@@ -66,6 +85,11 @@ fn compileModules(m) {
 let modules parse.modules(args[1])
 if isError(modules) {
 	panic(modules)
+}
+
+let validation validateDefinitions(modules)
+if isError(validation) {
+	panic(validation)
 }
 
 stdout(head)
