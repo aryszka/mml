@@ -133,7 +133,12 @@ func Ref(v, k interface{}) interface{} {
 	case *List:
 		return vt.Values[k.(int)]
 	case *Struct:
-		return vt.Values[k.(string)]
+		ret := vt.Values[k.(string)]
+		if ret == nil {
+			panic("ref: undefined key: " + k.(string))
+		}
+
+		return ret
 	case []interface{}:
 		return vt[k.(int)]
 	case map[string]interface{}:
@@ -144,7 +149,7 @@ func Ref(v, k interface{}) interface{} {
 			println("ref failed", err.Error())
 		}
 
-		panic("ref: unsupported code" + fmt.Sprint(v))
+		panic("ref: unsupported code: " + k.(string) + ": " + fmt.Sprint(v))
 	}
 }
 
@@ -188,7 +193,7 @@ func RefRange(v, from, to interface{}) interface{} {
 	}
 }
 
-func SetRef(e, k, v interface{}) {
+func SetRef(e, k, v interface{}) interface{} {
 	switch et := e.(type) {
 	case *List:
 		et.Values[k.(int)] = v
@@ -201,6 +206,8 @@ func SetRef(e, k, v interface{}) {
 	default:
 		panic("set-ref: unsupported code")
 	}
+
+	return nil
 }
 
 func UnaryOp(op int, arg interface{}) interface{} {
@@ -500,7 +507,7 @@ var Stdout = &Function{
 	F: func(a []interface{}) interface{} {
 		s, ok := a[0].(string)
 		if !ok {
-			panic("stderr: unsupported code")
+			panic("stdout: unsupported code")
 		}
 
 		_, err := os.Stdout.Write([]byte(s))

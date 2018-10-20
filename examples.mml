@@ -135,3 +135,22 @@ for {
 	-> passErr(write(stdout))
 	-> onlyErr(write(stderr))
 }
+
+// -- reverse string ugly:
+
+fn reverseString(s) {
+	let ~ r ""
+	for c in s {
+		r = r + c
+	}
+
+	return r
+}
+
+// -- reverse string recursor instinct:
+
+fn reverseString(s) len(s) == 0 ? "" : reverseString(s[1:]) + s[0]
+
+// -- reverse string:
+
+fn reverseString(s) s -> split("") -> foldr(append, "") -> join("") // not good

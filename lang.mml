@@ -15,6 +15,7 @@ export let (
 	contains list.contains
 	sort     list.sort
 	flat     list.flat
+	uniq     list.uniq
 )
 
 // strings

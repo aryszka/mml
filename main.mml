@@ -2,36 +2,13 @@ use (
 	. "lang"
 	  "compile"
 	  "parse"
+	  "code"
 )
 
-let builtin {
-	len:        "Len"
-	isError:    "IsError"
-	keys:       "Keys"
-	format:     "Format"
-	stdin:      "Stdin",
-	stdout:     "Stdout"
-	stderr:     "Stderr"
-	string:     "String"
-	has:        "Has"
-	isBool:     "IsBool"
-	isInt:      "IsInt"
-	isFloat:    "IsFloat"
-	isString:   "IsString"
-	error:      "Error"
-	panic:      "Panic"
-	open:       "Open"
-	close:      "Close"
-	args:       "Args"
-	parseAST:   "ParseAST"
-	parseInt:   "ParseInt"
-	parseFloat: "ParseFloat"
-}
-
-let builtins builtin
+let builtins code.builtin
 -> keys
 -> sort(fn (left, right) left < right)
--> map(fn (k) formats("var _%s interface{} = mml.%s", k, builtin[k]))
+-> map(fn (k) formats("var _%s interface{} = mml.%s", k, code.builtin[k]))
 -> join(";\n")
 
 let head "// Generated code

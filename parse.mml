@@ -664,12 +664,21 @@ fn findExportNames(statements)
 	-> filter(fn (d) d.exported)
 	-> map(fn (d) d.symbol)
 
-export fn modules(path) {
+fn~ parseModule(context, entryPath) {
 	// TODO:
 	// - this only considers the top level uses, while it is allowed to have lower level uses
+	// - use the type: "module"
+
+	if contains(entryPath, context.stack) {
+		return error(formats("circular module dependency: %s", entryPath))
+	}
+
+	if has(entryPath, context.parsed) {
+		return context.parsed[entryPath]
+	}
 
 	let (
-		module parseFile(path)
+		module parseFile(entryPath)
 		uses   code.flattenedStatements("use", "use-list", "uses", module.statements)
 	)
 
@@ -677,9 +686,10 @@ export fn modules(path) {
 		return module
 	}
 
+	context.stack = [context.stack..., entryPath]
 	let usesModules uses
 	-> map(fn (u) u.path + ".mml")
-	-> map(modules)
+	-> map(parseModule(context))
 	-> errors.any
 	-> passErr(flat)
 	-> passErr(map(fn (m) {
@@ -688,6 +698,8 @@ export fn modules(path) {
 		statements: m.statements
 		exportNames: findExportNames(m.statements)
 	}))
+	-> passErr(uniq(fn (left, right) left.path == right.path))
+	context.stack = context.stack[:len(context.stack) - 1]
 
 	if isError(usesModules) {
 		return usesModules
@@ -728,10 +740,16 @@ export fn modules(path) {
 	})
 
 	let currentCode {
-		type:       module.type
-		path:       path
+		module...
+		path:       entryPath
 		statements: statements
 	}
 
-	return [currentCode, usesModules...]
+	let modules [currentCode, usesModules...]
+	context.parsed[entryPath] = modules
+	return modules
+}
+
+export fn modules(entryPath) {
+	return parseModule(~{stack: [], parsed: ~{}}, entryPath)
 }

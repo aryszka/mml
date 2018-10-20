@@ -126,7 +126,7 @@ fn struct(s) {
 				assign "for k, v := range sp.Values { s.Values[k] = v };"
 			)
 
-			return joins("\n", var, assign)
+			return formats("func() { %s; %s }();\n", var, assign)
 		}
 
 		if isString(e.key) {

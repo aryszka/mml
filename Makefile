@@ -35,6 +35,9 @@ parser/parser.go: check-syntax
 	# in order to avoid unnecessary diffs:
 	go fmt ./parser
 
+fmt:
+	go fmt builtin.go
+
 gen-parser: parser/parser.go
 
 clean:
