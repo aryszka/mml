@@ -88,8 +88,6 @@ primary-expression:alias = int
                          | mutable-struct
                          | function
                          | effect
-                         // | expression-indexer
-                         // | symbol-indexer
                          | indexer
                          | function-application
                          | expression-group;

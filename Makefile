@@ -18,6 +18,8 @@ recompile:
 	diff build/main.2.go build/main.3.go
 	rm build/main.1.go build/main.2.go
 	mv build/main.3.go boot/mml/main.go
+	# in order to avoid unnecessary diffs:
+	go fmt builtin.go
 	go install ./boot/mml
 
 check: check-syntax
@@ -34,9 +36,6 @@ parser/parser.go: check-syntax
 		> parser/parser.go
 	# in order to avoid unnecessary diffs:
 	go fmt ./parser
-
-fmt:
-	go fmt builtin.go
 
 gen-parser: parser/parser.go
 

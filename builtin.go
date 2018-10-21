@@ -139,17 +139,13 @@ func Ref(v, k interface{}) interface{} {
 		}
 
 		return ret
-	case []interface{}:
-		return vt[k.(int)]
-	case map[string]interface{}:
-		return vt[k.(string)]
 	default:
 		// TMP:
 		if err, ok := v.(error); ok {
 			println("ref failed", err.Error())
 		}
 
-		panic("ref: unsupported code: " + k.(string) + ": " + fmt.Sprint(v))
+		panic(fmt.Sprintf("ref: unsupported code: %v: %v", k, v))
 	}
 }
 
@@ -177,17 +173,6 @@ func RefRange(v, from, to interface{}) interface{} {
 		default:
 			return &List{vt.Values[from.(int):to.(int)]}
 		}
-	case []interface{}:
-		switch {
-		case from == nil && to == nil:
-			return &List{vt[:]}
-		case from == nil:
-			return &List{vt[:to.(int)]}
-		case to == nil:
-			return &List{vt[from.(int):]}
-		default:
-			return &List{vt[from.(int):to.(int)]}
-		}
 	default:
 		panic("ref range: unsupported code")
 	}
@@ -199,10 +184,6 @@ func SetRef(e, k, v interface{}) interface{} {
 		et.Values[k.(int)] = v
 	case *Struct:
 		et.Values[k.(string)] = v
-	case []interface{}:
-		et[k.(int)] = v
-	case map[string]interface{}:
-		et[k.(string)] = v
 	default:
 		panic("set-ref: unsupported code")
 	}
@@ -435,10 +416,6 @@ var Len = &Function{
 			return len(at.Values)
 		case string:
 			return len(at)
-		case []interface{}:
-			return len(at)
-		case map[string]interface{}:
-			return len(at)
 		default:
 			panic("len: unsupported code" + fmt.Sprint(a[0]))
 		}
@@ -450,17 +427,7 @@ var Keys = &Function{
 	F: func(a []interface{}) interface{} {
 		s, ok := a[0].(*Struct)
 		if !ok {
-			s, ok := a[0].(map[string]interface{})
-			if !ok {
-				panic("keys: unsupported code" + fmt.Sprint(a[0]))
-			}
-
-			var keys []interface{}
-			for k := range s {
-				keys = append(keys, k)
-			}
-
-			return &List{Values: keys}
+			panic("keys: unsupported code" + fmt.Sprint(a[0]))
 		}
 
 		var keys []interface{}
@@ -627,13 +594,7 @@ var Has = &Function{
 	F: func(a []interface{}) interface{} {
 		s, ok := a[1].(*Struct)
 		if !ok {
-			ss, ok := a[1].(map[string]interface{})
-			if !ok {
-				return false
-			}
-
-			_, ok = ss[a[0].(string)]
-			return ok
+			return false
 		}
 
 		_, ok = s.Values[a[0].(string)]
@@ -721,5 +682,5 @@ func init() {
 		args = append(args, os.Args[i])
 	}
 
-	Args = args
+	Args = &List{args}
 }
