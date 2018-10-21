@@ -39,7 +39,7 @@ fn (
 	resultErrors(...e) results([], e)
 )
 
-let emptyResults       results([], [])
+let emptyResults results([], [])
 
 fn mergeResults(...r) {
 	fn mergeTwo(left, right) results(

@@ -2,7 +2,7 @@
 
 # MML
 
-Alternative frontend for the Go and JS environments, targeting hobby programming.
+Alternative frontend for the Go and JS environments.
 
 [Example](https://github.com/aryszka/mml/blob/master/main.mml)
 
