@@ -1,8 +1,10 @@
+**[WIP]**
+
 # MML
 
-An alternative frontend for Go and JS.
+Alternative frontend for the Go and JS environments, targeting hobby programming.
 
-[Example](https://github.com/aryszka/mml/blob/master/compile.mml)
+[Example](https://github.com/aryszka/mml/blob/master/main.mml)
 
 ## Boot the compiler
 

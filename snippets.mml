@@ -1,0 +1,35 @@
+export let head "// Generated code
+package main
+
+import \"github.com/aryszka/mml\"
+"
+
+export let initHead "
+func init() {
+	var modulePath string
+"
+
+export let initFooter "
+}
+"
+
+export let moduleHead "
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
+
+		var c interface{}
+		mml.Nop(c)
+"
+
+export let moduleFooter "
+		return exports
+	})
+"
+
+export let mainHead "
+func main() {
+	mml.Modules.Use(\""
+
+export let mainFooter "\")
+}
+"

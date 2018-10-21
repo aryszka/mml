@@ -361,7 +361,7 @@ fn~ do(context, code) {
 	}
 }
 
-// TODO: validate exported functions
+// TODO: validate unreachable functions
 export fn validate(code) {
 	let context newContext()
 	for b in keys(mmlcode.builtin) {

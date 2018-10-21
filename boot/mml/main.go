@@ -31,23 +31,18 @@ modulePath = "main.mml"
 
 		var c interface{}
 		mml.Nop(c)
-var _builtins interface{};
-var _head interface{};
-var _initHead interface{};
-var _initFooter interface{};
-var _setModuleHead interface{};
-var _setModuleFooter interface{};
-var _mainHead interface{};
-var _mainFooter interface{};
+var _printValidationErrors interface{};
 var _validateDefinitions interface{};
 var _compileModuleCode interface{};
 var _compileModules interface{};
 var _modules interface{};
 var _validation interface{};
+var _builtins interface{};
 var _compile interface{};
 var _parse interface{};
 var _code interface{};
 var _definitions interface{};
+var _snippets interface{};
 var _fold interface{};
 var _foldr interface{};
 var _map interface{};
@@ -63,7 +58,7 @@ var _enum interface{};
 var _log interface{};
 var _onlyErr interface{};
 var _passErr interface{};
-mml.Nop(_builtins, _head, _initHead, _initFooter, _setModuleHead, _setModuleFooter, _mainHead, _mainFooter, _validateDefinitions, _compileModuleCode, _compileModules, _modules, _validation, _compile, _parse, _code, _definitions, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+mml.Nop(_printValidationErrors, _validateDefinitions, _compileModuleCode, _compileModules, _modules, _validation, _builtins, _compile, _parse, _code, _definitions, _snippets, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
 var __lang = mml.Modules.Use("lang.mml");;_fold = __lang.Values["fold"];
 _foldr = __lang.Values["foldr"];
 _map = __lang.Values["map"];
@@ -83,35 +78,27 @@ _compile = mml.Modules.Use("compile.mml");
 _parse = mml.Modules.Use("parse.mml");
 _code = mml.Modules.Use("code.mml");
 _definitions = mml.Modules.Use("definitions.mml");
-_builtins = _join.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, ";\n")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+_snippets = mml.Modules.Use("snippets.mml");
+_printValidationErrors = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _k = a[0];
+				var _m = a[0];
+var _errors = a[1];
 				;
-				mml.Nop(_k);
-				return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "var _%s interface{} = mml.%s", _k, mml.Ref(mml.Ref(_code, "builtin"), _k))}).Values)
-			},
-			FixedArgs: 1,
-		})}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _sort.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _left = a[0];
-var _right = a[1];
+				mml.Nop(_m, _errors);
 				;
-				mml.Nop(_left, _right);
-				return mml.BinaryOp(13, _left, _right)
+mml.Nop();
+_log.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "%s:", mml.Ref(_m, "path"))}).Values))}).Values);
+for _, _e := range _errors.(*mml.List).Values {
+;
+mml.Nop();
+_log.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _e)}).Values)
+};
+				return nil
 			},
 			FixedArgs: 2,
-		})}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _keys.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_code, "builtin"))}).Values))}).Values))}).Values))}).Values);
-_head = "// Generated code\npackage main\n\nimport \"github.com/aryszka/mml\"\n";
-_initHead = "\nfunc init() {\n\tvar modulePath string\n";
-_initFooter = "\n}\n";
-_setModuleHead = "\n\tmml.Modules.Set(modulePath, func() map[string]interface{} {\n\t\texports := make(map[string]interface{})\n\n\t\tvar c interface{}\n\t\tmml.Nop(c)\n";
-_setModuleFooter = "\n\t\treturn exports\n\t})\n";
-_mainHead = "\nfunc main() {\n\tmml.Modules.Use(\"";
-_mainFooter = "\")\n}\n";
+		};
 _validateDefinitions = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -129,12 +116,7 @@ _errors = mml.Ref(_definitions, "validate").(*mml.Function).Call((&mml.List{Valu
 c = mml.BinaryOp(15, _len.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _errors)}).Values), 0); if c.(bool) { ;
 mml.Nop();
 _hasErrors = true;
-_log.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "%s:", mml.Ref(_m, "path"))}).Values))}).Values);
-for _, _e := range _errors.(*mml.List).Values {
-;
-mml.Nop();
-_log.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _e)}).Values)
-} }
+_printValidationErrors.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _m, _errors)}).Values) }
 };
 c = _hasErrors; if c.(bool) { ;
 mml.Nop();
@@ -153,9 +135,9 @@ _compileModuleCode = &mml.Function{
 				;
 mml.Nop();
 _stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "modulePath = \"%s\"", mml.Ref(_moduleCode, "path"))}).Values))}).Values);
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _setModuleHead)}).Values);
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "moduleHead"))}).Values);
 _onlyErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _log)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _passErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _stdout)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_compile, "do").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _moduleCode)}).Values))}).Values))}).Values);
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _setModuleFooter)}).Values);
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "moduleFooter"))}).Values);
 				return nil
 			},
 			FixedArgs: 1,
@@ -186,14 +168,36 @@ _validation = _validateDefinitions.(*mml.Function).Call((&mml.List{Values: appen
 c = _isError.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _validation)}).Values); if c.(bool) { ;
 mml.Nop();
 _panic.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _validation)}).Values) };
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _head)}).Values);
+_builtins = _join.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, ";\n")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _k = a[0];
+				;
+				mml.Nop(_k);
+				return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "var _%s interface{} = mml.%s", _k, mml.Ref(mml.Ref(_code, "builtin"), _k))}).Values)
+			},
+			FixedArgs: 1,
+		})}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _sort.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _left = a[0];
+var _right = a[1];
+				;
+				mml.Nop(_left, _right);
+				return mml.BinaryOp(13, _left, _right)
+			},
+			FixedArgs: 2,
+		})}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _keys.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_code, "builtin"))}).Values))}).Values))}).Values))}).Values);
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "head"))}).Values);
 _stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _builtins)}).Values);
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _initHead)}).Values);
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "initHead"))}).Values);
 _compileModules.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _modules)}).Values);
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _initFooter)}).Values);
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _mainHead)}).Values);
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "initFooter"))}).Values);
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "mainHead"))}).Values);
 _stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_args, 1))}).Values);
-_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _mainFooter)}).Values)
+_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "mainFooter"))}).Values)
 		return exports
 	})
 modulePath = "lang.mml"
@@ -4778,6 +4782,29 @@ return mml.Ref(_result, "errors");
 			},
 			FixedArgs: 1,
 		}; exports["validate"] = _validate
+		return exports
+	})
+modulePath = "snippets.mml"
+	mml.Modules.Set(modulePath, func() map[string]interface{} {
+		exports := make(map[string]interface{})
+
+		var c interface{}
+		mml.Nop(c)
+var _head interface{};
+var _initHead interface{};
+var _initFooter interface{};
+var _moduleHead interface{};
+var _moduleFooter interface{};
+var _mainHead interface{};
+var _mainFooter interface{};
+mml.Nop(_head, _initHead, _initFooter, _moduleHead, _moduleFooter, _mainHead, _mainFooter);
+_head = "// Generated code\npackage main\n\nimport \"github.com/aryszka/mml\"\n"; exports["head"] = _head;
+_initHead = "\nfunc init() {\n\tvar modulePath string\n"; exports["initHead"] = _initHead;
+_initFooter = "\n}\n"; exports["initFooter"] = _initFooter;
+_moduleHead = "\n\tmml.Modules.Set(modulePath, func() map[string]interface{} {\n\t\texports := make(map[string]interface{})\n\n\t\tvar c interface{}\n\t\tmml.Nop(c)\n"; exports["moduleHead"] = _moduleHead;
+_moduleFooter = "\n\t\treturn exports\n\t})\n"; exports["moduleFooter"] = _moduleFooter;
+_mainHead = "\nfunc main() {\n\tmml.Modules.Use(\""; exports["mainHead"] = _mainHead;
+_mainFooter = "\")\n}\n"; exports["mainFooter"] = _mainFooter
 		return exports
 	})
 
