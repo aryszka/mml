@@ -750,6 +750,4 @@ fn~ parseModule(context, entryPath) {
 	return modules
 }
 
-export fn modules(entryPath) {
-	return parseModule(~{stack: [], parsed: ~{}}, entryPath)
-}
+export fn modules(entryPath) parseModule(~{stack: [], parsed: ~{}}, entryPath)

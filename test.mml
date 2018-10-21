@@ -100,4 +100,4 @@ fn () {
 
 {a..., b: c}
 
-use "foo"
+use "test"

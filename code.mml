@@ -1,7 +1,4 @@
-use (
-	. "lang"
-	  "list"
-)
+use . "lang"
 
 export let (
 	controlStatement enum()
@@ -70,7 +67,7 @@ export fn flattenedStatements(itemType, listType, listProp, statements) {
 		toList(s) s.type == itemType ? [s] : s[listProp]
 	)
 
-	return statements -> filter(type) -> map(toList) -> list.flat
+	return statements -> filter(type) -> map(toList) -> flat
 }
 
 // TODO

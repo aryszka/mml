@@ -33,14 +33,13 @@ fn~ values(context, n) has(n, context.definitions) ?
 		values(context.parent, n) :
 		[]
 
-// always return: {values: [], errors: []}
-fn results(v, e) {values: v, errors: e}
+fn (
+	results(v, e)      {values: v, errors: e}
+	resultValues(...v) results(v, [])
+	resultErrors(...e) results([], e)
+)
 
-fn resultValues(...v) results(v, [])
-
-fn resultErrors(...e) results([], e)
-
-let emptyResults results([], [])
+let emptyResults       results([], [])
 
 fn mergeResults(...r) {
 	fn mergeTwo(left, right) results(
@@ -73,9 +72,10 @@ fn~ (
 	useList(context, u)         all(context, u.uses)
 )
 
-fn undefined(name) error(formats("undefined: %s", name))
-
-fn duplicate(name) error(formats("duplicate definition: %s", name))
+fn (
+	undefined(name) error(formats("undefined: %s", name))
+	duplicate(name) error(formats("duplicate definition: %s", name))
+)
 
 fn~ expandFunction(f) {
 	f.expanded = true
@@ -140,39 +140,29 @@ fn~ application(context, a) {
 	return r
 }
 
-fn~ cond(context, c) {
-	return mergeResults(
-		do(context, c.condition)
-		scoped(context, c.consequent)
-		fieldsIfHas(extend(context), ["alternative"], c)
-	)
-}
+fn~ cond(context, c) mergeResults(
+	do(context, c.condition)
+	scoped(context, c.consequent)
+	fieldsIfHas(extend(context), ["alternative"], c)
+)
 
-fn~ validateCase(context, c) {
-	return mergeResults(
-		do(context, c.expression)
-		do(context, c.body)
-	)
-}
+fn~ validateCase(context, c) mergeResults(
+	do(context, c.expression)
+	do(context, c.body)
+)
 
-fn~ validateSwitch(context, s) {
-	return mergeResults(
-		fieldsIfHas(context, ["expression"], s)
-		allScoped(context, s.cases)
-		scoped(context, s.defaultStatements)
-	)
-}
+fn~ validateSwitch(context, s) mergeResults(
+	fieldsIfHas(context, ["expression"], s)
+	allScoped(context, s.cases)
+	scoped(context, s.defaultStatements)
+)
 
-fn~ validateReceive(context, r) {
-	return do(context, r.channel)
-}
+fn~ validateReceive(context, r) do(context, r.channel)
 
-fn~ validateSelect(context, s) {
-	return mergeResults(
-		allScoped(context, s.cases)
-		s.hasDefault ? scoped(context, s.defaultStatements) : emptyResults
-	)
-}
+fn~ validateSelect(context, s) mergeResults(
+	allScoped(context, s.cases)
+	s.hasDefault ? scoped(context, s.defaultStatements) : emptyResults
+)
 
 fn~ rangeOver(context, r) {
 	if !has("expression", r) {

@@ -32,10 +32,7 @@ fn validateDefinitions(modules) {
 fn~ compileModuleCode(moduleCode) {
 	stdout(formats("modulePath = \"%s\"", moduleCode.path))
 	stdout(snippets.moduleHead)
-	moduleCode
-	-> compile.do
-	-> passErr(stdout)
-	-> onlyErr(log)
+	moduleCode -> compile.do -> passErr(stdout) -> onlyErr(log)
 	stdout(snippets.moduleFooter)
 }
 
