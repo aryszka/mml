@@ -2,14 +2,14 @@
 // - handle scope and `let a a` properly in all kinds of scopes, see loop
 // - this should be more like an evaluator
 // - check the uncalled functions only in production build
-// - optimization: remove args and indexes from the results
+// - optimization: remove args, indexes, conditions and loop expressions from the results
 
 use (
-	. "lang"
+	.       "lang"
 	mmlcode "code"
 )
 
-fn newContext() ~{definitions: {}, capturing: false}
+fn newContext() ~{definitions: {}, unexpanded: [], capturing: false}
 
 fn~ (
 	extend(context)            ~{newContext()..., parent: context}
@@ -50,6 +50,11 @@ fn mergeResults(...r) {
 	return fold(mergeTwo, emptyResults, r)
 }
 
+fn wrapWithReturn(r) results(
+	r.values -> map(fn (v) {type: "ret", value: v})
+	r.errors
+)
+
 fn~ (
 	all(context, l)             l -> map(do(context)) -> fn (r) mergeResults(r...)
 	scoped(context, code)       do(extend(context), code)
@@ -78,6 +83,10 @@ fn (
 )
 
 fn~ expandFunction(f) {
+	if f.expanded {
+		return emptyResults
+	}
+
 	f.expanded = true
 
 	let c extend(f.context)
@@ -101,7 +110,7 @@ fn~ symbol(context, s) {
 	}
 
 	for v in r.values {
-		if !has("type", v) || v.type != "function" || v.expanded {
+		if !has("type", v) || v.type != "function" {
 			continue
 		}
 
@@ -122,6 +131,7 @@ fn~ entry(context, e) {
 fn~ function(context, f) {
 	let ff ~{f..., context: context, expanded: false}
 	if context.capturing {
+		context.unexpanded = [context.unexpanded..., ff]
 		return resultValues(ff)
 	}
 
@@ -140,11 +150,17 @@ fn~ application(context, a) {
 	return r
 }
 
-fn~ cond(context, c) mergeResults(
-	do(context, c.condition)
-	scoped(context, c.consequent)
-	fieldsIfHas(extend(context), ["alternative"], c)
-)
+fn~ cond(context, c) c.ternary ?
+	mergeResults(
+		do(context, c.condition)
+		scoped(context, c.consequent)
+		fieldsIfHas(extend(context), ["alternative"], c)
+	) :
+	mergeResults(
+		do(context, c.condition)
+		scoped(context, c.consequent) -> wrapWithReturn
+		fieldsIfHas(extend(context), ["alternative"], c) -> wrapWithReturn
+	)
 
 fn~ validateCase(context, c) mergeResults(
 	do(context, c.expression)
@@ -153,8 +169,8 @@ fn~ validateCase(context, c) mergeResults(
 
 fn~ validateSwitch(context, s) mergeResults(
 	fieldsIfHas(context, ["expression"], s)
-	allScoped(context, s.cases)
-	scoped(context, s.defaultStatements)
+	allScoped(context, s.cases) -> wrapWithReturn
+	scoped(context, s.defaultStatements) -> wrapWithReturn
 )
 
 fn~ validateReceive(context, r) do(context, r.channel)
@@ -162,7 +178,7 @@ fn~ validateReceive(context, r) do(context, r.channel)
 fn~ validateSelect(context, s) mergeResults(
 	allScoped(context, s.cases)
 	s.hasDefault ? scoped(context, s.defaultStatements) : emptyResults
-)
+) -> wrapWithReturn
 
 fn~ rangeOver(context, r) {
 	if !has("expression", r) {
@@ -182,7 +198,7 @@ fn~ loop(context, l) {
 	let c extend(context)
 	return mergeResults(
 		has("expression", l) ? do(c, l.expression) : emptyResults
-		do(c, l.body)
+		do(c, l.body) -> wrapWithReturn
 	)
 }
 
@@ -238,10 +254,7 @@ fn~ validateUse(context, u) {
 }
 
 fn~ statements(context, s) {
-	let ~ (
-		r emptyResults
-		exports []
-	)
+	let ~ r emptyResults
 
 	for si in s {
 		let ri do(context, si)
@@ -250,31 +263,13 @@ fn~ statements(context, s) {
 		} else {
 			r = mergeResults(r, resultErrors(ri.errors...))
 		}
-
-		if has("type", si) {
-			if si.type == "definition" && si.exported {
-				exports = [exports..., si]
-			}
-
-			if si.type == "definition-list" {
-				for d in si.definitions {
-					if d.exported {
-						exports = [exports..., d]
-					}
-				}
-			}
-		}
 	}
 
-	for e in exports {
-		let v values(context, e.symbol)
-		for vi in v {
-			if has("type", vi) && vi.type == "function" {
-				r = mergeResults(r, expandFunction(vi))
-			}
-		}
+	for f in context.unexpanded {
+		r = mergeResults(r, expandFunction(f))
 	}
 
+	context.unexpanded = []
 	return r
 }
 

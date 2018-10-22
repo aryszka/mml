@@ -2580,6 +2580,7 @@ var _resultValues interface{};
 var _resultErrors interface{};
 var _emptyResults interface{};
 var _mergeResults interface{};
+var _wrapWithReturn interface{};
 var _all interface{};
 var _scoped interface{};
 var _allScoped interface{};
@@ -2635,7 +2636,7 @@ var _enum interface{};
 var _log interface{};
 var _onlyErr interface{};
 var _passErr interface{};
-mml.Nop(_newContext, _extend, _definedCurrent, _define, _assign, _defined, _capture, _values, _results, _resultValues, _resultErrors, _emptyResults, _mergeResults, _all, _scoped, _allScoped, _fields, _fieldsIfHas, _list, _struct, _rangeExpression, _indexer, _spread, _unary, _binary, _validateSend, _validateGo, _validateDefer, _definitions, _assignments, _ret, _useList, _undefined, _duplicate, _expandFunction, _symbol, _entry, _function, _application, _cond, _validateCase, _validateSwitch, _validateReceive, _validateSelect, _rangeOver, _loop, _definition, _assignment, _validateUse, _statements, _do, _validate, _mmlcode, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
+mml.Nop(_newContext, _extend, _definedCurrent, _define, _assign, _defined, _capture, _values, _results, _resultValues, _resultErrors, _emptyResults, _mergeResults, _wrapWithReturn, _all, _scoped, _allScoped, _fields, _fieldsIfHas, _list, _struct, _rangeExpression, _indexer, _spread, _unary, _binary, _validateSend, _validateGo, _validateDefer, _definitions, _assignments, _ret, _useList, _undefined, _duplicate, _expandFunction, _symbol, _entry, _function, _application, _cond, _validateCase, _validateSwitch, _validateReceive, _validateSelect, _rangeOver, _loop, _definition, _assignment, _validateUse, _statements, _do, _validate, _mmlcode, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr);
 var __lang = mml.Modules.Use("lang.mml");;_fold = __lang.Values["fold"];
 _foldr = __lang.Values["foldr"];
 _map = __lang.Values["map"];
@@ -2659,7 +2660,7 @@ _newContext = &mml.Function{
 				;
 				;
 				mml.Nop();
-				return func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; s.Values["definitions"] = func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; ; return s }();s.Values["capturing"] = false;; return s }()
+				return func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; s.Values["definitions"] = func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; ; return s }();s.Values["unexpanded"] = &mml.List{Values: []interface{}{}};s.Values["capturing"] = false;; return s }()
 			},
 			FixedArgs: 0,
 		};
@@ -2810,6 +2811,27 @@ return _fold.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _me
 				return nil
 			},
 			FixedArgs: 0,
+		};
+_wrapWithReturn = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _r = a[0];
+				;
+				mml.Nop(_r);
+				return _results.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _v = a[0];
+				;
+				mml.Nop(_v);
+				return func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; s.Values["type"] = "ret";s.Values["value"] = _v;; return s }()
+			},
+			FixedArgs: 1,
+		})}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_r, "values"))}).Values), mml.Ref(_r, "errors"))}).Values)
+			},
+			FixedArgs: 1,
 		};
 _all = &mml.Function{
 			F: func(a []interface{}) interface{} {
@@ -3112,6 +3134,9 @@ _expandFunction = &mml.Function{
 				mml.Nop(_f);
 				var _c interface{};
 mml.Nop(_c);
+c = mml.Ref(_f, "expanded"); if c.(bool) { ;
+mml.Nop();
+return _emptyResults };
 mml.SetRef(_f, "expanded", true);
 _c = _extend.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_f, "context"))}).Values);
 for _, _p := range mml.Ref(_f, "params").(*mml.List).Values {
@@ -3144,7 +3169,7 @@ return _r };
 for _, _v := range mml.Ref(_r, "values").(*mml.List).Values {
 ;
 mml.Nop();
-c = ((!_has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "type", _v)}).Values).(bool) || mml.BinaryOp(12, mml.Ref(_v, "type"), "function").(bool)) || mml.Ref(_v, "expanded").(bool)); if c.(bool) { ;
+c = (!_has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "type", _v)}).Values).(bool) || mml.BinaryOp(12, mml.Ref(_v, "type"), "function").(bool)); if c.(bool) { ;
 mml.Nop();
 continue };
 _r = _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _r, _expandFunction.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _v)}).Values))}).Values)
@@ -3184,6 +3209,7 @@ _ff = func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})
 s.Values["context"] = _context;s.Values["expanded"] = false;; return s }();
 c = mml.Ref(_context, "capturing"); if c.(bool) { ;
 mml.Nop();
+mml.SetRef(_context, "unexpanded", &mml.List{Values: append(append([]interface{}{}, mml.Ref(_context, "unexpanded").(*mml.List).Values...), _ff)});
 return _resultValues.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ff)}).Values) };
 return _expandFunction.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ff)}).Values);
 				return nil
@@ -3218,7 +3244,7 @@ _cond = &mml.Function{
 var _c = a[1];
 				;
 				mml.Nop(_context, _c);
-				return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_c, "condition"))}).Values), _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_c, "consequent"))}).Values), _fieldsIfHas.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _extend.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context)}).Values), &mml.List{Values: append([]interface{}{}, "alternative")}, _c)}).Values))}).Values)
+				return func () interface{} { c = mml.Ref(_c, "ternary"); if c.(bool) { return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_c, "condition"))}).Values), _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_c, "consequent"))}).Values), _fieldsIfHas.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _extend.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context)}).Values), &mml.List{Values: append([]interface{}{}, "alternative")}, _c)}).Values))}).Values) } else { return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_c, "condition"))}).Values), _wrapWithReturn.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_c, "consequent"))}).Values))}).Values), _wrapWithReturn.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _fieldsIfHas.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _extend.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context)}).Values), &mml.List{Values: append([]interface{}{}, "alternative")}, _c)}).Values))}).Values))}).Values) } }()
 			},
 			FixedArgs: 2,
 		};
@@ -3242,7 +3268,7 @@ _validateSwitch = &mml.Function{
 var _s = a[1];
 				;
 				mml.Nop(_context, _s);
-				return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _fieldsIfHas.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, &mml.List{Values: append([]interface{}{}, "expression")}, _s)}).Values), _allScoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "cases"))}).Values), _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "defaultStatements"))}).Values))}).Values)
+				return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _fieldsIfHas.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, &mml.List{Values: append([]interface{}{}, "expression")}, _s)}).Values), _wrapWithReturn.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _allScoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "cases"))}).Values))}).Values), _wrapWithReturn.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "defaultStatements"))}).Values))}).Values))}).Values)
 			},
 			FixedArgs: 2,
 		};
@@ -3266,7 +3292,7 @@ _validateSelect = &mml.Function{
 var _s = a[1];
 				;
 				mml.Nop(_context, _s);
-				return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _allScoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "cases"))}).Values), func () interface{} { c = mml.Ref(_s, "hasDefault"); if c.(bool) { return _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "defaultStatements"))}).Values) } else { return _emptyResults } }())}).Values)
+				return _wrapWithReturn.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _allScoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "cases"))}).Values), func () interface{} { c = mml.Ref(_s, "hasDefault"); if c.(bool) { return _scoped.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_s, "defaultStatements"))}).Values) } else { return _emptyResults } }())}).Values))}).Values)
 			},
 			FixedArgs: 2,
 		};
@@ -3304,7 +3330,7 @@ var _l = a[1];
 				var _c interface{};
 mml.Nop(_c);
 _c = _extend.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context)}).Values);
-return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func () interface{} { c = _has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "expression", _l)}).Values); if c.(bool) { return _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _c, mml.Ref(_l, "expression"))}).Values) } else { return _emptyResults } }(), _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _c, mml.Ref(_l, "body"))}).Values))}).Values);
+return _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func () interface{} { c = _has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "expression", _l)}).Values); if c.(bool) { return _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _c, mml.Ref(_l, "expression"))}).Values) } else { return _emptyResults } }(), _wrapWithReturn.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _c, mml.Ref(_l, "body"))}).Values))}).Values))}).Values);
 				return nil
 			},
 			FixedArgs: 2,
@@ -3397,10 +3423,8 @@ var _s = a[1];
 				;
 				mml.Nop(_context, _s);
 				var _r interface{};
-var _exports interface{};
-mml.Nop(_r, _exports);
+mml.Nop(_r);
 _r = _emptyResults;
-_exports = &mml.List{Values: []interface{}{}};
 for _, _si := range _s.(*mml.List).Values {
 var _ri interface{};
 mml.Nop(_ri);
@@ -3409,34 +3433,14 @@ c = (_has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "type"
 mml.Nop();
 _r = _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _r, _ri)}).Values) } else { ;
 mml.Nop();
-_r = _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _r, _resultErrors.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_ri, "errors").(*mml.List).Values...)}).Values))}).Values) };
-c = _has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "type", _si)}).Values); if c.(bool) { ;
-mml.Nop();
-c = (mml.BinaryOp(11, mml.Ref(_si, "type"), "definition").(bool) && mml.Ref(_si, "exported").(bool)); if c.(bool) { ;
-mml.Nop();
-_exports = &mml.List{Values: append(append([]interface{}{}, _exports.(*mml.List).Values...), _si)} };
-c = mml.BinaryOp(11, mml.Ref(_si, "type"), "definition-list"); if c.(bool) { ;
-mml.Nop();
-for _, _d := range mml.Ref(_si, "definitions").(*mml.List).Values {
+_r = _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _r, _resultErrors.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_ri, "errors").(*mml.List).Values...)}).Values))}).Values) }
+};
+for _, _f := range mml.Ref(_context, "unexpanded").(*mml.List).Values {
 ;
 mml.Nop();
-c = mml.Ref(_d, "exported"); if c.(bool) { ;
-mml.Nop();
-_exports = &mml.List{Values: append(append([]interface{}{}, _exports.(*mml.List).Values...), _d)} }
-} } }
+_r = _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _r, _expandFunction.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _f)}).Values))}).Values)
 };
-for _, _e := range _exports.(*mml.List).Values {
-var _v interface{};
-mml.Nop(_v);
-_v = _values.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, mml.Ref(_e, "symbol"))}).Values);
-for _, _vi := range _v.(*mml.List).Values {
-;
-mml.Nop();
-c = (_has.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "type", _vi)}).Values).(bool) && mml.BinaryOp(11, mml.Ref(_vi, "type"), "function").(bool)); if c.(bool) { ;
-mml.Nop();
-_r = _mergeResults.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _r, _expandFunction.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _vi)}).Values))}).Values) }
-}
-};
+mml.SetRef(_context, "unexpanded", &mml.List{Values: []interface{}{}});
 return _r;
 				return nil
 			},
