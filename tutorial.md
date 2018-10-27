@@ -454,7 +454,7 @@ default:
 This feature is borrowed from Go.
 
 ```
-fn sortIt(ctx, l) {
+fn~ sortIt(ctx, l) {
 	let span tracing.childOf(ctx.span, "sort_it")
 	defer tracing.finish(span)
 	return sort(comparePrio, l)
@@ -472,12 +472,13 @@ They can be checked with the `isError` function.
 ## Panic/Recover
 
 Considering the scope of the problems where MML tries to provide value, these features may not be included in
-the first couple of revisions of the language or their future may be kept pending. They behave like in Go, except
-for a syntax difference in case of `recover`:
+the first couple of revisions of the language or their future may be kept pending. They behave like in Go,
+except for a syntax difference in case of `recover`:
 
 ```
-fn foo() {
+fn~ foo() {
 	defer recover(fn (err) log(err))
+	doStuff()
 }
 ```
 
@@ -515,9 +516,9 @@ use (
 )
 ```
 
-When importing a module, the top level of the imported module's statements is executed if it is imported for the first time
-during the lifecycle of the program. If the top level statements of the imported module contain calls to
-effects, then the use statement has to be marked with `~`.
+When importing a module, the top level statements of the imported module's are executed if it is imported for
+the first time during the lifecycle of the program. If the top level statements of the imported module contain
+calls to effects, then the use statement has to be marked with `~`.
 
 `use ~ "config"`
 
@@ -583,7 +584,7 @@ foo(
 
 There is an ambiguity between a function returning an empty structure or an effect not having any statements:
 
-- Function returning an empty structure: `fn empty() {}`
+- Function returning an empty structure: `fn emptyStructure() {}`
 - Effect not having statements: `fn~ noopEffect() {;}`
 
 ## Lisp notation
@@ -652,7 +653,7 @@ MML currently has the following standard library modules:
 - log
 - strings
 
-Most of the functions in the standard library are also accessible through the bundled 'lang' module.
+Most of the functions of the current standard library are also accessible through the bundled 'lang' module.
 
 ## Package management
 
