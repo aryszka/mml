@@ -667,12 +667,17 @@ generating its output:
 
 - every symbol is defined
 - every definition is used or exported
+- every function parameter is used
 - every function (not effect) has a return value
 - every execution path of an effect has a return value or none of them have
 - every return value is used
 - functions not marked as effects don't have effects
+- no function parameters are changed
+- only those variables are changed that are marked mutable
+- only the items of mutable lists are changed
+- only the values of mutable structures are changed
 - every function and operator is passed only such arguments whose type the function or operator can accept
-- no list index or slice range is used that is guaranteed to fall within the length of the list
+- no list index or slice range is used that is not guaranteed to fall within the length of the list
 - no structure is referenced with a key that is not guaranteed to be available in the structure
 
 The built-in functions `len`, `has` and the type checking functions, e.g. `isInt`, play a special role during
