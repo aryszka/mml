@@ -62,10 +62,10 @@ let (
 
 We can take a slice of a list, which will be a new, usually smaller list:
 
-`list[1:2]` will contain only the second element of the original.
-`list[1:]` will contain all the elements of the original except of the first one.
-`list[:2]` will contain all the elements of the original except of the last one.
-`list[:]` will be a copy of the original.
+- `list[1:2]` will contain only the second element of the original.
+- `list[1:]` will contain all the elements of the original except of the first one.
+- `list[:2]` will contain all the elements of the original except of the last one.
+- `list[:]` will be a copy of the original.
 
 We can use existing lists when constructing new ones:
 
@@ -420,8 +420,7 @@ Closing a channel:
 
 Receiving from a closed channel will result in errClosed.
 
-Looping over a channel will receive values from it until it's closed until it's closed until it's closed until
-it's closed:
+Looping over a channel will receive values from it until it's closed:
 
 ```
 for value in c {
@@ -473,7 +472,7 @@ They can be checked with the `isError` function.
 ## Panic/Recover
 
 Considering the scope of the problems where MML tries to provide value, these features may not be included in
-the first couple revisions of the language or their future may be kept pending. They behave like in Go, except
+the first couple of revisions of the language or their future may be kept pending. They behave like in Go, except
 for a syntax difference in case of `recover`:
 
 ```
@@ -499,7 +498,7 @@ use s "strings"
 println(s.join(", ", [1, 2, 3]))
 ```
 
-It is possible to import a modules members inline:
+It is possible to import a module's members inline:
 
 ```
 use . "strings"
@@ -516,7 +515,7 @@ use (
 )
 ```
 
-When importing a module, the top level of the imported module's statements is executed if it is the first import
+When importing a module, the top level of the imported module's statements is executed if it is imported for the first time
 during the lifecycle of the program. If the top level statements of the imported module contain calls to
 effects, then the use statement has to be marked with `~`.
 
@@ -574,18 +573,18 @@ Commas separate:
 
 Both semicolons and commas can be replaced by new lines. E.g a function call may look like this:
 
-`
+```
 foo(
 	1
 	2
 	3
 )
-`
+```
 
 There is an ambiguity between a function returning an empty structure or an effect not having any statements:
 
-Function returning an empty structure: `fn empty() {}`
-Effect not having statements: `fn~ noopEffect() {;}`
+- Function returning an empty structure: `fn empty() {}`
+- Effect not having statements: `fn~ noopEffect() {;}`
 
 ## Lisp notation
 
@@ -686,8 +685,8 @@ the compile time type check.
 ## Interpreter and REPL
 
 MML code can be executed without compilation, it even supports shebang: `#! /usr/bin/mml`. In this case no Go or
-JS installation is required. The checks that the compiler are applied before running the program in interpreter
+JS installation is required. The compile time checks are applied before running the program in interpreter
 mode, too.
 
-In REPL mode, the special builtin `delete` can be used to clear definitions of the top level scope.  `delete` is
-only available in REPL mode.
+In REPL mode, the special builtin `delete` can be used to clear definitions of the top level scope. `delete` is
+only available in the REPL.
