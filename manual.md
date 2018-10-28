@@ -384,7 +384,7 @@ for number in 36:42 {
 }
 ```
 
-Partial ranges are accepted:
+Partial ranges are accepted. The first value of `number` will be `0` in the following example:
 
 ```
 for number in :42 {
@@ -412,10 +412,18 @@ for i in :len(list) {
 }
 ```
 
-Repeating something n times without a counter:
+Repeating something n times without a counter symbol:
 
 ```
 for :n {
+	println("Hello, world!")
+}
+```
+
+Or:
+
+```
+for 42:99 {
 	println("Hello, world!")
 }
 ```
@@ -424,17 +432,18 @@ Loops have their own lexical scope, and the loop variable, if any, is also defin
 
 ## Goroutine
 
-This feature is borrowed from Go:
+This feature is borrowed from Go. To start a new concurrent goroutine:
 
-`go concurrentJob()`
+`go concurrentJob(task, result)`
 
 ## Channel
 
 This feature is borrowed from Go, with some limitations. The syntax is also slightly different:
 
 ```
-let c chan()
-go (fn~ () send c 42)()
+let result chan()
+fn concurrentJob(task, output) send output 2 * task
+go concurrentJob(21, result)
 println("should be fourtytwo:", receive c)
 ```
 
@@ -442,26 +451,8 @@ Buffered channels are initialized with `bufchan`:
 
 `let c bufchan(2)`
 
-Closing a channel:
-
-`close(c)`
-
-Receiving from a closed channel will result in errClosed. This behavior is pending: closing a channel may be
-completely removed from the language.
-
-Looping over a channel will receive values from it until it's closed:
-
-```
-for value in c {
-	if value == errClosed {
-		break
-	}
-
-	println("received:", value)
-}
-```
-
-If closing a channel is removed from the language, looping over a channel will be removed, too.
+Limitation: Go supports closing channels. This is not possible in MML. It is not possible to loop over a
+channel, either.
 
 ## Select
 
@@ -484,8 +475,11 @@ The cases in the select have their own scope.
 
 ## Scope
 
-MML is lexically scoped. In addition to function bodies, if consequences and alternatives, switch and select
-cases, loop bodies have their own scopes.
+MML is lexically scoped. In addition to function bodies, the following blocks have their own scope:
+
+- if consequences and alternatives
+- switch and select cases
+- loop bodies
 
 ## Defer
 
@@ -498,6 +492,8 @@ fn~ sortIt(ctx, l) {
 	return sort(comparePrio, l)
 }
 ```
+
+While defer is borrowed from Go, and Go has two closely related features: panic and recover, MML has only defer.
 
 ## Error
 
@@ -575,6 +571,32 @@ export fn (
 	foo() "foo"
 	bar() "bar"
 )
+```
+
+## Interop
+
+The design of interoperability with the Go or JS environments is work in progress. In its current state, it
+plans to make it possible to define effects in MML whose implementation is mapped to functions on the Go or JS
+side, and implementing these functions will be supported by a thin libraries for both external environments in
+order to most possible ensure the compatibility between the two interoperating environments.
+
+Possible example, Go side:
+
+```
+var Stdout = mml.Function(mml.FunctionSignature{
+	Params:  []mml.Type{mml.Int},
+	Returns: mml.String,
+}, func(args []interface{}, collectArg []interface{}) interface{} {
+	_, err := os.Stdout.Write(args[0].([]byte))
+	return err
+})
+```
+
+MML side:
+
+```
+let stdout interop("iowrapper", "Stdout")
+stdout("Hello, world!") -> errors.only(log)
 ```
 
 ## Testing
@@ -663,7 +685,6 @@ The following built-in functions are currently available:
 - `has`: true if the provided structure has the provided key
 - `chan`: creates a channel
 - `bufchan`: creates a buffered channel
-- `close`: closes a channel
 - `isBool`: true if the argument is a boolean
 - `isInt`: true if the argument is an integer
 - `isFloat`: true if the argument is a floating point number
@@ -673,7 +694,7 @@ The following built-in functions are currently available:
 - `panic`: panic in Go style
 - `open`: opens a file for reading, can return an error
 - `create`: creates a file for writing, can return an error
-- `closeFile`: closes a file
+- `close`: closes a file
 - `args`: returns the startup arguments of the program
 - `parseAST`: parses text into a raw AST with MML's syntax
 - `parseInt`: parses an integer
