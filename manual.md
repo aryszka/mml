@@ -444,7 +444,7 @@ This feature is borrowed from Go, with some limitations. The syntax is also slig
 let result chan()
 fn concurrentJob(task, output) send output 2 * task
 go concurrentJob(21, result)
-println("should be fourtytwo:", receive c)
+println("should be fourtytwo:", receive result)
 ```
 
 Buffered channels are initialized with `bufchan`:
@@ -737,7 +737,7 @@ output:
 - only strings, lists or structures are indexed
 - strings and lists are indexed only with integers
 - no list index or slice range is used that is not guaranteed to fall within the length of the list
-- the start number in a number range in loops or slice index is smaller or equal to the end number
+- the start number in a number range in loops or slice indexes is smaller or equal to the end number
 - structures are indexed only with a symbol (.symbol) or string
 - no structure is referenced with a key that is not guaranteed to be available in the structure
 - only functions or effects are called (applied)
