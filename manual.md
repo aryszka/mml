@@ -577,15 +577,15 @@ export fn (
 
 The design of interoperability with the Go or JS environments is work in progress. In its current state, it
 plans to make it possible to define effects in MML whose implementation is mapped to functions on the Go or JS
-side, and implementing these functions will be supported by a thin libraries for both external environments in
+side, and implementing these functions will be supported by two thin libraries for both external environments in
 order to most possible ensure the compatibility between the two interoperating environments.
 
 Possible example, Go side:
 
 ```
 var Stdout = mml.Function(mml.FunctionSignature{
-	Params:  []mml.Type{mml.Int},
-	Returns: mml.String,
+	Params:  []mml.Type{mml.String},
+	Returns: mml.Error,
 }, func(args []interface{}, collectArg []interface{}) interface{} {
 	_, err := os.Stdout.Write(args[0].([]byte))
 	return err
