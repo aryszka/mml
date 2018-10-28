@@ -38,6 +38,9 @@ let (
 )
 ```
 
+The symbol `_` cannot be used as a variable name. It is the ignore symbol and is used as an unreferenced symbol
+in function parameters, supporting function composition.
+
 ## Defining a mutable variable, and changing its value
 
 ```
@@ -70,6 +73,8 @@ We can take a slice of a list, which will be a new, usually smaller list:
 We can use existing lists when constructing new ones:
 
 `let newList [list..., "foo", otherList..., 4]`
+
+`...` is called the spread operator.
 
 In order to be able to replace the items of a list, we need to use a mutable list:
 
@@ -140,6 +145,10 @@ let coords ~{x: 42, y: 36}
 coords.y = 24
 ```
 
+It is possible to add new fields by assignment to a mutable structure:
+
+`coords.z = 9`
+
 ## Operators
 
 ```
@@ -149,8 +158,8 @@ rich && windy ? sail : row
 ```
 
 The rules are loosely based on the Go operators. There's no custom operators or overloading. The operands must
-always have the same type except for the ternary operator (?:). We can't add an integer to a floating point
-number.
+always have the same type except for the equality operators and the ternary operator (?:). We can't add an
+integer to a floating point number.
 
 Operator precedence follows the ones defined in Go. Controlling precedence is possible by grouping with parens.
 
@@ -198,6 +207,11 @@ number of arguments:
 fn multiplyEach(by, ...numbers) map(fn (x) x * by, numbers)
 let doubledNumbers multiplyEach(2, 1, 2, 3)
 ```
+
+`...numbers` is called the collect argument.
+
+A special symbol can be used as a parameter: `_`. This is called the ignore symbol, and cannot be referenced by
+the rest of the code only as an ignored parameter of functions.
 
 ## Partial application
 
@@ -259,6 +273,12 @@ Every function is an effect if any of the following conditions is true:
 - accesses a mutable list or structure defined outside of its scope
 - contains channel communication
 - calls other effects
+
+All the cases that have an effect on time or space and are not considered as such:
+
+- infinite loops
+- memory allocation, including stack frames
+- hardware failures
 
 Tip: try to use as few effects as possible, and try to concentrate them as close to the root of the program as
 possible.
@@ -418,7 +438,8 @@ Closing a channel:
 
 `close(c)`
 
-Receiving from a closed channel will result in errClosed.
+Receiving from a closed channel will result in errClosed. This behavior is pending: closing a channel may be
+completely removed from the language.
 
 Looping over a channel will receive values from it until it's closed:
 
@@ -431,6 +452,12 @@ for value in c {
 	println("received:", value)
 }
 ```
+
+If closing a channel is removed from the language, looping over a channel will be removed, too.
+
+The reason for possibly removing closing a channel: it is reasonable to panic when sending on a closed channel,
+but we are trying to remove intentional panics from the language, and we haven't found a way to verify the
+potential cases of sending on a closed channel during compile time, yet.
 
 ## Select
 
@@ -448,6 +475,11 @@ default:
 	doWork()
 }
 ```
+
+## Scope
+
+MML is lexically scoped. Function bodies, if consequences and alternatives, switch and select cases, loop bodies
+have their own scopes.
 
 ## Defer
 
@@ -662,26 +694,45 @@ put best effort into supporting packages that are installed in a standard Unix w
 
 ## The compiler
 
-The compiler tansforms MML into Go or JavaScript code. The compiler does the following transient checks before
-generating its output:
+The compiler tansforms MML into Go or JavaScript code. The compiler tries to detect every possible problem that
+can be detected before running a program. The symbolic goal of the compile time check is to guarantee that the
+program can execute without panics. The compiler does the following transient checks before generating its
+output:
 
 - every symbol is defined
+- a symbol is defined only once in a scope, including module references
 - every definition is used or exported
-- every function parameter is used
+- every function parameter is used or is an ignore symbol
+- the ignore symbol is defined only as a function parameter, and is not referenced
 - every function (not effect) has a return value
 - every execution path of an effect has a return value or none of them have
 - every return value is used
+- only strings, lists or structures are indexed, and only structures are indexed with a symbol (.symbol)
+- no list index or slice range is used that is not guaranteed to fall within the length of the list
+- the start number in a number range in loops or slice index is smaller or equal to the end number
+- no structure is referenced with a key that is not guaranteed to be available in the structure
+- only functions or effects are called (applied)
+- functions are not called with more arguments than what they accept
 - functions not marked as effects don't have effects
+- every function and operator is passed only such arguments whose type the function or operator can accept
 - no function parameters are changed
 - only those variables are changed that are marked mutable
 - only the items of mutable lists are changed
 - only the values of mutable structures are changed
-- every function and operator is passed only such arguments whose type the function or operator can accept
-- no list index or slice range is used that is not guaranteed to fall within the length of the list
-- no structure is referenced with a key that is not guaranteed to be available in the structure
+- imports with effects are marked as effects
+- no integer division or modulus is called with a zero denominator
+- if conditions are boolean
+- case expressions in a switch without a switch expression are booleans
+- loop expressions are either boolean, or list, structure, channel or number range
+- only channels are sent to or received from
+- every case in select has either a send or a receive
+- tests are applied with boolean arguments or contain sub-tests
 
 The built-in functions `len`, `has` and the type checking functions, e.g. `isInt`, play a special role during
 the compile time type check.
+
+Some of the compiler checks may be disabled in 'lax' mode to support programmer workflows. E.g. unused
+definitions may not necessarily abort the compilation while still working on the code.
 
 ## Interpreter and REPL
 
