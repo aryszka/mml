@@ -503,19 +503,6 @@ Some functions can return errors. Errors are distinct types. They can be created
 
 They can be checked with the `isError` function.
 
-## Panic/Recover
-
-Considering the scope of the problems where MML tries to provide value, these features may not be included in
-the first couple of revisions of the language or their future may be kept pending. They behave like in Go,
-except for a syntax difference in case of `recover`:
-
-```
-fn~ foo() {
-	defer recover(log)
-	doStuff()
-}
-```
-
 ## Use
 
 MML code is organized into modules. When a module requires the functionality of another module, it can import it
