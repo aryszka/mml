@@ -580,7 +580,7 @@ plans to make it possible to define effects in MML whose implementation is mappe
 side, and implementing these functions will be supported by two thin libraries for both external environments in
 order to most possible ensure the compatibility between the two interoperating environments.
 
-Possible example, Go side:
+Possible example, Go side, in the `oswrapper` package:
 
 ```
 var Stdout = mml.Function(mml.FunctionSignature{
@@ -595,7 +595,7 @@ var Stdout = mml.Function(mml.FunctionSignature{
 MML side:
 
 ```
-let stdout interop("iowrapper", "Stdout")
+let stdout interop.use("oswrapper", "Stdout")
 stdout("Hello, world!") -> errors.only(log)
 ```
 
