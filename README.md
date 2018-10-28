@@ -4,7 +4,7 @@
 
 Alternative frontend for the Go and JS environments.
 
-- [Initial documentation](https://github.com/aryszka/mml/blob/master/tutorial.md)
+- [Documentation](https://github.com/aryszka/mml/blob/master/manual.md)
 - [Example](https://github.com/aryszka/mml/blob/master/main.mml)
 
 ## Boot the compiler

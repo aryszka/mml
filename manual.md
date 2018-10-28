@@ -1,4 +1,4 @@
-# MML Tutorial
+# MML
 
 This is an early feature overview of an almost existing programming language.
 
@@ -12,8 +12,8 @@ This is an early feature overview of an almost existing programming language.
 
 ## Numbers
 
-An integer: `42`
-A floating point number: `3.14`
+- An integer: `42`
+- A floating point number: `3.14`
 
 ## String
 
@@ -274,11 +274,7 @@ Every function is an effect if any of the following conditions is true:
 - contains channel communication
 - calls other effects
 
-All the cases that have an effect on time or space and are not considered as such:
-
-- infinite loops
-- memory allocation, including stack frames
-- hardware failures
+(Memory allocation is not considered as an effect.)
 
 Tip: try to use as few effects as possible, and try to concentrate them as close to the root of the program as
 possible.
@@ -331,6 +327,8 @@ default:
 The cases in the switch have their own scope. There's no need to use break, there's no fall through.
 
 ## Loop
+
+Loops have various forms, but each of them logically derives from a few basic concepts.
 
 Without condition:
 
@@ -414,6 +412,16 @@ for i in :len(list) {
 }
 ```
 
+Repeating something n times without a counter:
+
+```
+for :n {
+	println("Hello, world!")
+}
+```
+
+Loops have their own lexical scope, and the loop variable, if any, is also defined in this scope.
+
 ## Goroutine
 
 This feature is borrowed from Go:
@@ -455,10 +463,6 @@ for value in c {
 
 If closing a channel is removed from the language, looping over a channel will be removed, too.
 
-The reason for possibly removing closing a channel: it is reasonable to panic when sending on a closed channel,
-but we are trying to remove intentional panics from the language, and we haven't found a way to verify the
-potential cases of sending on a closed channel during compile time, yet.
-
 ## Select
 
 This feature is borrowed from Go:
@@ -476,10 +480,12 @@ default:
 }
 ```
 
+The cases in the select have their own scope.
+
 ## Scope
 
-MML is lexically scoped. Function bodies, if consequences and alternatives, switch and select cases, loop bodies
-have their own scopes.
+MML is lexically scoped. In addition to function bodies, if consequences and alternatives, switch and select
+cases, loop bodies have their own scopes.
 
 ## Defer
 
@@ -509,7 +515,7 @@ except for a syntax difference in case of `recover`:
 
 ```
 fn~ foo() {
-	defer recover(fn (err) log(err))
+	defer recover(log)
 	doStuff()
 }
 ```
@@ -614,7 +620,8 @@ foo(
 )
 ```
 
-There is an ambiguity between a function returning an empty structure or an effect not having any statements:
+There is an ambiguity between a function returning an empty structure or an effect not having any statements,
+where the former has precedence:
 
 - Function returning an empty structure: `fn emptyStructure() {}`
 - Effect not having statements: `fn~ noopEffect() {;}`
@@ -635,7 +642,7 @@ fn fold(f, i, l) len(l) == 0 ?
 MMLS:
 
 ```
-(def (fold f i l) (if (eq (len l) 0)
+(def (fold f i l) (if (nil? l)
   []
   (fold f (f (car l) i) (cdr l))))
 ```
@@ -649,8 +656,7 @@ The following built-in functions are currently available:
 - `len`: length of a string, list, structure, channel
 - `keys`: keys of a structure
 - `format`: formatted string in the style of Go's `fmt.Sprintf`
-- `stdin`: reads a string from the standard input of provided length, if negative then reads to EOF, can return
-  an error
+- `stdin`: reads a string from the standard input of provided length, can return an error
 - `stdout`: writes a string to the standard output, can return an error
 - `stderr`: writes a string to the standard error, can return an error
 - `string`: the string representation of the input argument
@@ -707,25 +713,27 @@ output:
 - every function (not effect) has a return value
 - every execution path of an effect has a return value or none of them have
 - every return value is used
-- only strings, lists or structures are indexed, and only structures are indexed with a symbol (.symbol)
+- only strings, lists or structures are indexed
+- strings and lists are indexed only with integers
 - no list index or slice range is used that is not guaranteed to fall within the length of the list
 - the start number in a number range in loops or slice index is smaller or equal to the end number
+- structures are indexed only with a symbol (.symbol) or string
 - no structure is referenced with a key that is not guaranteed to be available in the structure
 - only functions or effects are called (applied)
 - functions are not called with more arguments than what they accept
-- functions not marked as effects don't have effects
 - every function and operator is passed only such arguments whose type the function or operator can accept
+- no integer division or modulus is called with a zero denominator
 - no function parameters are changed
 - only those variables are changed that are marked mutable
 - only the items of mutable lists are changed
 - only the values of mutable structures are changed
+- functions not marked as effects don't have effects
 - imports with effects are marked as effects
-- no integer division or modulus is called with a zero denominator
 - if conditions are boolean
-- case expressions in a switch without a switch expression are booleans
+- case expressions in a switch without a switch expression are boolean
 - loop expressions are either boolean, or list, structure, channel or number range
 - only channels are sent to or received from
-- every case in select has either a send or a receive
+- every case in a select has either a send or a receive
 - tests are applied with boolean arguments or contain sub-tests
 
 The built-in functions `len`, `has` and the type checking functions, e.g. `isInt`, play a special role during
