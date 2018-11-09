@@ -622,6 +622,14 @@ var Panic = &Function{
 	FixedArgs: 1,
 }
 
+var Exit = &Function{
+	F: func(a []interface{}) interface{} {
+		os.Exit(a[0].(int))
+		return a[0].(int)
+	},
+	FixedArgs: 1,
+}
+
 var Open = &Function{
 	F: func(a []interface{}) interface{} {
 		f, err := os.Open(a[0].(string))
