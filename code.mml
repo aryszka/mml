@@ -51,6 +51,7 @@ export let builtin {
 	isInt:      "IsInt"
 	isFloat:    "IsFloat"
 	isString:   "IsString"
+	exit:       "Exit"
 	error:      "Error"
 	panic:      "Panic"
 	open:       "Open"

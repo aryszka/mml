@@ -5,6 +5,7 @@ import "github.com/aryszka/mml"
 var _args interface{} = mml.Args;
 var _close interface{} = mml.Close;
 var _error interface{} = mml.Error;
+var _exit interface{} = mml.Exit;
 var _format interface{} = mml.Format;
 var _has interface{} = mml.Has;
 var _isBool interface{} = mml.IsBool;
@@ -160,6 +161,10 @@ _compileModuleCode.(*mml.Function).Call((&mml.List{Values: append([]interface{}{
 			},
 			FixedArgs: 1,
 		};
+c = mml.BinaryOp(13, _len.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _args)}).Values), 2); if c.(bool) { ;
+mml.Nop();
+_stderr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "usage: mml source_file")}).Values);
+_exit.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, 1)}).Values) };
 _modules = mml.Ref(_parse, "modules").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_args, 1))}).Values);
 c = _isError.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _modules)}).Values); if c.(bool) { ;
 mml.Nop();
@@ -909,7 +914,7 @@ _greater = _binaryOp.(*mml.Function).Call((&mml.List{Values: []interface{}{}}).V
 _greaterOrEq = _binaryOp.(*mml.Function).Call((&mml.List{Values: []interface{}{}}).Values); exports["greaterOrEq"] = _greaterOrEq;
 _logicalAnd = _binaryOp.(*mml.Function).Call((&mml.List{Values: []interface{}{}}).Values); exports["logicalAnd"] = _logicalAnd;
 _logicalOr = _binaryOp.(*mml.Function).Call((&mml.List{Values: []interface{}{}}).Values); exports["logicalOr"] = _logicalOr;
-_builtin = func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; s.Values["len"] = "Len";s.Values["isError"] = "IsError";s.Values["keys"] = "Keys";s.Values["format"] = "Format";s.Values["stdin"] = "Stdin";s.Values["stdout"] = "Stdout";s.Values["stderr"] = "Stderr";s.Values["string"] = "String";s.Values["has"] = "Has";s.Values["isBool"] = "IsBool";s.Values["isInt"] = "IsInt";s.Values["isFloat"] = "IsFloat";s.Values["isString"] = "IsString";s.Values["error"] = "Error";s.Values["panic"] = "Panic";s.Values["open"] = "Open";s.Values["close"] = "Close";s.Values["args"] = "Args";s.Values["parseAST"] = "ParseAST";s.Values["parseInt"] = "ParseInt";s.Values["parseFloat"] = "ParseFloat";; return s }(); exports["builtin"] = _builtin;
+_builtin = func() interface{} { s := &mml.Struct{Values: make(map[string]interface{})}; s.Values["len"] = "Len";s.Values["isError"] = "IsError";s.Values["keys"] = "Keys";s.Values["format"] = "Format";s.Values["stdin"] = "Stdin";s.Values["stdout"] = "Stdout";s.Values["stderr"] = "Stderr";s.Values["string"] = "String";s.Values["has"] = "Has";s.Values["isBool"] = "IsBool";s.Values["isInt"] = "IsInt";s.Values["isFloat"] = "IsFloat";s.Values["isString"] = "IsString";s.Values["exit"] = "Exit";s.Values["error"] = "Error";s.Values["panic"] = "Panic";s.Values["open"] = "Open";s.Values["close"] = "Close";s.Values["args"] = "Args";s.Values["parseAST"] = "ParseAST";s.Values["parseInt"] = "ParseInt";s.Values["parseFloat"] = "ParseFloat";; return s }(); exports["builtin"] = _builtin;
 _flattenedStatements = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
