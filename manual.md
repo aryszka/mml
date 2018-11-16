@@ -272,17 +272,18 @@ Every function is an effect if any of the following conditions is true:
 - accesses a mutable variable outside of its scope
 - accesses a mutable list or structure defined outside of its scope
 - contains channel communication
+- starts a new goroutine
 - calls other effects
 
-(Memory allocation is not considered as an effect.)
+Memory allocation is not considered as an effect.
 
 Tip: try to use as few effects as possible, and try to concentrate them as close to the root of the program as
 possible.
 
 In every other way, effects are and behave just like functions.
 
-(`log` is a special function, that is an effect but the compiler doesn't consider it as such. It's the only
-special function and it is not possible to define similar ones.)
+`log` is a special function, that is an effect but the compiler doesn't consider it as such. It's the only
+special function and it is not possible to define similar ones.
 
 ## If
 
@@ -464,6 +465,7 @@ case m receive messages:
 	processMessage(m)
 	bugged = bugged + 1
 case send reports format("bugged %d times", [bugged]):
+	bugged = 0
 case receive stop:
 	return
 default:
@@ -479,7 +481,7 @@ MML is lexically scoped. In addition to function bodies, the following blocks ha
 
 - if consequences and alternatives
 - switch and select cases
-- loop bodies
+- loops
 
 ## Defer
 
@@ -537,9 +539,9 @@ use (
 )
 ```
 
-When importing a module, the top level statements of the imported module's are executed if it is imported for
-the first time during the lifecycle of the program. If the top level statements of the imported module contain
-calls to effects, then the use statement has to be marked with `~`.
+When importing a module, the top level statements of the imported module are executed if it is imported for the
+first time during the lifecycle of the program. If the top level statements of the imported module contain calls
+to effects, then the use statement has to be marked with `~`.
 
 `use ~ "config"`
 
@@ -565,7 +567,7 @@ export fn (
 The design of interoperability with the Go or JS environments is work in progress. In its current state, it
 plans to make it possible to define effects in MML whose implementation is mapped to functions on the Go or JS
 side, and implementing these functions will be supported by two thin libraries for both external environments in
-order to most possible ensure the compatibility between the two interoperating environments.
+order to most possibly ensure the compatibility between the two interoperating environments.
 
 Possible example, Go side, in the `oswrapper` package:
 
@@ -678,7 +680,6 @@ The following built-in functions are currently available:
 - `isString`: true if the argument is a string
 - `isError`: true if the argument is an error
 - `error`: creates an error
-- `panic`: panic in Go style
 - `open`: opens a file for reading, can return an error
 - `create`: creates a file for writing, can return an error
 - `close`: closes a file
@@ -709,9 +710,8 @@ put best effort into supporting packages that are installed in a standard Unix w
 ## The compiler
 
 The compiler tansforms MML into Go or JavaScript code. The compiler tries to detect every possible problem that
-can be detected before running a program. The symbolic goal of the compile time check is to guarantee that the
-program can execute without panics. The compiler does the following transient checks before generating its
-output:
+can be detected before running a program. The goal of the compile time check is to ensure that the program works
+as intended. The compiler does the following transient checks before generating its output:
 
 - every symbol is defined
 - a symbol is defined only once in a scope, including module references

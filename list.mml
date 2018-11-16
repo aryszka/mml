@@ -1,11 +1,12 @@
 export fn (
-	fold(f, i, l)   len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
-	foldr(f, i, l)  len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
-	map(m, l)       fold(fn (c, r) [r..., m(c)], [], l)
-	filter(p, l)    fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
-	contains(i, l)  len(filter(fn (ii) ii == i, l)) > 0
-	flat(l)         fold(fn (c, result) [result..., c...], [], l)
-	uniq(eq, l)     fold(fn (c, u) len(filter(fn (i) eq(i, c), u)) == 0 ? [u..., c] : u, [], l)
+	fold(f, i, l)  len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
+	foldr(f, i, l) len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
+	map(m, l)      fold(fn (c, r) [r..., m(c)], [], l)
+	filter(p, l)   fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
+	first(p, l)    len(l) == 0 ? [] : p(l[0]) ? l : first(p, l[1:])
+	contains(i, l) len(first(fn (ii) ii == i, l)) > 0
+	flat(l)        fold(fn (c, result) [result..., c...], [], l)
+	uniq(eq, l)    fold(fn (c, u) len(filter(fn (i) eq(i, c), u)) == 0 ? [u..., c] : u, [], l)
 )
 
 export fn sort(less, l) len(l) == 0 ? [] : [

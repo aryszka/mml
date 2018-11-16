@@ -1,8 +1,12 @@
 // TODO:
-// - handle scope and `let a a` properly in all kinds of scopes, see loop
-// - this should be more like an evaluator
-// - check the uncalled functions only in production build
-// - optimization: remove args, indexes, conditions and loop expressions from the results
+// - channels
+// - cleanup the handling of the values
+
+// TODO:
+// fn a(x) x
+// let b a(fn () c)
+// let c a(fn () b)
+// b()
 
 use (
 	.       "lang"
@@ -37,6 +41,7 @@ fn (
 	results(v, e)      {values: v, errors: e}
 	resultValues(...v) results(v, [])
 	resultErrors(...e) results([], e)
+	dropValues(r)      resultErrors(r.errors...)
 )
 
 let emptyResults results([], [])
@@ -55,6 +60,11 @@ fn wrapWithReturn(r) results(
 	r.errors
 )
 
+fn (
+	undefined(name) error(formats("undefined: %s", name))
+	duplicate(name) error(formats("duplicate definition: %s", name))
+)
+
 fn~ (
 	all(context, l)             l -> map(do(context)) -> fn (r) mergeResults(r...)
 	scoped(context, code)       do(extend(context), code)
@@ -64,22 +74,16 @@ fn~ (
 	list(context, l)            all(context, l.values)
 	struct(context, s)          all(context, s.entries)
 	rangeExpression(context, r) fieldsIfHas(context, ["from", "to"], r)
-	indexer(context, i)         all(context, [i.index, i.expression])
 	spread(context, s)          do(context, s.value)
-	unary(context, u)           do(context, u.arg)
-	binary(context, b)          fields(context, b, ["left", "right"])
-	validateSend(context, s)    fields(context, s, ["channel", "value"])
-	validateGo(context, g)      fields(context, g, ["application"])
-	validateDefer(context, d)   do(context, d.application)
+	unary(context, u)           do(context, u.arg) -> dropValues
+	binary(context, b)          fields(context, b, ["left", "right"]) -> dropValues
+	validateSend(context, s)    fields(context, s, ["channel", "value"]) -> dropValues
+	validateGo(context, g)      do(context, g.application) -> dropValues
+	validateDefer(context, d)   do(context, d.application) -> dropValues
 	definitions(context, d)     all(context, d.definitions)
 	assignments(context, a)     all(context, a.assignments)
 	ret(context, r)             fieldsIfHas(context, ["value"], r)
-	useList(context, u)         all(context, u.uses)
-)
-
-fn (
-	undefined(name) error(formats("undefined: %s", name))
-	duplicate(name) error(formats("duplicate definition: %s", name))
+	useList(context, u)         all(context, u.uses) -> dropValues
 )
 
 fn~ expandFunction(f) {
@@ -98,7 +102,7 @@ fn~ expandFunction(f) {
 		define(c, f.collectParam, [])
 	}
 
-	return do(c, f.statement)
+	return do(c, f.statement) -> dropValues
 }
 
 fn~ symbol(context, s) {
@@ -138,12 +142,17 @@ fn~ function(context, f) {
 	return expandFunction(ff)
 }
 
+fn~ indexer(context, i) mergeResults(
+	do(context, i.index) -> dropValues
+	do(context, i.expression) -> dropValues
+)
+
 fn~ application(context, a) {
 	let capturing context.capturing
 	context.capturing = false
 	let r mergeResults(
-		do(context, a.function)
-		all(context, a.args)
+		do(context, a.function) -> dropValues
+		all(context, a.args) -> dropValues
 	)
 
 	context.capturing = capturing
@@ -155,30 +164,38 @@ fn~ cond(context, c) c.ternary ?
 		do(context, c.condition)
 		scoped(context, c.consequent)
 		fieldsIfHas(extend(context), ["alternative"], c)
-	) :
+	)
+	-> dropValues :
 	mergeResults(
 		do(context, c.condition)
-		scoped(context, c.consequent) -> wrapWithReturn
-		fieldsIfHas(extend(context), ["alternative"], c) -> wrapWithReturn
+		scoped(context, c.consequent)
+		fieldsIfHas(extend(context), ["alternative"], c)
 	)
+	-> dropValues
 
-fn~ validateCase(context, c) mergeResults(
-	do(context, c.expression)
-	do(context, c.body)
-)
+fn~ validateCase(context, c)
+	mergeResults(
+		do(context, c.expression)
+		do(context, c.body)
+	)
+	-> dropValues
 
-fn~ validateSwitch(context, s) mergeResults(
-	fieldsIfHas(context, ["expression"], s)
-	allScoped(context, s.cases) -> wrapWithReturn
-	scoped(context, s.defaultStatements) -> wrapWithReturn
-)
+fn~ validateSwitch(context, s)
+	mergeResults(
+		fieldsIfHas(context, ["expression"], s)
+		allScoped(context, s.cases)
+		scoped(context, s.defaultStatements)
+	)
+	-> dropValues
 
-fn~ validateReceive(context, r) do(context, r.channel)
+fn~ validateReceive(context, r) do(context, r.channel) -> dropValues
 
-fn~ validateSelect(context, s) mergeResults(
-	allScoped(context, s.cases)
-	s.hasDefault ? scoped(context, s.defaultStatements) : emptyResults
-) -> wrapWithReturn
+fn~ validateSelect(context, s)
+	mergeResults(
+		allScoped(context, s.cases)
+		s.hasDefault ? scoped(context, s.defaultStatements) : emptyResults
+	)
+	-> dropValues
 
 fn~ rangeOver(context, r) {
 	if !has("expression", r) {
@@ -191,15 +208,16 @@ fn~ rangeOver(context, r) {
 	define(context, r.symbol, result.values)
 	context.capturing = false
 
-	return result
+	return result -> dropValues
 }
 
 fn~ loop(context, l) {
 	let c extend(context)
 	return mergeResults(
 		has("expression", l) ? do(c, l.expression) : emptyResults
-		do(c, l.body) -> wrapWithReturn
+		do(c, l.body)
 	)
+	-> dropValues
 }
 
 fn~ definition(context, d) {
@@ -212,7 +230,7 @@ fn~ definition(context, d) {
 	context.capturing = false
 
 	define(context, d.symbol, r.values)
-	return r
+	return r -> dropValues
 }
 
 fn~ assignment(context, a) {
@@ -220,7 +238,7 @@ fn~ assignment(context, a) {
 	context.capturing = true
 	let er do(context, a.value)
 	context.capturing = false
-	return mergeResults(cr, er)
+	return mergeResults(cr, er) -> dropValues
 }
 
 fn~ validateUse(context, u) {
@@ -270,7 +288,7 @@ fn~ statements(context, s) {
 	}
 
 	context.unexpanded = []
-	return r
+	return r -> dropValues
 }
 
 fn~ do(context, code) {

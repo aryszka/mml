@@ -1,2 +1,55 @@
 antidoc: it is possible to turn around code docs and reference the code from the doc instead of including the
 doc in the code
+explain: what problems does it try to solve
+
+// --
+
+type notation of a list, and a function:
+
+{
+	type:        "list"
+	min:         3
+	items:       ["a"]
+	types:       ["a"]
+	constraints: {
+		a: [{
+			type: "union"
+			types: ["a", "b"]
+			contraints: {
+				a: {
+					type: "int"
+					min:  ints.min
+					max:  -1
+				}
+				b: {
+					type: "int"
+					min:  1
+					max:  ints.max
+				}
+			}
+		}, {
+			type: "string"
+		}]
+	}
+}
+
+{
+	type:       "function"
+	params:     ["f", "b", "l"]
+	returns:    "b"
+	types:      ["a", "b", "f", "l"]
+	contraints: {
+		f: [{
+			type:    "function"
+			params:  ["a", "b"]
+			returns: "b"
+		}]
+		l: [{
+			type:  "list"
+			items: ["a"]
+		}]
+	}
+}
+
+type myList [(int::-1 | int:1) ^ string, 3:]
+type fold fn(fn (a, b) b, b, [a]) b
