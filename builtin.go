@@ -407,6 +407,38 @@ var IsString = &Function{
 	FixedArgs: 1,
 }
 
+var IsList = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(*List)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsStruct = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(*Struct)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsFunction = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(*Function)
+		return ok
+	},
+	FixedArgs: 1,
+}
+
+var IsChannel = &Function{
+	F: func(a []interface{}) interface{} {
+		_, ok := a[0].(chan interface{})
+		return ok
+	},
+	FixedArgs: 1,
+}
+
 var Len = &Function{
 	F: func(a []interface{}) interface{} {
 		switch at := a[0].(type) {
@@ -512,45 +544,49 @@ var String = &Function{
 	FixedArgs: 1,
 }
 
+func parseInt(a []interface{}) interface{} {
+	s := a[0].(string)
+
+	var base int
+	switch {
+	case strings.HasPrefix(s, "0x"):
+		base = 16
+		s = s[2:]
+	case strings.HasPrefix(s, "0"):
+		if s == "0" {
+			return 0
+		}
+
+		base = 8
+		s = s[1:]
+	default:
+		base = 10
+	}
+
+	i, err := strconv.ParseInt(s, base, 64)
+	if err != nil {
+		return err
+	}
+
+	return int(i)
+}
+
 var ParseInt = &Function{
-	F: func(a []interface{}) interface{} {
-		s := a[0].(string)
-
-		var base int
-		switch {
-		case strings.HasPrefix(s, "0x"):
-			base = 16
-			s = s[2:]
-		case strings.HasPrefix(s, "0"):
-			if s == "0" {
-				return 0
-			}
-
-			base = 8
-			s = s[1:]
-		default:
-			base = 10
-		}
-
-		i, err := strconv.ParseInt(s, base, 64)
-		if err != nil {
-			return err
-		}
-
-		return int(i)
-	},
+	F: parseInt,
 	FixedArgs: 1,
 }
 
-var ParseFloat = &Function{
-	F: func(a []interface{}) interface{} {
-		v, err := strconv.ParseFloat(a[0].(string), 64)
-		if err != nil {
-			return err
-		}
+func parseFloat(a []interface{}) interface{} {
+	v, err := strconv.ParseFloat(a[0].(string), 64)
+	if err != nil {
+		return err
+	}
 
-		return v
-	},
+	return v
+}
+
+var ParseFloat = &Function{
+	F: parseFloat,
 	FixedArgs: 1,
 }
 
@@ -586,6 +622,59 @@ var ParseAST = &Function{
 		}
 
 		return ast
+	},
+	FixedArgs: 1,
+}
+
+var Int = &Function{
+	F: func(a []interface{}) interface{} {
+		switch v := a[0].(type) {
+		case int:
+			return v
+		case float64:
+			return int(v)
+		case string:
+			return parseInt(a)
+		default:
+			return errors.New("unsupported argument")
+		}
+	},
+	FixedArgs: 1,
+}
+
+var Float = &Function{
+	F: func(a []interface{}) interface{} {
+		switch v := a[0].(type) {
+		case int:
+			return float64(v)
+		case float64:
+			return v
+		case string:
+			return parseFloat(a)
+		default:
+			return errors.New("unsupported argument")
+		}
+	},
+	FixedArgs: 1,
+}
+
+var Bool = &Function{
+	F: func(a []interface{}) interface{} {
+		switch v := a[0].(type) {
+		case int:
+			return v != 0
+		case string:
+			switch v {
+			case "true":
+				return true
+			case "false":
+				return false
+			default:
+				return errors.New("unsupported argument")
+			}
+		default:
+			return errors.New("unsupported argument")
+		}
 	},
 	FixedArgs: 1,
 }

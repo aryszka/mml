@@ -4,16 +4,23 @@ package main
 import "github.com/aryszka/mml"
 
 var _args interface{} = mml.Args
+var _bool interface{} = mml.Bool
 var _close interface{} = mml.Close
 var _error interface{} = mml.Error
 var _exit interface{} = mml.Exit
+var _float interface{} = mml.Float
 var _format interface{} = mml.Format
 var _has interface{} = mml.Has
+var _int interface{} = mml.Int
 var _isBool interface{} = mml.IsBool
+var _isChannel interface{} = mml.IsChannel
 var _isError interface{} = mml.IsError
 var _isFloat interface{} = mml.IsFloat
+var _isFunction interface{} = mml.IsFunction
 var _isInt interface{} = mml.IsInt
+var _isList interface{} = mml.IsList
 var _isString interface{} = mml.IsString
+var _isStruct interface{} = mml.IsStruct
 var _keys interface{} = mml.Keys
 var _len interface{} = mml.Len
 var _open interface{} = mml.Open
@@ -1110,12 +1117,19 @@ func init() {
 			s.Values["stdin"] = "Stdin"
 			s.Values["stdout"] = "Stdout"
 			s.Values["stderr"] = "Stderr"
+			s.Values["int"] = "Int"
+			s.Values["float"] = "Float"
 			s.Values["string"] = "String"
+			s.Values["bool"] = "Bool"
 			s.Values["has"] = "Has"
 			s.Values["isBool"] = "IsBool"
 			s.Values["isInt"] = "IsInt"
 			s.Values["isFloat"] = "IsFloat"
 			s.Values["isString"] = "IsString"
+			s.Values["isList"] = "IsList"
+			s.Values["isStruct"] = "IsStruct"
+			s.Values["isFunction"] = "IsFunction"
+			s.Values["isChannel"] = "IsChannel"
 			s.Values["exit"] = "Exit"
 			s.Values["error"] = "Error"
 			s.Values["panic"] = "Panic"
