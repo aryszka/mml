@@ -5,6 +5,7 @@ use (
 	logger "log"
 	"errors"
 	"functions"
+	"match"
 )
 
 // list
@@ -45,4 +46,19 @@ export let (
 	bind     functions.bind
 	identity functions.identity
 	eq       functions.eq
+)
+
+// match
+export let (
+	any       match.any
+	function  match.function
+	channel   match.channel
+	type      match.type
+	listOf    match.listOf
+	structOf  match.structOf
+	range     match.range
+	or        match.or
+	and       match.and
+	predicate match.predicate
+	is        match.is
 )
