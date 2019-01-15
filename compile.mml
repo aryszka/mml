@@ -194,7 +194,7 @@ fn function(f) {
 			FixedArgs: %d,
 		}"
 		paramList(f.params, f.collectParam)
-		scope -> map(fn (s) formats("var _%s interface{}", s)) -> join(";\n")
+		scope -> uniq(eq) -> map(fn (s) formats("var _%s interface{}", s)) -> join(";\n")
 		join(", ", map(strings.formatOne("_%s"), [scope..., paramNames...]))
 		do(f.statement)
 		len(f.params)
@@ -413,6 +413,7 @@ fn statements(s) {
 	)
 
 	let scopeDefs scope
+		-> uniq(eq)
 		-> map(fn (s) formats("var _%s interface{}", s))
 		-> join(";\n")
 

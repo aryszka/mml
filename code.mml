@@ -27,7 +27,7 @@ export let (
 	mod         binaryOp()
 	add         binaryOp()
 	sub         binaryOp()
-	eq          binaryOp()
+	equals      binaryOp()
 	notEq       binaryOp()
 	less        binaryOp()
 	lessOrEq    binaryOp()

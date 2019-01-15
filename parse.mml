@@ -140,7 +140,7 @@ fn binary(ast) {
 	case "sub":
 		op = code.sub
 	case "eq":
-		op = code.eq
+		op = code.equals
 	case "not-eq":
 		op = code.notEq
 	case "less":

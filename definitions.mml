@@ -16,11 +16,20 @@ use (
 fn newContext() ~{definitions: {}, unexpanded: [], capturing: false}
 
 fn~ (
-	extend(context)            ~{newContext()..., parent: context}
-	definedCurrent(context, n) has(n, context.definitions)
-	define(context, n, v)      capture(context, n, v)
-	assign(context, n, v)      capture(context, n, v)
+	extend(context)             ~{newContext()..., parent: context}
+	importContext(context)      ~{extend(context)..., imports: true}
+	definedCurrent(context, n)  has(n, context.definitions)
+	define(context, n, v)       capture(context, n, v)
+	assign(context, n, v)       capture(context, n, v)
 )
+
+fn~ defineImport(context, n, v) {
+	if !has("imports", context) {
+		return defineImport(context.parent, n, v)
+	}
+
+	return capture(context, n, v)
+}
 
 fn~ defined(context, n)
 	has(n, context.definitions) ||
@@ -243,31 +252,19 @@ fn~ assignment(context, a) {
 
 fn~ validateUse(context, u) {
 	if u.capture == "" {
-		if definedCurrent(context, u.path) {
-			return resultErrors(duplicate(u.path))
-		}
-
-		define(context, u.path, [{}])
+		defineImport(context, u.path, [{}])
 		return emptyResults
 	}
 
 	if u.capture == "." {
 		for name in u.exportNames {
-			if definedCurrent(context, name) {
-				return resultErrors(duplicate(name))
-			}
-
-			define(context, name, [{}])
+			defineImport(context, name, [{}])
 		}
 
 		return emptyResults
 	}
 
-	if definedCurrent(context, u.capture) {
-		return resultErrors(duplicate(u.path))
-	}
-
-	define(context, u.capture, [{}])
+	defineImport(context, u.capture, [{}])
 	return emptyResults
 }
 
@@ -371,6 +368,6 @@ export fn validate(code) {
 		define(context, b, [])
 	}
 
-	let result do(context, code)
+	let result do(extend(importContext(context)), code)
 	return result.errors
 }

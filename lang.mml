@@ -41,4 +41,8 @@ export let (
 )
 
 // functions
-export let partial functions.partial
+export let (
+	bind     functions.bind
+	identity functions.identity
+	eq       functions.eq
+)

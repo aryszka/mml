@@ -1,5 +1,10 @@
 // TODO: fix compilation, fn (...nextArgs) f([args..., nextArgs...]...)
-export fn partial(f, ...args) fn (...nextArgs) {
+export fn bind(f, ...args) fn (...nextArgs) {
 	let a [args..., nextArgs...]
 	return f(a...)
 }
+
+export fn (
+	identity(x) x
+	eq(...x)    len(x) < 2 || x[0] == x[1] && eq(x[1:]...)
+)
