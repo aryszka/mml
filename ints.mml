@@ -6,4 +6,8 @@ export fn counter () {
 	}
 }
 
-export let enum counter
+export let (
+	enum counter
+	max  9000
+	min  -9000
+)

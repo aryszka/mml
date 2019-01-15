@@ -518,6 +518,8 @@ fn parseUse(ast) {
 	uses: map(parse, ast.nodes)
 }
 
+// TODO: comments in groups
+
 fn parse(ast) {
 	switch ast.name {
 	case "line-comment-content":

@@ -4,6 +4,7 @@ use (
 	"ints"
 	logger "log"
 	"errors"
+	"functions"
 )
 
 // list
@@ -16,6 +17,8 @@ export let (
 	sort     list.sort
 	flat     list.flat
 	uniq     list.uniq
+	every    list.every
+	some     list.some
 )
 
 // strings
@@ -29,10 +32,13 @@ export let (
 export let enum ints.enum
 
 // log
-export let log logger.log
+export let log logger.println
 
 // errors
 export let (
 	onlyErr errors.only
 	passErr errors.pass
 )
+
+// functions
+export let partial functions.partial

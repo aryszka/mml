@@ -156,7 +156,7 @@ fn paramList(params, collectParam) {
 	}
 
 	if collectParam != "" {
-		p = [p..., formats("var _%s = &mml.List{a[%d:]}", collectParam, len(params))]
+		p = [p..., formats("var _%s interface{}; _%s = &mml.List{a[%d:]}", collectParam, collectParam, len(params))]
 	}
 
 	return join(";\n", p)

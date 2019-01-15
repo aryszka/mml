@@ -2,3 +2,4 @@ hobby programming
 user space programming
 alternative frontend for the Go and JS environment
 imperative like lisp
+not writing code for the compiler

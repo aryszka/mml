@@ -7,6 +7,8 @@ export fn (
 	contains(i, l) len(first(fn (ii) ii == i, l)) > 0
 	flat(l)        fold(fn (c, result) [result..., c...], [], l)
 	uniq(eq, l)    fold(fn (c, u) len(filter(fn (i) eq(i, c), u)) == 0 ? [u..., c] : u, [], l)
+	every(p, l)    fold(fn (i, r) r && p(i), true, l)
+	some(p, l)     fold(fn (i, r) r || p(i), false, l)
 )
 
 export fn sort(less, l) len(l) == 0 ? [] : [

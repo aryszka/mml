@@ -449,7 +449,7 @@ var Len = &Function{
 		case string:
 			return len(at)
 		default:
-			panic("len: unsupported code" + fmt.Sprint(a[0]))
+			panic(fmt.Sprintf("len: unsupported code: %v", a[0]))
 		}
 	},
 	FixedArgs: 1,

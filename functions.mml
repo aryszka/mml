@@ -1,0 +1,5 @@
+// TODO: fix compilation, fn (...nextArgs) f([args..., nextArgs...]...)
+export fn partial(f, ...args) fn (...nextArgs) {
+	let a [args..., nextArgs...]
+	return f(a...)
+}

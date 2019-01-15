@@ -5,7 +5,7 @@ use (
 )
 
 // TODO: should be a builtin fake function
-export fn~ log(...a) {
+export fn~ println(...a) {
 	a -> list.map(string) -> strings.join(" ") -> stderr
 	"\n" -> stderr
 	return len(a) == 0 ? "" : a[len(a) - 1]
