@@ -203,14 +203,7 @@ range-over            = symbol nl* in-mod nl* (expression | range) | range;
 loop-expression:alias = expression | range-over;
 loop                  = for-mod ((nl* loop-expression)? nl* block | nl* block);
 
-// TODO: set(a b)
-set-mod:alias:nows        = "set" wsep;
-assign-capture:alias      = primary-expression (nl* "=")? nl* expression;
-assign-capture-list:alias = assign-capture (list-sep assign-capture)*;
-assign-set:alias          = set-mod nl* assign-capture;
-assign-eq:alias           = primary-expression nl* "=" nl* expression;
-assign-group:alias        = set-mod nl* "(" (list-sep assign-capture-list)? list-sep? ")";
-assignment                = assign-set | assign-eq | assign-group;
+assignment = primary-expression nl* "=" nl* expression;
 
 let-mod:alias:nows       = "let" wsep;
 value-capture-fact:alias = symbol (nl* "=")? nl* expression;

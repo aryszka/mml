@@ -54,11 +54,14 @@ export let (
 	function   match.function
 	channel    match.channel
 	natural    match.natural
+	emptyList  match.emptyList
 	type       match.type
 	listOf     match.listOf
 	structOf   match.structOf
 	range      match.range
 	rangeMin   match.rangeMin
+	listLength match.listLength
+	exactList  match.exactList
 	or         match.or
 	and        match.and
 	predicate  match.predicate

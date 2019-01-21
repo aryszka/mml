@@ -227,7 +227,15 @@ fn matchOne(match, value) {
 	}
 }
 
-export fn rangeMin(match, min) range(match, min, isInt(min) ? ints.max : float.max)
-export let natural rangeMin(int, 0)
+export fn (
+	rangeMin(match, min) range(match, min, isInt(min) ? ints.max : float.max)
+	listLength(l)        range(listOf(any), l, l)
+	exactList(...m)      and([m...], listLength(len(m)))
+)
+
+export let (
+	natural   rangeMin(int, 0)
+	emptyList range(listOf(any), 0, 0)
+)
 
 export fn is(match, ...values) len(values) == 0 ? bind(is, match) : every(matchOne(match), values)
