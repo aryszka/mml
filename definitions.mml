@@ -312,7 +312,7 @@ fn~ do(context, code) {
 		return indexer(context, code)
 	case "spread":
 		return spread(context, code)
-	case "function-application":
+	case "application":
 		return application(context, code)
 	case "unary":
 		return unary(context, code)

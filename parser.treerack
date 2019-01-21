@@ -73,7 +73,7 @@ index:alias      = symbol-index | expression-index | range-index;
 index-list:alias = index (nl* index)?;
 indexer          = primary-expression nl* index-list;
 
-function-application = primary-expression "(" list-sep? expression-list? list-sep? ")";
+application = primary-expression "(" list-sep? expression-list? list-sep? ")";
 
 expression-group:alias   = "(" nl* expression nl* ")";
 primary-expression:alias = int
@@ -89,7 +89,7 @@ primary-expression:alias = int
                          | function
                          | effect
                          | indexer
-                         | function-application
+                         | application
                          | expression-group;
 
 binary-not = "^";
@@ -194,8 +194,8 @@ select                 = "select" nl* "{" sep?
 
 go-mod:alias:nows    = "go" wsep;
 defer-mod:alias:nows = "defer" wsep;
-go                   = go-mod nl* function-application;
-defer                = "defer" nl* function-application;
+go                   = go-mod nl* application;
+defer                = "defer" nl* application;
 
 in-mod:alias:nows     = "in" wsep;
 for-mod:alias:nows    = "for" wsep;

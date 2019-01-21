@@ -97,7 +97,7 @@ fn indexerNodes(n) {
 }
 
 fn application(ast) {
-	type:     "function-application"
+	type:     "application"
 	function: parse(ast.nodes[0])
 	args:     expressionList(ast.nodes[1:])
 }
@@ -184,7 +184,7 @@ fn chaining(ast) {
 		}
 
 		a = {
-			type:     "function-application"
+			type:     "application"
 			function: parse(n[0])
 			args:     [a]
 		}
@@ -554,8 +554,6 @@ fn parse(ast) {
 		return mutableStruct(ast)
 	case "return-value":
 		return ret(ast)
-	case "return":
-		return ret(ast)
 	case "block":
 		return statementList(ast)
 	case "function":
@@ -574,7 +572,7 @@ fn parse(ast) {
 		return rangeIndex(ast)
 	case "indexer":
 		return indexer(ast)
-	case "function-application":
+	case "application":
 		return application(ast)
 	case "unary-expression":
 		return unary(ast)

@@ -3021,7 +3021,7 @@ func init() {
 				mml.Nop(_ast)
 				return func() interface{} {
 					s := &mml.Struct{Values: make(map[string]interface{})}
-					s.Values["type"] = "function-application"
+					s.Values["type"] = "application"
 					s.Values["function"] = _parse.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(mml.Ref(_ast, "nodes"), 0))}).Values)
 					s.Values["args"] = _expressionList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.RefRange(mml.Ref(_ast, "nodes"), 1, nil))}).Values)
 					return s
@@ -3190,7 +3190,7 @@ func init() {
 					}
 					_a = func() interface{} {
 						s := &mml.Struct{Values: make(map[string]interface{})}
-						s.Values["type"] = "function-application"
+						s.Values["type"] = "application"
 						s.Values["function"] = _parse.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_n, 0))}).Values)
 						s.Values["args"] = &mml.List{Values: append([]interface{}{}, _a)}
 						return s
@@ -4130,10 +4130,6 @@ func init() {
 
 					mml.Nop()
 					return _ret.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
-				case "return":
-
-					mml.Nop()
-					return _ret.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "block":
 
 					mml.Nop()
@@ -4170,7 +4166,7 @@ func init() {
 
 					mml.Nop()
 					return _indexer.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
-				case "function-application":
+				case "application":
 
 					mml.Nop()
 					return _application.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
@@ -5711,7 +5707,7 @@ func init() {
 
 					mml.Nop()
 					return _spread.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, _code)}).Values)
-				case "function-application":
+				case "application":
 
 					mml.Nop()
 					return _application.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context, _code)}).Values)
@@ -7161,7 +7157,7 @@ func init() {
 
 					mml.Nop()
 					return _spreadList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _code)}).Values)
-				case "function-application":
+				case "application":
 
 					mml.Nop()
 					return _application.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _code)}).Values)

@@ -1174,7 +1174,7 @@ func Parse(r io.Reader) (*Node, error) {
 	var p562 = sequenceParser{id: 562, commit: 2, ranges: [][]int{{0, -1}, {1, 1}}}
 	p562.items = []parser{&p825, &p14}
 	p563.items = []parser{&p825, &p14, &p562}
-	var p262 = sequenceParser{id: 262, commit: 64, name: "function-application", ranges: [][]int{{1, 1}, {0, -1}, {1, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {1, 1}}, generalizations: []int{272, 401, 338, 339, 340, 341, 342, 393, 590, 583, 793}}
+	var p262 = sequenceParser{id: 262, commit: 64, name: "application", ranges: [][]int{{1, 1}, {0, -1}, {1, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {1, 1}}, generalizations: []int{272, 401, 338, 339, 340, 341, 342, 393, 590, 583, 793}}
 	var p259 = sequenceParser{id: 259, commit: 10, allChars: true, ranges: [][]int{{1, 1}, {1, 1}}}
 	var p258 = charParser{id: 258, chars: []rune{40}}
 	p259.items = []parser{&p258}
@@ -2578,7 +2578,7 @@ func Parse(r io.Reader) (*Node, error) {
 	var b562 = sequenceBuilder{id: 562, commit: 2, ranges: [][]int{{0, -1}, {1, 1}}}
 	b562.items = []builder{&b825, &b14}
 	b563.items = []builder{&b825, &b14, &b562}
-	var b262 = sequenceBuilder{id: 262, commit: 64, name: "function-application", ranges: [][]int{{1, 1}, {0, -1}, {1, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {1, 1}}}
+	var b262 = sequenceBuilder{id: 262, commit: 64, name: "application", ranges: [][]int{{1, 1}, {0, -1}, {1, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {0, 1}, {0, -1}, {1, 1}}}
 	var b259 = sequenceBuilder{id: 259, commit: 10, allChars: true, ranges: [][]int{{1, 1}, {1, 1}}}
 	var b258 = charBuilder{}
 	b259.items = []builder{&b258}
