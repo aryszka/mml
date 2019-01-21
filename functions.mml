@@ -1,10 +1,18 @@
-// TODO: fix compilation, fn (...nextArgs) f([args..., nextArgs...]...)
-export fn bind(f, ...args) fn (...nextArgs) {
-	let a [args..., nextArgs...]
-	return f(a...)
-}
+use "list"
 
 export fn (
-	identity(x) x
-	eq(...x)    len(x) < 2 || x[0] == x[1] && eq(x[1:]...)
+	identity(x)        x
+	eq(...x)           len(x) < 2 || x[0] == x[1] && eq(x[1:]...)
+	not(p) fn (a)      !p(a)
+	apply(f, a)        f(a...)
+	call(f, ...a)      apply(f, a)
+	chain(f) fn (a)    list.fold(call, a, f)
+	chains(...f)       chain(f)
+	bindAt(i, f, ...a) fn (...b) f(b[:i]..., a..., b[i:]...)
+	bind(f, ...a)      bindAt(0, f, a...)
 )
+
+export fn only(p, ...f)
+	f
+	-> list.map(fn (f) fn (a) p(a) ? f(a) : a)
+	-> chain
