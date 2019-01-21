@@ -16,3 +16,11 @@ export fn sort(less, l) len(l) == 0 ? [] : [
 	l[0]
 	(l[1:] -> filter(less(l[0])) -> sort(less))...
 ]
+
+export fn group(n, l) fold(
+	fn (i, g) len(g) == 0 || len(g[len(g) - 1]) == n ?
+		[g..., [i]] :
+		[g[:len(g) - 1]..., [g[len(g) - 1]..., i]]
+	[]
+	l
+)
