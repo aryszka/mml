@@ -295,39 +295,39 @@ func init() {
 		var _predicate interface{}
 		var _is interface{}
 		var _logger interface{}
-		var _list interface{}
+		var _lists interface{}
 		var _strings interface{}
 		var _ints interface{}
 		var _errors interface{}
 		var _functions interface{}
 		var _match interface{}
-		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is, _logger, _list, _strings, _ints, _errors, _functions, _match)
-		_list = mml.Modules.Use("list.mml")
+		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is, _logger, _lists, _strings, _ints, _errors, _functions, _match)
+		_lists = mml.Modules.Use("lists.mml")
 		_strings = mml.Modules.Use("strings.mml")
 		_ints = mml.Modules.Use("ints.mml")
 		_logger = mml.Modules.Use("log.mml")
 		_errors = mml.Modules.Use("errors.mml")
 		_functions = mml.Modules.Use("functions.mml")
 		_match = mml.Modules.Use("match.mml")
-		_fold = mml.Ref(_list, "fold")
+		_fold = mml.Ref(_lists, "fold")
 		exports["fold"] = _fold
-		_foldr = mml.Ref(_list, "foldr")
+		_foldr = mml.Ref(_lists, "foldr")
 		exports["foldr"] = _foldr
-		_map = mml.Ref(_list, "map")
+		_map = mml.Ref(_lists, "map")
 		exports["map"] = _map
-		_filter = mml.Ref(_list, "filter")
+		_filter = mml.Ref(_lists, "filter")
 		exports["filter"] = _filter
-		_contains = mml.Ref(_list, "contains")
+		_contains = mml.Ref(_lists, "contains")
 		exports["contains"] = _contains
-		_sort = mml.Ref(_list, "sort")
+		_sort = mml.Ref(_lists, "sort")
 		exports["sort"] = _sort
-		_flat = mml.Ref(_list, "flat")
+		_flat = mml.Ref(_lists, "flat")
 		exports["flat"] = _flat
-		_uniq = mml.Ref(_list, "uniq")
+		_uniq = mml.Ref(_lists, "uniq")
 		exports["uniq"] = _uniq
-		_every = mml.Ref(_list, "every")
+		_every = mml.Ref(_lists, "every")
 		exports["every"] = _every
-		_some = mml.Ref(_list, "some")
+		_some = mml.Ref(_lists, "some")
 		exports["some"] = _some
 		_join = mml.Ref(_strings, "join")
 		exports["join"] = _join
@@ -373,7 +373,7 @@ func init() {
 		exports["is"] = _is
 		return exports
 	})
-	modulePath = "list.mml"
+	modulePath = "lists.mml"
 	mml.Modules.Set(modulePath, func() map[string]interface{} {
 		exports := make(map[string]interface{})
 
@@ -965,10 +965,10 @@ func init() {
 		var c interface{}
 		mml.Nop(c)
 		var _println interface{}
-		var _list interface{}
+		var _lists interface{}
 		var _strings interface{}
-		mml.Nop(_println, _list, _strings)
-		_list = mml.Modules.Use("list.mml")
+		mml.Nop(_println, _lists, _strings)
+		_lists = mml.Modules.Use("lists.mml")
 		_strings = mml.Modules.Use("strings.mml")
 		_println = &mml.Function{
 			F: func(a []interface{}) interface{} {
@@ -980,7 +980,7 @@ func init() {
 				mml.Nop(_a)
 
 				mml.Nop()
-				_stderr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, " ")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _string)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _a)}).Values))}).Values))}).Values)
+				_stderr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_strings, "join").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, " ")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_lists, "map").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _string)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _a)}).Values))}).Values))}).Values)
 				_stderr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "\n")}).Values)
 				return func() interface{} {
 					c = mml.BinaryOp(11, _len.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _a)}).Values), 0)
@@ -1009,9 +1009,9 @@ func init() {
 		var _pass interface{}
 		var _only interface{}
 		var _any interface{}
-		var _list interface{}
-		mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _list)
-		_list = mml.Modules.Use("list.mml")
+		var _lists interface{}
+		mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _lists)
+		_lists = mml.Modules.Use("lists.mml")
 		_ifErr = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1094,7 +1094,7 @@ func init() {
 				var _l = a[0]
 
 				mml.Nop(_l)
-				return mml.Ref(_list, "fold").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+				return mml.Ref(_lists, "fold").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
 					F: func(a []interface{}) interface{} {
 						var c interface{}
 						mml.Nop(c)
@@ -1142,9 +1142,9 @@ func init() {
 		var _bindAt interface{}
 		var _bind interface{}
 		var _only interface{}
-		var _list interface{}
-		mml.Nop(_identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only, _list)
-		_list = mml.Modules.Use("list.mml")
+		var _lists interface{}
+		mml.Nop(_identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only, _lists)
+		_lists = mml.Modules.Use("lists.mml")
 		_identity = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1233,7 +1233,7 @@ func init() {
 						var _a = a[0]
 
 						mml.Nop(_a)
-						return mml.Ref(_list, "fold").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _call, _a, _f)}).Values)
+						return mml.Ref(_lists, "fold").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _call, _a, _f)}).Values)
 					},
 					FixedArgs: 1,
 				}
@@ -1303,7 +1303,7 @@ func init() {
 				_f = &mml.List{a[1:]}
 
 				mml.Nop(_p, _f)
-				return _chain.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_list, "map").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+				return _chain.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_lists, "map").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
 					F: func(a []interface{}) interface{} {
 						var c interface{}
 						mml.Nop(c)
@@ -1416,18 +1416,18 @@ func init() {
 		var _bind interface{}
 		var _only interface{}
 		mml.Nop(_token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _defineType, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _defineRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listRange, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _isSimpleType, _isComplexType, _isType, _typesMatch, _primitives, _matchPrimitive, _matchInt, _matchFloat, _matchString, _matchToList, _matchToListType, _matchList, _matchStruct, _matchUnion, _matchIntersection, _matchOne, _is, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _flat, _uniq, _every, _some, _sort, _identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only)
-		var __list = mml.Modules.Use("list.mml")
-		_fold = __list.Values["fold"]
-		_foldr = __list.Values["foldr"]
-		_map = __list.Values["map"]
-		_filter = __list.Values["filter"]
-		_first = __list.Values["first"]
-		_contains = __list.Values["contains"]
-		_flat = __list.Values["flat"]
-		_uniq = __list.Values["uniq"]
-		_every = __list.Values["every"]
-		_some = __list.Values["some"]
-		_sort = __list.Values["sort"]
+		var __lists = mml.Modules.Use("lists.mml")
+		_fold = __lists.Values["fold"]
+		_foldr = __lists.Values["foldr"]
+		_map = __lists.Values["map"]
+		_filter = __lists.Values["filter"]
+		_first = __lists.Values["first"]
+		_contains = __lists.Values["contains"]
+		_flat = __lists.Values["flat"]
+		_uniq = __lists.Values["uniq"]
+		_every = __lists.Values["every"]
+		_some = __lists.Values["some"]
+		_sort = __lists.Values["sort"]
 		var __functions = mml.Modules.Use("functions.mml")
 		_identity = __functions.Values["identity"]
 		_eq = __functions.Values["eq"]

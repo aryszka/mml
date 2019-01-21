@@ -1,12 +1,12 @@
 // TODO: drop dependencies, otherwise it cannot be used in the used modules
 use (
-	"list"
+	"lists"
 	"strings"
 )
 
 // TODO: should be a builtin fake function
 export fn~ println(...a) {
-	a -> list.map(string) -> strings.join(" ") -> stderr
+	a -> lists.map(string) -> strings.join(" ") -> stderr
 	"\n" -> stderr
 	return len(a) == 0 ? "" : a[len(a) - 1]
 }

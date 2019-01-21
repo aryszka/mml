@@ -1,5 +1,5 @@
 use (
-	"list"
+	"lists"
 	"strings"
 	"ints"
 	logger "log"
@@ -8,18 +8,18 @@ use (
 	"match"
 )
 
-// list
+// lists
 export let (
-	fold     list.fold
-	foldr    list.foldr
-	map      list.map
-	filter   list.filter
-	contains list.contains
-	sort     list.sort
-	flat     list.flat
-	uniq     list.uniq
-	every    list.every
-	some     list.some
+	fold     lists.fold
+	foldr    lists.foldr
+	map      lists.map
+	filter   lists.filter
+	contains lists.contains
+	sort     lists.sort
+	flat     lists.flat
+	uniq     lists.uniq
+	every    lists.every
+	some     lists.some
 )
 
 // strings
