@@ -59,13 +59,16 @@ type fold fn(fn (a, b) b, b, [a]) b
 why no user defined types:
 - the type system considered by the compiler is complex
 - a type notation as part of the language would make it hard to implement changes and improvements
-- a type notation as part of the application code would make it harder to apply certain optimizations
 - some of the type constraints would require injected code making the reasoning about complexity harder
+why user defined types are required:
+- module level contracts
 questions to answer:
 - can automatically generated types be better than manually defined ones
 - can applications have enough benefit from automatically generated types
 notes:
 - the first question holds too much subjectivity
 - the second question can be easier to support with metrics
-suspected technical and cultural analogy:
-- automatic vs manual memory management
+possibilities enabled by the right type notation:
+- alternative mathematical type systems, dimensions, currencies
+notes:
+- the current type system used by the compiler doesn't support above features
