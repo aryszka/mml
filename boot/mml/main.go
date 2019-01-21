@@ -2813,6 +2813,14 @@ func init() {
 						s.Values["control"] = mml.Ref(_code, "continueControl")
 						return s
 					}()
+				case "return":
+
+					mml.Nop()
+					return func() interface{} {
+						s := &mml.Struct{Values: make(map[string]interface{})}
+						s.Values["type"] = "ret"
+						return s
+					}()
 				default:
 
 					mml.Nop()
@@ -4118,6 +4126,10 @@ func init() {
 
 					mml.Nop()
 					return _mutableStruct.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
+				case "return-value":
+
+					mml.Nop()
+					return _ret.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "return":
 
 					mml.Nop()

@@ -38,6 +38,8 @@ fn symbol(ast) {
 		return {type: "control-statement", control: code.breakControl}
 	case "continue":
 		return {type: "control-statement", control: code.continueControl}
+	case "return":
+		return {type: "ret"}
 	// TODO: all the keywords
 	default:
 		return {type: "symbol", name: ast.text}
@@ -550,6 +552,8 @@ fn parse(ast) {
 		return struct(ast)
 	case "mutable-struct":
 		return mutableStruct(ast)
+	case "return-value":
+		return ret(ast)
 	case "return":
 		return ret(ast)
 	case "block":

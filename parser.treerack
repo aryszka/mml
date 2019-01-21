@@ -51,7 +51,7 @@ mutable-struct     = "~" nl* struct-fact;
 parameter-list:alias  = symbol (list-sep symbol)*;
 collect-parameter     = "..." nl* symbol;
 return-mod:alias:nows = "return" wsep;
-return                = return-mod (nl* expression)?;
+return-value          = return-mod nl* expression;
 block                 = "{" sep? statement-list? sep? "}";
 function-fact:alias   = "(" list-sep?
                         (parameter-list
@@ -268,7 +268,7 @@ simple-statement:alias       = send
                              | simple-statement-group
                              | expression;
 simple-statement-group:alias = "(" nl* simple-statement nl* ")";
-statement:alias              = return
+statement:alias              = return-value
                              | if
                              | switch
                              | select
