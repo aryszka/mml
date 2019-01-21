@@ -1282,7 +1282,7 @@ func init() {
 		var _function interface{}
 		var _channel interface{}
 		var _type interface{}
-		var _defineType interface{}
+		var _complexType interface{}
 		var _intRangeType interface{}
 		var _floatRangeType interface{}
 		var _isRange interface{}
@@ -1306,7 +1306,7 @@ func init() {
 		var _isSimpleType interface{}
 		var _isComplexType interface{}
 		var _isType interface{}
-		var _typesMatch interface{}
+		var _complexTypeEq interface{}
 		var _primitives interface{}
 		var _matchPrimitive interface{}
 		var _matchInt interface{}
@@ -1343,7 +1343,7 @@ func init() {
 		var _bindAt interface{}
 		var _bind interface{}
 		var _only interface{}
-		mml.Nop(_token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _defineType, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _defineRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listRange, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _isSimpleType, _isComplexType, _isType, _typesMatch, _primitives, _matchPrimitive, _matchInt, _matchFloat, _matchString, _matchToList, _matchToListType, _matchList, _matchStruct, _matchUnion, _matchIntersection, _matchOne, _is, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _flat, _uniq, _every, _some, _sort, _identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only)
+		mml.Nop(_token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _complexType, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _defineRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listRange, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _isSimpleType, _isComplexType, _isType, _complexTypeEq, _primitives, _matchPrimitive, _matchInt, _matchFloat, _matchString, _matchToList, _matchToListType, _matchList, _matchStruct, _matchUnion, _matchIntersection, _matchOne, _is, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _flat, _uniq, _every, _some, _sort, _identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only)
 		var __lists = mml.Modules.Use("lists.mml")
 		_fold = __lists.Values["fold"]
 		_foldr = __lists.Values["foldr"]
@@ -1512,7 +1512,7 @@ func init() {
 			FixedArgs: 1,
 		}
 		exports["type"] = _type
-		_defineType = &mml.Function{
+		_complexType = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -1528,8 +1528,8 @@ func init() {
 			},
 			FixedArgs: 1,
 		}
-		_intRangeType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "int-range")}).Values)
-		_floatRangeType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "float-range")}).Values)
+		_intRangeType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "int-range")}).Values)
+		_floatRangeType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "float-range")}).Values)
 		_isRange = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1559,19 +1559,19 @@ func init() {
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
-				var _base = a[0]
+				var _ofType = a[0]
 				var _validate = a[1]
 				var _min = a[2]
 				var _max = a[3]
 
-				mml.Nop(_base, _validate, _min, _max)
+				mml.Nop(_ofType, _validate, _min, _max)
 				return func() interface{} {
 					c = _validate.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _min, _max)}).Values)
 					if c.(bool) {
 						return func() interface{} {
 							s := &mml.Struct{Values: make(map[string]interface{})}
 							func() {
-								sp := _base.(*mml.Struct)
+								sp := _ofType.(*mml.Struct)
 								for k, v := range sp.Values {
 									s.Values[k] = v
 								}
@@ -1589,9 +1589,9 @@ func init() {
 		}
 		_intRange = _defineRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _intRangeType, _isRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _isInt)}).Values))}).Values)
 		_floatRange = _defineRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _floatRangeType, _isRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _isFloat)}).Values))}).Values)
-		_stringRangeType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "string")}).Values)
+		_stringRangeType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "string")}).Values)
 		_stringRange = _defineRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _stringRangeType, _isNaturalRange)}).Values)
-		_listType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "list")}).Values)
+		_listType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "list")}).Values)
 		_listRange = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1671,7 +1671,7 @@ func init() {
 
 					mml.Nop()
 					return _stringRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _min, _max)}).Values)
-				case _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _listType, _m)}).Values):
+				case _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _listType, _m)}).Values):
 
 					mml.Nop()
 					return _listRange.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_m, "item"), _min, _max)}).Values)
@@ -1685,9 +1685,9 @@ func init() {
 			FixedArgs: 3,
 		}
 		exports["range"] = _range
-		_unionType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "union")}).Values)
-		_intersectType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "intersection")}).Values)
-		_predicateType = _defineType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "predicate")}).Values)
+		_unionType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "union")}).Values)
+		_intersectType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "intersection")}).Values)
+		_predicateType = _complexType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "predicate")}).Values)
 		_or = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1789,7 +1789,7 @@ func init() {
 			},
 			FixedArgs: 1,
 		}
-		_typesMatch = &mml.Function{
+		_complexTypeEq = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -1849,7 +1849,7 @@ func init() {
 
 					mml.Nop()
 					return true
-				case _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_def, "rangeType"), _match)}).Values):
+				case _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_def, "rangeType"), _match)}).Values):
 					var _rv interface{}
 					mml.Nop(_rv)
 					_rv = mml.Ref(_def, "rangeValue").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _value)}).Values)
@@ -1926,7 +1926,7 @@ func init() {
 
 					mml.Nop()
 					return _matchToList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
-				case _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _listType, _match)}).Values):
+				case _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _listType, _match)}).Values):
 
 					mml.Nop()
 					return _matchToListType.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
@@ -2024,7 +2024,7 @@ func init() {
 
 					mml.Nop()
 					return true
-				case _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _predicateType, _match)}).Values):
+				case _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _predicateType, _match)}).Values):
 
 					mml.Nop()
 					return mml.Ref(_match, "check").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _value)}).Values)
@@ -2036,15 +2036,15 @@ func init() {
 
 					mml.Nop()
 					return true
-				case (mml.BinaryOp(11, _match, _integer).(bool) || _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _intRangeType, _match)}).Values).(bool)):
+				case (mml.BinaryOp(11, _match, _integer).(bool) || _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _intRangeType, _match)}).Values).(bool)):
 
 					mml.Nop()
 					return _matchInt.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
-				case (mml.BinaryOp(11, _match, _floating).(bool) || _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _floatRangeType, _match)}).Values).(bool)):
+				case (mml.BinaryOp(11, _match, _floating).(bool) || _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _floatRangeType, _match)}).Values).(bool)):
 
 					mml.Nop()
 					return _matchFloat.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
-				case (mml.BinaryOp(11, _match, _stringType).(bool) || _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _stringRangeType, _match)}).Values).(bool)):
+				case (mml.BinaryOp(11, _match, _stringType).(bool) || _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _stringRangeType, _match)}).Values).(bool)):
 
 					mml.Nop()
 					return _matchString.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
@@ -2064,15 +2064,15 @@ func init() {
 
 					mml.Nop()
 					return _isError.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _value)}).Values)
-				case (_isList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match)}).Values).(bool) || _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _listType, _match)}).Values).(bool)):
+				case (_isList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match)}).Values).(bool) || _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _listType, _match)}).Values).(bool)):
 
 					mml.Nop()
 					return _matchList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
-				case _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _unionType, _match)}).Values):
+				case _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _unionType, _match)}).Values):
 
 					mml.Nop()
 					return _matchUnion.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)
-				case _typesMatch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _intersectType, _match)}).Values):
+				case _complexTypeEq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _intersectType, _match)}).Values):
 
 					mml.Nop()
 					return _matchIntersection.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _value)}).Values)

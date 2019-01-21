@@ -38,11 +38,11 @@ export fn type(t) {
 	}
 }
 
-fn defineType(name) {token: token, type: name}
+fn complexType(name) {token: token, type: name}
 
 let (
-	intRangeType   defineType("int-range")
-	floatRangeType defineType("float-range")
+	intRangeType   complexType("int-range")
+	floatRangeType complexType("float-range")
 )
 
 fn (
@@ -50,17 +50,17 @@ fn (
 	isNaturalRange(min, max)  isRange(isInt, min, max) && min >= 0
 )
 
-fn defineRange(base, validate, min, max)
+fn defineRange(ofType, validate, min, max)
 	validate(min, max) ?
-	{base..., min: min, max: max} :
+	{ofType..., min: min, max: max} :
 	none
 
 let (
 	intRange        defineRange(intRangeType, isRange(isInt))
 	floatRange      defineRange(floatRangeType, isRange(isFloat))
-	stringRangeType defineType("string")
+	stringRangeType complexType("string")
 	stringRange     defineRange(stringRangeType, isNaturalRange)
-	listType        defineType("list")
+	listType        complexType("list")
 )
 
 fn listRange(item, min, max) {defineRange(listType, isNaturalRange, min, max)..., item: item}
@@ -79,7 +79,7 @@ export fn range(match, min, max) {
 		return floatRange(min, max)
 	case m == stringType:
 		return stringRange(min, max)
-	case typesMatch(listType, m):
+	case complexTypeEq(listType, m):
 		return listRange(m.item, min, max)
 	default:
 		return none
@@ -87,9 +87,9 @@ export fn range(match, min, max) {
 }
 
 let (
-	unionType     defineType("union")
-	intersectType defineType("intersection")
-	predicateType defineType("predicate")
+	unionType     complexType("union")
+	intersectType complexType("intersection")
+	predicateType complexType("predicate")
 )
 
 export fn (
@@ -115,7 +115,7 @@ fn isComplexType(t)
 
 fn isType(t) isSimpleType(t) || isComplexType(t)
 
-fn typesMatch(type, value)
+fn complexTypeEq(type, value)
 	isComplexType(type) &&
 	isComplexType(value) &&
 	type.type == value.type
@@ -132,7 +132,7 @@ fn matchPrimitive(def, match, value) {
 		return false
 	case match == def.type:
 		return true
-	case typesMatch(def.rangeType, match):
+	case complexTypeEq(def.rangeType, match):
 		let rv def.rangeValue(value)
 		return rv >= match.min && rv <= match.max
 	default:
@@ -171,7 +171,7 @@ fn matchList(match, value) {
 		return false
 	case isList(match):
 		return matchToList(match, value)
-	case typesMatch(listType, match):
+	case complexTypeEq(listType, match):
 		return matchToListType(match, value)
 	default:
 		return false
@@ -193,17 +193,17 @@ fn matchOne(match, value) {
 		return false
 	case match == any:
 		return true
-	case typesMatch(predicateType, match):
+	case complexTypeEq(predicateType, match):
 		return match.check(value)
 	case isType(value) && value != function:
 		return false
 	case match == value:
 		return true
-	case match == integer || typesMatch(intRangeType, match):
+	case match == integer || complexTypeEq(intRangeType, match):
 		return matchInt(match, value)
-	case match == floating || typesMatch(floatRangeType, match):
+	case match == floating || complexTypeEq(floatRangeType, match):
 		return matchFloat(match, value)
-	case match == stringType || typesMatch(stringRangeType, match):
+	case match == stringType || complexTypeEq(stringRangeType, match):
 		return matchString(match, value)
 	case match == boolean:
 		return isBool(value)
@@ -213,11 +213,11 @@ fn matchOne(match, value) {
 		return isChannel(value)
 	case match == errorType:
 		return isError(value)
-	case isList(match) || typesMatch(listType, match):
+	case isList(match) || complexTypeEq(listType, match):
 		return matchList(match, value)
-	case typesMatch(unionType, match):
+	case complexTypeEq(unionType, match):
 		return matchUnion(match, value)
-	case typesMatch(intersectType, match):
+	case complexTypeEq(intersectType, match):
 		return matchIntersection(match, value)
 	case isStruct(match):
 		return matchStruct(match, value)
@@ -226,7 +226,4 @@ fn matchOne(match, value) {
 	}
 }
 
-export fn is(match, ...values)
-	len(values) == 0 ?
-	bind(is, match) :
-	every(matchOne(match), values)
+export fn is(match, ...values) len(values) == 0 ? bind(is, match) : every(matchOne(match), values)
