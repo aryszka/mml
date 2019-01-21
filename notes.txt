@@ -53,3 +53,19 @@ type notation of a list, and a function:
 
 type myList [(int::-1 | int:1) ^ string, 3:]
 type fold fn(fn (a, b) b, b, [a]) b
+
+// --
+
+why no user defined types:
+- the type system considered by the compiler is complex
+- a type notation as part of the language would make it hard to implement changes and improvements
+- a type notation as part of the application code would make it harder to apply certain optimizations
+- some of the type constraints would require injected code making the reasoning about complexity harder
+questions to answer:
+- can automatically generated types be better than manually defined ones
+- can applications have enough benefit from automatically generated types
+notes:
+- the first question holds too much subjectivity
+- the second question can be easier to support with metrics
+suspected technical and cultural analogy:
+- automatic vs manual memory management
