@@ -61,9 +61,9 @@ export let (
 	range      match.range
 	rangeMin   match.rangeMin
 	listLength match.listLength
-	exactList  match.exactList
 	or         match.or
 	and        match.and
+	not        match.not
 	predicate  match.predicate
 	predicates match.predicates
 	is         match.is

@@ -238,7 +238,6 @@ definition:alias = value-definition
 
 // TODO:
 // - use effect
-// - rename to 'use'
 
 use-mod:alias:nows        = "use" wsep;
 use-inline                = ".";

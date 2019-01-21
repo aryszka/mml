@@ -164,7 +164,7 @@ fn matchToList(match, value) {
 fn matchToListType(match, value)
 	len(value) >= match.min &&
 	len(value) <= match.max &&
-	every(is(match.item), value)
+	(match.item == any || every(is(match.item), value))
 
 fn matchList(match, value) {
 	switch {
@@ -230,7 +230,7 @@ fn matchOne(match, value) {
 export fn (
 	rangeMin(match, min) range(match, min, isInt(min) ? ints.max : float.max)
 	listLength(l)        range(listOf(any), l, l)
-	exactList(...m)      and([m...], listLength(len(m)))
+	not(m)               predicate(fn (v) !is(m, v))
 )
 
 export let (
