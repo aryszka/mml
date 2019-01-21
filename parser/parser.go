@@ -1846,7 +1846,7 @@ func Parse(r io.Reader) (*Node, error) {
 	p591.items = []parser{&p825, &p14}
 	p592.items = []parser{&p14, &p591}
 	var p590 = choiceParser{id: 590, commit: 66, name: "loop-expression"}
-	var p589 = choiceParser{id: 589, commit: 64, name: "range-over-expression", generalizations: []int{590}}
+	var p589 = choiceParser{id: 589, commit: 64, name: "range-over", generalizations: []int{590}}
 	var p588 = sequenceParser{id: 588, commit: 2, ranges: [][]int{{1, 1}, {0, 1}, {0, -1}, {1, 1}, {0, 1}, {0, -1}, {1, 1}}, generalizations: []int{589, 590}}
 	var p585 = sequenceParser{id: 585, commit: 2, ranges: [][]int{{0, -1}, {1, 1}, {0, -1}}}
 	var p584 = sequenceParser{id: 584, commit: 2, ranges: [][]int{{0, -1}, {1, 1}}}
@@ -3250,7 +3250,7 @@ func Parse(r io.Reader) (*Node, error) {
 	b591.items = []builder{&b825, &b14}
 	b592.items = []builder{&b14, &b591}
 	var b590 = choiceBuilder{id: 590, commit: 66}
-	var b589 = choiceBuilder{id: 589, commit: 64, name: "range-over-expression"}
+	var b589 = choiceBuilder{id: 589, commit: 64, name: "range-over"}
 	var b588 = sequenceBuilder{id: 588, commit: 2, ranges: [][]int{{1, 1}, {0, 1}, {0, -1}, {1, 1}, {0, 1}, {0, -1}, {1, 1}}}
 	var b585 = sequenceBuilder{id: 585, commit: 2, ranges: [][]int{{0, -1}, {1, 1}, {0, -1}}}
 	var b584 = sequenceBuilder{id: 584, commit: 2, ranges: [][]int{{0, -1}, {1, 1}}}

@@ -4396,7 +4396,7 @@ func init() {
 
 					mml.Nop()
 					return _parseSwitch.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
-				case "range-over-expression":
+				case "range-over":
 
 					mml.Nop()
 					return _rangeOver.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)

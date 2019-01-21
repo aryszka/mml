@@ -594,7 +594,7 @@ fn parse(ast) {
 		return parseIf(ast)
 	case "switch":
 		return parseSwitch(ast)
-	case "range-over-expression":
+	case "range-over":
 		return rangeOver(ast)
 	case "loop":
 		return loop(ast)

@@ -199,8 +199,8 @@ defer                = "defer" nl* application;
 
 in-mod:alias:nows     = "in" wsep;
 for-mod:alias:nows    = "for" wsep;
-range-over-expression = symbol nl* in-mod nl* (expression | range) | range;
-loop-expression:alias = expression | range-over-expression;
+range-over            = symbol nl* in-mod nl* (expression | range) | range;
+loop-expression:alias = expression | range-over;
 loop                  = for-mod ((nl* loop-expression)? nl* block | nl* block);
 
 // TODO: set(a b)
