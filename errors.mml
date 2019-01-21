@@ -1,13 +1,11 @@
-use "lists"
-
-fn (
-	ifErr(mod, f) fn~ (a) mod(isError(a)) ? f(a) : a
-	not(x)        !x
-	yes(x)        x
+use (
+	"lists"
+	"functions"
 )
 
-export fn (
-	pass(f) ifErr(not, f)
-	only(f) ifErr(yes, f)
-	any(l)  lists.fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
+export let (
+	only functions.bind(functions.only, isError)
+	pass functions.bind(functions.only, functions.not(isError))
 )
+
+export fn any(l) lists.fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)

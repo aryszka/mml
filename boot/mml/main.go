@@ -1003,90 +1003,18 @@ func init() {
 
 		var c interface{}
 		mml.Nop(c)
-		var _ifErr interface{}
-		var _not interface{}
-		var _yes interface{}
-		var _pass interface{}
 		var _only interface{}
+		var _pass interface{}
 		var _any interface{}
 		var _lists interface{}
-		mml.Nop(_ifErr, _not, _yes, _pass, _only, _any, _lists)
+		var _functions interface{}
+		mml.Nop(_only, _pass, _any, _lists, _functions)
 		_lists = mml.Modules.Use("lists.mml")
-		_ifErr = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _mod = a[0]
-				var _f = a[1]
-
-				mml.Nop(_mod, _f)
-				return &mml.Function{
-					F: func(a []interface{}) interface{} {
-						var c interface{}
-						mml.Nop(c)
-						var _a = a[0]
-
-						mml.Nop(_a)
-						return func() interface{} {
-							c = _mod.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _isError.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _a)}).Values))}).Values)
-							if c.(bool) {
-								return _f.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _a)}).Values)
-							} else {
-								return _a
-							}
-						}()
-					},
-					FixedArgs: 1,
-				}
-			},
-			FixedArgs: 2,
-		}
-		_not = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _x = a[0]
-
-				mml.Nop(_x)
-				return !_x.(bool)
-			},
-			FixedArgs: 1,
-		}
-		_yes = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _x = a[0]
-
-				mml.Nop(_x)
-				return _x
-			},
-			FixedArgs: 1,
-		}
-		_pass = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0]
-
-				mml.Nop(_f)
-				return _ifErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _not, _f)}).Values)
-			},
-			FixedArgs: 1,
-		}
-		exports["pass"] = _pass
-		_only = &mml.Function{
-			F: func(a []interface{}) interface{} {
-				var c interface{}
-				mml.Nop(c)
-				var _f = a[0]
-
-				mml.Nop(_f)
-				return _ifErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _yes, _f)}).Values)
-			},
-			FixedArgs: 1,
-		}
+		_functions = mml.Modules.Use("functions.mml")
+		_only = mml.Ref(_functions, "bind").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_functions, "only"), _isError)}).Values)
 		exports["only"] = _only
+		_pass = mml.Ref(_functions, "bind").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_functions, "only"), mml.Ref(_functions, "not").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _isError)}).Values))}).Values)
+		exports["pass"] = _pass
 		_any = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
