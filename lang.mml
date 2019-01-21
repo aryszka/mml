@@ -50,15 +50,18 @@ export let (
 
 // match
 export let (
-	any       match.any
-	function  match.function
-	channel   match.channel
-	type      match.type
-	listOf    match.listOf
-	structOf  match.structOf
-	range     match.range
-	or        match.or
-	and       match.and
-	predicate match.predicate
-	is        match.is
+	any        match.any
+	function   match.function
+	channel    match.channel
+	natural    match.natural
+	type       match.type
+	listOf     match.listOf
+	structOf   match.structOf
+	range      match.range
+	rangeMin   match.rangeMin
+	or         match.or
+	and        match.and
+	predicate  match.predicate
+	predicates match.predicates
+	is         match.is
 )

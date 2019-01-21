@@ -93,9 +93,10 @@ let (
 )
 
 export fn (
-	or(...matches)  {unionType..., matches: map(type, matches)}
-	and(...matches) {intersectType..., matches: map(type, matches)}
-	predicate(p)    {predicateType..., check: p}
+	or(...matches)   {unionType..., matches: map(type, matches)}
+	and(...matches)  {intersectType..., matches: map(type, matches)}
+	predicate(p)     {predicateType..., check: p}
+	predicates(...p) and(map(predicate, p)...)
 )
 
 fn isSimpleType(t) some(bind(eq, t), [
@@ -225,5 +226,8 @@ fn matchOne(match, value) {
 		return false
 	}
 }
+
+export fn rangeMin(match, min) range(match, min, isInt(min) ? ints.max : float.max)
+export let natural rangeMin(int, 0)
 
 export fn is(match, ...values) len(values) == 0 ? bind(is, match) : every(matchOne(match), values)

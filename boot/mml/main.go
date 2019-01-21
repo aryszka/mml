@@ -76,15 +76,18 @@ func init() {
 		var _any interface{}
 		var _function interface{}
 		var _channel interface{}
+		var _natural interface{}
 		var _type interface{}
 		var _listOf interface{}
 		var _structOf interface{}
 		var _range interface{}
+		var _rangeMin interface{}
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_printValidationErrors, _validateDefinitions, _compileModuleCode, _compileModules, _modules, _validation, _builtins, _code, _parse, _definitions, _snippets, _compile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is)
+		mml.Nop(_printValidationErrors, _validateDefinitions, _compileModuleCode, _compileModules, _modules, _validation, _builtins, _code, _parse, _definitions, _snippets, _compile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _or, _and, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -109,13 +112,16 @@ func init() {
 		_any = __lang.Values["any"]
 		_function = __lang.Values["function"]
 		_channel = __lang.Values["channel"]
+		_natural = __lang.Values["natural"]
 		_type = __lang.Values["type"]
 		_listOf = __lang.Values["listOf"]
 		_structOf = __lang.Values["structOf"]
 		_range = __lang.Values["range"]
+		_rangeMin = __lang.Values["rangeMin"]
 		_or = __lang.Values["or"]
 		_and = __lang.Values["and"]
 		_predicate = __lang.Values["predicate"]
+		_predicates = __lang.Values["predicates"]
 		_is = __lang.Values["is"]
 		_code = mml.Modules.Use("code.mml")
 		_parse = mml.Modules.Use("parse.mml")
@@ -286,13 +292,16 @@ func init() {
 		var _any interface{}
 		var _function interface{}
 		var _channel interface{}
+		var _natural interface{}
 		var _type interface{}
 		var _listOf interface{}
 		var _structOf interface{}
 		var _range interface{}
+		var _rangeMin interface{}
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _is interface{}
 		var _logger interface{}
 		var _lists interface{}
@@ -301,7 +310,7 @@ func init() {
 		var _errors interface{}
 		var _functions interface{}
 		var _match interface{}
-		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is, _logger, _lists, _strings, _ints, _errors, _functions, _match)
+		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _or, _and, _predicate, _predicates, _is, _logger, _lists, _strings, _ints, _errors, _functions, _match)
 		_lists = mml.Modules.Use("lists.mml")
 		_strings = mml.Modules.Use("strings.mml")
 		_ints = mml.Modules.Use("ints.mml")
@@ -355,6 +364,8 @@ func init() {
 		exports["function"] = _function
 		_channel = mml.Ref(_match, "channel")
 		exports["channel"] = _channel
+		_natural = mml.Ref(_match, "natural")
+		exports["natural"] = _natural
 		_type = mml.Ref(_match, "type")
 		exports["type"] = _type
 		_listOf = mml.Ref(_match, "listOf")
@@ -363,12 +374,16 @@ func init() {
 		exports["structOf"] = _structOf
 		_range = mml.Ref(_match, "range")
 		exports["range"] = _range
+		_rangeMin = mml.Ref(_match, "rangeMin")
+		exports["rangeMin"] = _rangeMin
 		_or = mml.Ref(_match, "or")
 		exports["or"] = _or
 		_and = mml.Ref(_match, "and")
 		exports["and"] = _and
 		_predicate = mml.Ref(_match, "predicate")
 		exports["predicate"] = _predicate
+		_predicates = mml.Ref(_match, "predicates")
+		exports["predicates"] = _predicates
 		_is = mml.Ref(_match, "is")
 		exports["is"] = _is
 		return exports
@@ -1303,6 +1318,7 @@ func init() {
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _isSimpleType interface{}
 		var _isComplexType interface{}
 		var _isType interface{}
@@ -1319,6 +1335,8 @@ func init() {
 		var _matchUnion interface{}
 		var _matchIntersection interface{}
 		var _matchOne interface{}
+		var _rangeMin interface{}
+		var _natural interface{}
 		var _is interface{}
 		var _ints interface{}
 		var _floats interface{}
@@ -1343,7 +1361,7 @@ func init() {
 		var _bindAt interface{}
 		var _bind interface{}
 		var _only interface{}
-		mml.Nop(_token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _complexType, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _defineRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listRange, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _isSimpleType, _isComplexType, _isType, _complexTypeEq, _primitives, _matchPrimitive, _matchInt, _matchFloat, _matchString, _matchToList, _matchToListType, _matchList, _matchStruct, _matchUnion, _matchIntersection, _matchOne, _is, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _flat, _uniq, _every, _some, _sort, _identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only)
+		mml.Nop(_token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _complexType, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _defineRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listRange, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _predicates, _isSimpleType, _isComplexType, _isType, _complexTypeEq, _primitives, _matchPrimitive, _matchInt, _matchFloat, _matchString, _matchToList, _matchToListType, _matchList, _matchStruct, _matchUnion, _matchIntersection, _matchOne, _rangeMin, _natural, _is, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _flat, _uniq, _every, _some, _sort, _identity, _eq, _not, _apply, _call, _chain, _chains, _bindAt, _bind, _only)
 		var __lists = mml.Modules.Use("lists.mml")
 		_fold = __lists.Values["fold"]
 		_foldr = __lists.Values["foldr"]
@@ -1756,6 +1774,19 @@ func init() {
 			FixedArgs: 1,
 		}
 		exports["predicate"] = _predicate
+		_predicates = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _p interface{}
+				_p = &mml.List{a[0:]}
+
+				mml.Nop(_p)
+				return _and.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _predicate, _p)}).Values).(*mml.List).Values...)}).Values)
+			},
+			FixedArgs: 0,
+		}
+		exports["predicates"] = _predicates
 		_isSimpleType = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -2089,6 +2120,28 @@ func init() {
 			},
 			FixedArgs: 2,
 		}
+		_rangeMin = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _match = a[0]
+				var _min = a[1]
+
+				mml.Nop(_match, _min)
+				return _range.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _match, _min, func() interface{} {
+					c = _isInt.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _min)}).Values)
+					if c.(bool) {
+						return mml.Ref(_ints, "max")
+					} else {
+						return mml.Ref(_float, "max")
+					}
+				}())}).Values)
+			},
+			FixedArgs: 2,
+		}
+		exports["rangeMin"] = _rangeMin
+		_natural = _rangeMin.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _int, 0)}).Values)
+		exports["natural"] = _natural
 		_is = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -2187,15 +2240,18 @@ func init() {
 		var _any interface{}
 		var _function interface{}
 		var _channel interface{}
+		var _natural interface{}
 		var _type interface{}
 		var _listOf interface{}
 		var _structOf interface{}
 		var _range interface{}
+		var _rangeMin interface{}
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _equals, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _builtin, _flattenedStatements, _getModuleName, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is)
+		mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _equals, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _builtin, _flattenedStatements, _getModuleName, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _or, _and, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -2220,13 +2276,16 @@ func init() {
 		_any = __lang.Values["any"]
 		_function = __lang.Values["function"]
 		_channel = __lang.Values["channel"]
+		_natural = __lang.Values["natural"]
 		_type = __lang.Values["type"]
 		_listOf = __lang.Values["listOf"]
 		_structOf = __lang.Values["structOf"]
 		_range = __lang.Values["range"]
+		_rangeMin = __lang.Values["rangeMin"]
 		_or = __lang.Values["or"]
 		_and = __lang.Values["and"]
 		_predicate = __lang.Values["predicate"]
+		_predicates = __lang.Values["predicates"]
 		_is = __lang.Values["is"]
 		_controlStatement = _enum.(*mml.Function).Call((&mml.List{Values: []interface{}{}}).Values)
 		exports["controlStatement"] = _controlStatement
@@ -2466,14 +2525,17 @@ func init() {
 		var _eq interface{}
 		var _any interface{}
 		var _channel interface{}
+		var _natural interface{}
 		var _type interface{}
 		var _listOf interface{}
 		var _structOf interface{}
+		var _rangeMin interface{}
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_parseString, _spread, _expressionList, _list, _mutableList, _expressionKey, _entry, _struct, _mutableStruct, _statementList, _function, _effect, _symbolIndex, _expressionIndex, _indexer, _mutableCapture, _valueDefinition, _functionDefinition, _assign, _parseSend, _parseReceive, _parseGo, _parseDefer, _receiveDefinition, _symbol, _ret, _functionFact, _range, _rangeIndex, _indexerNodes, _application, _unary, _binary, _chaining, _ternary, _parseIf, _parseSwitch, _rangeOver, _loop, _valueCapture, _definitions, _mutableDefinitions, _functionCapture, _effectCapture, _effectDefinitions, _assignCaptures, _parseSelect, _parseExport, _useFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModule, _modules, _code, _strings, _errors, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is)
+		mml.Nop(_parseString, _spread, _expressionList, _list, _mutableList, _expressionKey, _entry, _struct, _mutableStruct, _statementList, _function, _effect, _symbolIndex, _expressionIndex, _indexer, _mutableCapture, _valueDefinition, _functionDefinition, _assign, _parseSend, _parseReceive, _parseGo, _parseDefer, _receiveDefinition, _symbol, _ret, _functionFact, _range, _rangeIndex, _indexerNodes, _application, _unary, _binary, _chaining, _ternary, _parseIf, _parseSwitch, _rangeOver, _loop, _valueCapture, _definitions, _mutableDefinitions, _functionCapture, _effectCapture, _effectDefinitions, _assignCaptures, _parseSelect, _parseExport, _useFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModule, _modules, _code, _strings, _errors, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _or, _and, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -2498,13 +2560,16 @@ func init() {
 		_any = __lang.Values["any"]
 		_function = __lang.Values["function"]
 		_channel = __lang.Values["channel"]
+		_natural = __lang.Values["natural"]
 		_type = __lang.Values["type"]
 		_listOf = __lang.Values["listOf"]
 		_structOf = __lang.Values["structOf"]
 		_range = __lang.Values["range"]
+		_rangeMin = __lang.Values["rangeMin"]
 		_or = __lang.Values["or"]
 		_and = __lang.Values["and"]
 		_predicate = __lang.Values["predicate"]
+		_predicates = __lang.Values["predicates"]
 		_is = __lang.Values["is"]
 		_code = mml.Modules.Use("code.mml")
 		_strings = mml.Modules.Use("strings.mml")
@@ -4749,15 +4814,18 @@ func init() {
 		var _eq interface{}
 		var _any interface{}
 		var _channel interface{}
+		var _natural interface{}
 		var _type interface{}
 		var _listOf interface{}
 		var _structOf interface{}
 		var _range interface{}
+		var _rangeMin interface{}
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_newContext, _extend, _importContext, _definedCurrent, _define, _assign, _defineImport, _defined, _capture, _values, _results, _resultValues, _resultErrors, _dropValues, _emptyResults, _mergeResults, _wrapWithReturn, _undefined, _duplicate, _all, _scoped, _allScoped, _fields, _fieldsIfHas, _list, _struct, _rangeExpression, _spread, _unary, _binary, _validateSend, _validateGo, _validateDefer, _definitions, _assignments, _ret, _useList, _expandFunction, _symbol, _entry, _function, _indexer, _application, _cond, _validateCase, _validateSwitch, _validateReceive, _validateSelect, _rangeOver, _loop, _definition, _assignment, _validateUse, _statements, _do, _validate, _mmlcode, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is)
+		mml.Nop(_newContext, _extend, _importContext, _definedCurrent, _define, _assign, _defineImport, _defined, _capture, _values, _results, _resultValues, _resultErrors, _dropValues, _emptyResults, _mergeResults, _wrapWithReturn, _undefined, _duplicate, _all, _scoped, _allScoped, _fields, _fieldsIfHas, _list, _struct, _rangeExpression, _spread, _unary, _binary, _validateSend, _validateGo, _validateDefer, _definitions, _assignments, _ret, _useList, _expandFunction, _symbol, _entry, _function, _indexer, _application, _cond, _validateCase, _validateSwitch, _validateReceive, _validateSelect, _rangeOver, _loop, _definition, _assignment, _validateUse, _statements, _do, _validate, _mmlcode, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _or, _and, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -4782,13 +4850,16 @@ func init() {
 		_any = __lang.Values["any"]
 		_function = __lang.Values["function"]
 		_channel = __lang.Values["channel"]
+		_natural = __lang.Values["natural"]
 		_type = __lang.Values["type"]
 		_listOf = __lang.Values["listOf"]
 		_structOf = __lang.Values["structOf"]
 		_range = __lang.Values["range"]
+		_rangeMin = __lang.Values["rangeMin"]
 		_or = __lang.Values["or"]
 		_and = __lang.Values["and"]
 		_predicate = __lang.Values["predicate"]
+		_predicates = __lang.Values["predicates"]
 		_is = __lang.Values["is"]
 		_mmlcode = mml.Modules.Use("code.mml")
 		_newContext = &mml.Function{
@@ -6018,15 +6089,18 @@ func init() {
 		var _eq interface{}
 		var _any interface{}
 		var _channel interface{}
+		var _natural interface{}
 		var _type interface{}
 		var _listOf interface{}
 		var _structOf interface{}
 		var _range interface{}
+		var _rangeMin interface{}
 		var _or interface{}
 		var _and interface{}
 		var _predicate interface{}
+		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_notEmpty, _compileInt, _compileFloat, _compileBool, _getScope, _comment, _compileString, _symbol, _cond, _spreadList, _compileCase, _compileSend, _compileReceive, _compileGo, _definitions, _assigns, _ret, _control, _useList, _list, _entry, _expressionKey, _struct, _paramList, _function, _indexer, _application, _unary, _binary, _ternary, _compileIf, _compileSwitch, _compileSelect, _compileDefer, _rangeOver, _loop, _definition, _assign, _statements, _compileUse, _do, _errors, _code, _strings, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _type, _listOf, _structOf, _range, _or, _and, _predicate, _is)
+		mml.Nop(_notEmpty, _compileInt, _compileFloat, _compileBool, _getScope, _comment, _compileString, _symbol, _cond, _spreadList, _compileCase, _compileSend, _compileReceive, _compileGo, _definitions, _assigns, _ret, _control, _useList, _list, _entry, _expressionKey, _struct, _paramList, _function, _indexer, _application, _unary, _binary, _ternary, _compileIf, _compileSwitch, _compileSelect, _compileDefer, _rangeOver, _loop, _definition, _assign, _statements, _compileUse, _do, _errors, _code, _strings, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _or, _and, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -6051,13 +6125,16 @@ func init() {
 		_any = __lang.Values["any"]
 		_function = __lang.Values["function"]
 		_channel = __lang.Values["channel"]
+		_natural = __lang.Values["natural"]
 		_type = __lang.Values["type"]
 		_listOf = __lang.Values["listOf"]
 		_structOf = __lang.Values["structOf"]
 		_range = __lang.Values["range"]
+		_rangeMin = __lang.Values["rangeMin"]
 		_or = __lang.Values["or"]
 		_and = __lang.Values["and"]
 		_predicate = __lang.Values["predicate"]
+		_predicates = __lang.Values["predicates"]
 		_is = __lang.Values["is"]
 		_errors = mml.Modules.Use("errors.mml")
 		_code = mml.Modules.Use("code.mml")
