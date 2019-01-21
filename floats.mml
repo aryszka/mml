@@ -1,0 +1,4 @@
+export let (
+	min -9000.0
+	max 9000.0
+)

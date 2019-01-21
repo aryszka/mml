@@ -1,0 +1,232 @@
+use (
+	. "list"
+	. "functions"
+	  "ints"
+	  "floats"
+)
+
+fn (
+	token()      token
+	none()       none
+	integer()    integer
+	floating()   floating
+	stringType() stringType
+	boolean()    boolean
+	errorType()  errorType
+)
+
+export fn (
+	any()      any
+	function() function
+	channel()  channel
+)
+
+export fn type(t) {
+	switch t {
+	case int:
+		return integer
+	case float:
+		return floating
+	case string:
+		return stringType
+	case bool:
+		return boolean
+	case error:
+		return errorType
+	default:
+		return t
+	}
+}
+
+let (
+	intRangeType   {token: token, type: "int-range", min: integer, max: integer}
+	floatRangeType {token: token, type: "float-range", min: floating, max: floating}
+)
+
+fn (
+	isRange(ofType, min, max) ofType(min) && ofType(max) && min <= max
+	isNaturalRange(min, max)  isRange(isInt, min, max) && min >= 0
+)
+
+fn defineRange(base, validate, min, max)
+	validate(min, max) ?
+	{base..., min: min, max: max} :
+	none
+
+let (
+	intRange   defineRange(intRangeType, isRange(isInt))
+	floatRange defineRange(floatRangeType, isRange(isFloat))
+	natural    intRange(0, ints.max)
+)
+
+let (
+	stringRangeType {token: token, type: "string-type", min: natural, max: natural}
+	stringRange     defineRange(stringRangeType, isNaturalRange)
+	listType        {token: token, type: "list", item: any, min: natural, max: natural}
+)
+
+fn listRange(item, min, max) {defineRange(listType, isNaturalRange, min, max)..., item: item}
+
+export fn (
+	listOf(item) listRange(type(item), 0, ints.max)
+	structOf(s)  is({}, s) ? s : none
+)
+
+export fn range(match, min, max) {
+	let m type(match)
+	switch {
+	case m == integer:
+		return intRange(min, max)
+	case m == floating:
+		return floatRange(min, max)
+	case m == stringType:
+		return stringRange(min, max)
+	case matchComplexType(listType, m):
+		return listRange(m.item, min, max)
+	default:
+		return none
+	}
+}
+
+let (
+	unionType     {token: token, type: "union", matches: listOf(any)}
+	intersectType {token: token, type: "intersect", matches: listOf(any)}
+	predicateType {token: token, type: "predicate", check: function}
+)
+
+export fn (
+	or(...matches)  {unionType..., matches: map(type, matches)}
+	and(...matches) {intersectType..., matches: map(type, matches)}
+	predicate(p)    {predicateType..., check: p}
+)
+
+fn isSimpleType(t) some(bind(eq, t), [
+	integer
+	floating
+	stringType
+	boolean
+	function
+	errorType
+	channel
+])
+
+fn isComplexType(t)
+	isStruct(t) &&
+	has("token", t) && t.token == token &&
+	has("type", t) && isString(t.type)
+
+fn isType(t) isSimpleType(t) || isComplexType(t)
+
+fn matchComplexType(type, value)
+	isComplexType(type) &&
+	isComplexType(value) &&
+	type.type == value.type
+
+fn matchPrimitive(type, typeCheck, rangeType, rangeValue, match, value) {
+	switch {
+	case !typeCheck(value):
+		return false
+	case match == type:
+		return true
+	case matchComplexType(rangeType, match):
+		let rv rangeValue(value)
+		return rv >= match.min && rv <= match.max
+	default:
+		return false
+	}
+}
+
+let (
+	matchInt    matchPrimitive(integer, isInt, intRangeType, identity)
+	matchFloat  matchPrimitive(floating, isFloat, floatRangeType, identity)
+	matchString matchPrimitive(stringType, isString, stringRangeType, len)
+)
+
+fn matchToList(match, value) {
+	if len(value) < len(match) {
+		return false
+	}
+
+	for i in :len(match) {
+		if !is(match[i], value[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+fn matchToListType(match, value)
+	len(value) >= match.min &&
+	len(value) <= match.max &&
+	every(is(match.item), value)
+
+fn matchList(match, value) {
+	switch {
+	case !isList(value):
+		return false
+	case isList(match):
+		return matchToList(match, value)
+	case matchComplexType(listType, match):
+		return matchToListType(match, value)
+	default:
+		return false
+	}
+}
+
+fn matchStruct(match, value)
+	isStruct(value) &&
+	every(fn (key) has(key, value) && is(match[key], value[key]), keys(match))
+
+fn (
+	matchUnion(match, value)        some(fn (m) is(m, value), match.matches)
+	matchIntersection(match, value) every(fn (m) is(m, value), match.matches)
+)
+
+fn matchOne(match, value) {
+	switch {
+	case match == none || value == none:
+		return false
+	case match == any:
+		return true
+	case matchComplexType(predicateType, match):
+		return match.check(value)
+	case isType(value) && value != function:
+		return false
+	case match == value:
+		return true
+	case matchComplexType(unionType, value):
+		return every(is(match), value.matches)
+	case matchComplexType(intersectType, value):
+		return len(value.matches) == 0 || some(is(match), value.matches)
+	case match == integer || matchComplexType(intRangeType, match):
+		return matchInt(match, value)
+	case match == floating || matchComplexType(floatRangeType, match):
+		return matchFloat(match, value)
+	case match == stringType || matchComplexType(stringRangeType, match):
+		return matchString(match, value)
+	case match == boolean:
+		return isBool(value)
+	case match == function:
+		return isFunction(value)
+	case match == channel:
+		return isChannel(value)
+	case match == errorType:
+		return isError(value)
+	case isList(match) || matchComplexType(listType, match):
+		return matchList(match, value)
+	case matchComplexType(unionType, match):
+		return matchUnion(match, value)
+	case matchComplexType(intersectType, match):
+		return matchIntersection(match, value)
+	case isStruct(match):
+		return matchStruct(match, value)
+	default:
+		return false
+	}
+}
+
+export fn is(match, ...values)
+	len(values) == 0 ?
+	bind(is, match) :
+	every(matchOne(match), values)
