@@ -53,6 +53,7 @@ func init() {
 		var _definitions interface{}
 		var _snippets interface{}
 		var _compile interface{}
+		var _errors interface{}
 		var _fold interface{}
 		var _foldr interface{}
 		var _map interface{}
@@ -68,8 +69,6 @@ func init() {
 		var _formats interface{}
 		var _enum interface{}
 		var _log interface{}
-		var _onlyErr interface{}
-		var _passErr interface{}
 		var _bind interface{}
 		var _identity interface{}
 		var _eq interface{}
@@ -90,7 +89,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_printValidationErrors, _validateDefinitions, _compileModuleCode, _compileModules, _modules, _validation, _builtins, _code, _parse, _definitions, _snippets, _compile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_printValidationErrors, _validateDefinitions, _compileModuleCode, _compileModules, _modules, _validation, _builtins, _code, _parse, _definitions, _snippets, _compile, _errors, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -107,8 +106,6 @@ func init() {
 		_formats = __lang.Values["formats"]
 		_enum = __lang.Values["enum"]
 		_log = __lang.Values["log"]
-		_onlyErr = __lang.Values["onlyErr"]
-		_passErr = __lang.Values["passErr"]
 		_bind = __lang.Values["bind"]
 		_identity = __lang.Values["identity"]
 		_eq = __lang.Values["eq"]
@@ -134,6 +131,7 @@ func init() {
 		_definitions = mml.Modules.Use("definitions.mml")
 		_snippets = mml.Modules.Use("snippets.mml")
 		_compile = mml.Modules.Use("compile.mml")
+		_errors = mml.Modules.Use("errors.mml")
 		_printValidationErrors = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -195,7 +193,7 @@ func init() {
 				mml.Nop()
 				_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "modulePath = \"%s\"", mml.Ref(_moduleCode, "path"))}).Values))}).Values)
 				_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "moduleHead"))}).Values)
-				_onlyErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _log)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _passErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _stdout)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_compile, "do").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _moduleCode)}).Values))}).Values))}).Values)
+				mml.Ref(_errors, "only").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _log)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_errors, "pass").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _stdout)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_compile, "do").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _moduleCode)}).Values))}).Values))}).Values)
 				_stdout.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_snippets, "moduleFooter"))}).Values)
 				return nil
 			},
@@ -290,8 +288,6 @@ func init() {
 		var _formats interface{}
 		var _enum interface{}
 		var _log interface{}
-		var _onlyErr interface{}
-		var _passErr interface{}
 		var _bind interface{}
 		var _identity interface{}
 		var _eq interface{}
@@ -319,7 +315,7 @@ func init() {
 		var _errors interface{}
 		var _functions interface{}
 		var _match interface{}
-		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is, _logger, _lists, _strings, _ints, _errors, _functions, _match)
+		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is, _logger, _lists, _strings, _ints, _errors, _functions, _match)
 		_lists = mml.Modules.Use("lists.mml")
 		_strings = mml.Modules.Use("strings.mml")
 		_ints = mml.Modules.Use("ints.mml")
@@ -357,10 +353,6 @@ func init() {
 		exports["enum"] = _enum
 		_log = mml.Ref(_logger, "println")
 		exports["log"] = _log
-		_onlyErr = mml.Ref(_errors, "only")
-		exports["onlyErr"] = _onlyErr
-		_passErr = mml.Ref(_errors, "pass")
-		exports["passErr"] = _passErr
 		_bind = mml.Ref(_functions, "bind")
 		exports["bind"] = _bind
 		_identity = mml.Ref(_functions, "identity")
@@ -2319,8 +2311,6 @@ func init() {
 		var _formats interface{}
 		var _enum interface{}
 		var _log interface{}
-		var _onlyErr interface{}
-		var _passErr interface{}
 		var _bind interface{}
 		var _identity interface{}
 		var _eq interface{}
@@ -2341,7 +2331,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _equals, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _builtin, _flattenedStatements, _getModuleName, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _equals, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _builtin, _flattenedStatements, _getModuleName, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -2358,8 +2348,6 @@ func init() {
 		_formats = __lang.Values["formats"]
 		_enum = __lang.Values["enum"]
 		_log = __lang.Values["log"]
-		_onlyErr = __lang.Values["onlyErr"]
-		_passErr = __lang.Values["passErr"]
 		_bind = __lang.Values["bind"]
 		_identity = __lang.Values["identity"]
 		_eq = __lang.Values["eq"]
@@ -2611,8 +2599,6 @@ func init() {
 		var _formats interface{}
 		var _enum interface{}
 		var _log interface{}
-		var _onlyErr interface{}
-		var _passErr interface{}
 		var _bind interface{}
 		var _identity interface{}
 		var _eq interface{}
@@ -2631,7 +2617,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_parseString, _spread, _expressionList, _list, _mutableList, _expressionKey, _entry, _struct, _mutableStruct, _statementList, _function, _effect, _symbolIndex, _expressionIndex, _indexer, _mutableCapture, _valueDefinition, _functionDefinition, _assign, _parseSend, _parseReceive, _parseGo, _parseDefer, _receiveDefinition, _symbol, _ret, _functionFact, _range, _rangeIndex, _indexerNodes, _application, _unary, _binary, _chaining, _ternary, _parseIf, _parseSwitch, _rangeOver, _loop, _valueCapture, _definitions, _mutableDefinitions, _functionCapture, _effectCapture, _effectDefinitions, _assignCaptures, _parseSelect, _parseExport, _useFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModule, _modules, _code, _strings, _errors, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_parseString, _spread, _expressionList, _list, _mutableList, _expressionKey, _entry, _struct, _mutableStruct, _statementList, _function, _effect, _symbolIndex, _expressionIndex, _indexer, _mutableCapture, _valueDefinition, _functionDefinition, _assign, _parseSend, _parseReceive, _parseGo, _parseDefer, _receiveDefinition, _symbol, _ret, _functionFact, _range, _rangeIndex, _indexerNodes, _application, _unary, _binary, _chaining, _ternary, _parseIf, _parseSwitch, _rangeOver, _loop, _valueCapture, _definitions, _mutableDefinitions, _functionCapture, _effectCapture, _effectDefinitions, _assignCaptures, _parseSelect, _parseExport, _useFact, _parseUse, _parse, _parseFile, _findExportNames, _parseModule, _modules, _code, _strings, _errors, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -2648,8 +2634,6 @@ func init() {
 		_formats = __lang.Values["formats"]
 		_enum = __lang.Values["enum"]
 		_log = __lang.Values["log"]
-		_onlyErr = __lang.Values["onlyErr"]
-		_passErr = __lang.Values["passErr"]
 		_bind = __lang.Values["bind"]
 		_identity = __lang.Values["identity"]
 		_eq = __lang.Values["eq"]
@@ -4575,7 +4559,7 @@ func init() {
 					return _in
 				}
 				defer _close.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _in)}).Values)
-				_ast = _passErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _parseAST)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _in.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.UnaryOp(2, 1))}).Values))}).Values)
+				_ast = mml.Ref(_errors, "pass").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _parseAST)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _in.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.UnaryOp(2, 1))}).Values))}).Values)
 				c = _isError.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				if c.(bool) {
 					mml.Nop()
@@ -4650,7 +4634,7 @@ func init() {
 					return _module
 				}
 				mml.SetRef(_context, "stack", &mml.List{Values: append(append([]interface{}{}, mml.Ref(_context, "stack").(*mml.List).Values...), _entryPath)})
-				_usesModules = _passErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _uniq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+				_usesModules = mml.Ref(_errors, "pass").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _uniq.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
 					F: func(a []interface{}) interface{} {
 						var c interface{}
 						mml.Nop(c)
@@ -4661,7 +4645,7 @@ func init() {
 						return mml.BinaryOp(11, mml.Ref(_left, "path"), mml.Ref(_right, "path"))
 					},
 					FixedArgs: 2,
-				})}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _passErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+				})}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_errors, "pass").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
 					F: func(a []interface{}) interface{} {
 						var c interface{}
 						mml.Nop(c)
@@ -4678,7 +4662,7 @@ func init() {
 						}()
 					},
 					FixedArgs: 1,
-				})}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _passErr.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _flat)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_errors, "any").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _parseModule.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context)}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
+				})}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_errors, "pass").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _flat)}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_errors, "any").(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _parseModule.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _context)}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
 					F: func(a []interface{}) interface{} {
 						var c interface{}
 						mml.Nop(c)
@@ -4907,8 +4891,6 @@ func init() {
 		var _formats interface{}
 		var _enum interface{}
 		var _log interface{}
-		var _onlyErr interface{}
-		var _passErr interface{}
 		var _bind interface{}
 		var _identity interface{}
 		var _eq interface{}
@@ -4928,7 +4910,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_newContext, _extend, _importContext, _definedCurrent, _define, _assign, _defineImport, _defined, _capture, _values, _results, _resultValues, _resultErrors, _dropValues, _emptyResults, _mergeResults, _wrapWithReturn, _undefined, _duplicate, _all, _scoped, _allScoped, _fields, _fieldsIfHas, _list, _struct, _rangeExpression, _spread, _unary, _binary, _validateSend, _validateGo, _validateDefer, _definitions, _assignments, _ret, _useList, _expandFunction, _symbol, _expressionKey, _entry, _function, _indexer, _application, _cond, _validateCase, _validateSwitch, _validateReceive, _validateSelect, _rangeOver, _loop, _definition, _assignment, _validateUse, _statements, _do, _validate, _mmlcode, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_newContext, _extend, _importContext, _definedCurrent, _define, _assign, _defineImport, _defined, _capture, _values, _results, _resultValues, _resultErrors, _dropValues, _emptyResults, _mergeResults, _wrapWithReturn, _undefined, _duplicate, _all, _scoped, _allScoped, _fields, _fieldsIfHas, _list, _struct, _rangeExpression, _spread, _unary, _binary, _validateSend, _validateGo, _validateDefer, _definitions, _assignments, _ret, _useList, _expandFunction, _symbol, _expressionKey, _entry, _function, _indexer, _application, _cond, _validateCase, _validateSwitch, _validateReceive, _validateSelect, _rangeOver, _loop, _definition, _assignment, _validateUse, _statements, _do, _validate, _mmlcode, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -4945,8 +4927,6 @@ func init() {
 		_formats = __lang.Values["formats"]
 		_enum = __lang.Values["enum"]
 		_log = __lang.Values["log"]
-		_onlyErr = __lang.Values["onlyErr"]
-		_passErr = __lang.Values["passErr"]
 		_bind = __lang.Values["bind"]
 		_identity = __lang.Values["identity"]
 		_eq = __lang.Values["eq"]
@@ -6207,8 +6187,6 @@ func init() {
 		var _formats interface{}
 		var _enum interface{}
 		var _log interface{}
-		var _onlyErr interface{}
-		var _passErr interface{}
 		var _bind interface{}
 		var _identity interface{}
 		var _eq interface{}
@@ -6228,7 +6206,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_notEmpty, _compileInt, _compileFloat, _compileBool, _getScope, _comment, _compileString, _symbol, _cond, _spreadList, _compileCase, _compileSend, _compileReceive, _compileGo, _definitions, _assigns, _ret, _control, _useList, _list, _entry, _expressionKey, _struct, _paramList, _function, _indexer, _application, _unary, _binary, _ternary, _compileIf, _compileSwitch, _compileSelect, _compileDefer, _rangeOver, _loop, _definition, _assign, _statements, _compileUse, _do, _errors, _code, _strings, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _onlyErr, _passErr, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_notEmpty, _compileInt, _compileFloat, _compileBool, _getScope, _comment, _compileString, _symbol, _cond, _spreadList, _compileCase, _compileSend, _compileReceive, _compileGo, _definitions, _assigns, _ret, _control, _useList, _list, _entry, _expressionKey, _struct, _paramList, _function, _indexer, _application, _unary, _binary, _ternary, _compileIf, _compileSwitch, _compileSelect, _compileDefer, _rangeOver, _loop, _definition, _assign, _statements, _compileUse, _do, _errors, _code, _strings, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _bind, _identity, _eq, _any, _function, _channel, _natural, _emptyList, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang.mml")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -6245,8 +6223,6 @@ func init() {
 		_formats = __lang.Values["formats"]
 		_enum = __lang.Values["enum"]
 		_log = __lang.Values["log"]
-		_onlyErr = __lang.Values["onlyErr"]
-		_passErr = __lang.Values["passErr"]
 		_bind = __lang.Values["bind"]
 		_identity = __lang.Values["identity"]
 		_eq = __lang.Values["eq"]

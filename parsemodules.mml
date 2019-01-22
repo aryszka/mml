@@ -1,0 +1,55 @@
+use (
+	.     "lang"
+	parse "parse2"
+	      "structs"
+	      "errors"
+	      "io"
+	      "paths"
+)
+
+fn collectUsePaths(m)
+	m.body.statements
+	-> filter(is({type: "use-list"}))
+	-> map(structs.get("uses"))
+	-> flat
+	-> map(structs.get("path"))
+
+fn~ parseModule(context, path) {
+	let p paths.normalize(path)
+	if some(bind(eq, p), context.stack) {
+		return error("circular module reference")
+	}
+
+	if has(p, context.all) {
+		return {context..., module: context.all[p]}
+	}
+
+	let m path -> io.readFile -> errors.pass(parse.do)
+	if is(error, m) {
+		return m
+	}
+
+	let c {context..., stack: [context.stack..., p]}
+	let uses m
+	-> collectUsePaths
+	-> map(parseModule(c))
+	-> errors.any
+	-> errors.pass(fold(fn (c, u) {u..., [c.path]: c.module}, {}))
+
+	return {
+		c...
+		module: {
+			m...
+			path: p
+			uses: uses
+		}
+		all: {
+			c.all...
+			[p]: m
+		}
+	}
+}
+
+export fn~ do(path) path
+	-> parseModule({all: {}, stack: []})
+	-> errors.pass(structs.get("module"))

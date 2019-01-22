@@ -35,12 +35,6 @@ export let enum ints.enum
 // log
 export let log logger.println
 
-// errors
-export let (
-	onlyErr errors.only
-	passErr errors.pass
-)
-
 // functions
 export let (
 	bind     functions.bind

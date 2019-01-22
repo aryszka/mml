@@ -1,0 +1,11 @@
+use . "lang"
+
+export fn~ readFile(path) {
+	let f open(path)
+	if is(error, f) {
+		return f
+	}
+
+	defer close(f)
+	return f(-1)
+}

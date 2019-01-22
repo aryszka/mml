@@ -4,6 +4,7 @@ use (
 	  "structs"
 	  "lists"
 	  "code"
+	  "errors"
 )
 
 fn create(type, ast, ...props) structs.merges({type: type, syntax: ast}, props...)
@@ -51,7 +52,7 @@ fn (
 	functionDefinition(ast)     parse(ast.nodes[0])
 	definitions(ast)            create("definition-list", ast, {definitions: map(parse, ast.nodes)})
 	parseUse(ast)               create("use-list", ast, {uses: map(parse, ast.nodes)})
-	module(ast)                 create("module", ast, {statements: statementList(ast)})
+	module(ast)                 create("module", ast, {body: statementList(ast)})
 )
 
 fn (
@@ -469,7 +470,7 @@ fn parsePrimitives(_) _
 export fn do(text)
 	text
 	-> parseAST
-	-> passErr(
+	-> errors.pass(
 		validateast.do
 		parse
 		parsePrimitives

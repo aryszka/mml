@@ -651,7 +651,7 @@ fn parseFile(path) {
 
 	defer close(in)
 
-	let ast in(-1) -> passErr(parseAST)
+	let ast in(-1) -> errors.pass(parseAST)
 	if isError(ast) {
 		return ast
 	}
@@ -695,14 +695,14 @@ fn~ parseModule(context, entryPath) {
 	-> map(fn (u) u.path + ".mml")
 	-> map(parseModule(context))
 	-> errors.any
-	-> passErr(flat)
-	-> passErr(map(fn (m) {
+	-> errors.pass(flat)
+	-> errors.pass(map(fn (m) {
 		type: m.type
 		path: m.path
 		statements: m.statements
 		exportNames: findExportNames(m.statements)
 	}))
-	-> passErr(uniq(fn (left, right) left.path == right.path))
+	-> errors.pass(uniq(fn (left, right) left.path == right.path))
 	context.stack = context.stack[:len(context.stack) - 1]
 
 	if isError(usesModules) {

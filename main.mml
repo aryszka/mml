@@ -5,6 +5,7 @@ use (
 	  "definitions"
 	  "snippets"
 	  "compile"
+	  "errors"
 )
 
 fn printValidationErrors(m, errors) {
@@ -32,7 +33,7 @@ fn validateDefinitions(modules) {
 fn~ compileModuleCode(moduleCode) {
 	stdout(formats("modulePath = \"%s\"", moduleCode.path))
 	stdout(snippets.moduleHead)
-	moduleCode -> compile.do -> passErr(stdout) -> onlyErr(log)
+	moduleCode -> compile.do -> errors.pass(stdout) -> errors.only(log)
 	stdout(snippets.moduleFooter)
 }
 
