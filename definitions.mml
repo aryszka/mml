@@ -133,6 +133,10 @@ fn~ symbol(context, s) {
 	return r
 }
 
+fn~ expressionKey(context, k) {
+	return do(context, k.value)
+}
+
 fn~ entry(context, e) {
 	let kr do(context, has("type", e.key) && e.key.type == "symbol" ? e.key.name : e.key)
 	return mergeResults(
@@ -300,6 +304,8 @@ fn~ do(context, code) {
 		return symbol(context, code)
 	case "list":
 		return list(context, code)
+	case "expression-key":
+		return expressionKey(context, code)
 	case "entry":
 		return entry(context, code)
 	case "struct":
