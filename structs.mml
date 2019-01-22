@@ -1,0 +1,6 @@
+use "lists"
+
+export fn (
+	merge(s)     lists.fold(fn (o, i) {o..., i...}, {}, s)
+	merges(...s) merge(s)
+)

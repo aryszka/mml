@@ -1,0 +1,143 @@
+use (
+	. "lang"
+	  "code"
+)
+
+fn (
+	childCount(n)             {nodes: range(listOf(any), n, n)}
+	minChildCount(n)          {nodes: rangeMin(listOf(any), n)}
+	paramsAreSymbols(n)       is(or(symbol, collectParameter), n.nodes[:len(n.nodes) - 1]...)
+	onlyLastParamIsCollect(n) len(n.nodes) < 3 || is(symbol, n.nodes[:len(n.nodes) - 2]...)
+)
+
+let (
+	oneChild         childCount(1)
+	twoChildren      childCount(2)
+	threeChildren    childCount(3)
+	minOneChild      minChildCount(1)
+	minTwoChildren   minChildCount(2)
+	minThreeChildren minChildCount(3)
+	symbol           {name: "symbol", text: not(or(code.keywords...))}
+	symbolChild      {nodes: [symbol]}
+	collectParameter {name: "collect-parameter", symbolChild...}
+	rangeFrom        {name: "range-from"}
+	rangeTo          {name: "range-to"}
+	symbolAndAny     [symbol, any]
+)
+
+let rangeExpression or(
+	listLength(0)
+	and(listLength(1), or(rangeFrom, rangeTo))
+	and(listLength(2), [rangeFrom, rangeTo])
+)
+
+let symbolOrControl {
+	name: "symbol"
+	text: or(
+		"break"
+		"continue"
+		"return"
+		not(or(code.keywords...))
+	)
+}
+
+let functionParamsAndBody and(
+	minOneChild
+	predicate(paramsAreSymbols)
+	predicate(onlyLastParamIsCollect)
+)
+
+let startsWithExpressionOrCaseOrDefault or(
+	[{name: or("case", "default")}]
+	[any, {name: or("case", "default")}]
+)
+
+let rangeOver {
+	nodes: or(
+		emptyList
+		range(listOf(or(rangeFrom, rangeTo)), 1, 2)
+		and([symbol], range(listOf(any), 1, 2))
+		and(listLength(3), [symbol, rangeFrom, rangeTo])
+	)
+}
+
+let startsWithOrCaseOrDefault or(
+	[{name: or("case", "default")}]
+	[any, {name: or("case", "default")}]
+)
+
+let functionCapture and([symbol], functionParamsAndBody)
+
+let definitionChild and(oneChild, {name: or(
+	"value-definition"
+	"value-definition-group"
+	"mutable-definition-group"
+	"function-definition"
+	"function-definition-group"
+	"effect-definition-group"
+)})
+
+let stringOrNamedStringOrInlin {
+	nodes: or(
+		[type(string)]
+		[symbol, type(string)]
+		[".", type(string)]
+	)
+}
+
+let customValidators {
+	"symbol":             symbolOrControl
+	"spread":             oneChild
+	"expression-key":     oneChild
+	"entry":              twoChildren
+	"function":           functionParamsAndBody
+	"effect":             functionParamsAndBody
+	"range-from":         oneChild
+	"range-to":           oneChild
+	"symbol-index":       symbolChild
+	"range-index":        rangeExpression
+	"indexer":            minTwoChildren
+	"application":        minOneChild
+	"unary":              twoChildren
+	"binary":             minThreeChildren
+	"chaining":           minTwoChildren
+	"ternary":            threeChildren
+	"if":                 minTwoChildren
+	"switch-case":        oneChild
+	"switch":             startsWithExpressionOrCaseOrDefault
+	"range-over":         rangeOver
+	"value-capture":      symbolAndAny
+	"mutable-capture":    symbolAndAny
+	"function-capture":   functionCapture
+	"effect-capture":     functionCapture
+	"assignment":         twoChildren
+	"send":               twoChildren
+	"receive":            oneChild
+	"go":                 oneChild
+	"defer":              oneChild
+	"receive-definition": symbolAndAny
+	"select-case":        oneChild
+	"select":             startsWithOrCaseOrDefault
+	"export":             definitionChild
+	"use-fact":           stringOrNamedStringOrInlin
+}
+
+fn validateCustom(n) !has(n.name, customValidators) || is(customValidators[n.name], n)
+
+fn node(n) is(
+	and(
+		{
+			name:   type(string)
+			nodes:  listOf(predicate(node))
+			text:   type(string)
+			from:   natural
+			to:     natural
+			line:   natural
+			column: natural
+		}
+		predicate(validateCustom)
+	)
+	n
+)
+
+export fn do(n) is(predicate(node), n) ? n : error("invalid AST")
