@@ -72,3 +72,13 @@ possibilities enabled by the right type notation:
 - alternative mathematical type systems, dimensions, currencies
 notes:
 - the current type system used by the compiler doesn't support above features
+simple hack:
+- abort: if code branch is reachable and contains abort, the compiler fails
+
+// --
+
+tooling feature: collect metrics
+
+// --
+
+effect scoping: effect outside of its scope

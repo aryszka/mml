@@ -140,11 +140,6 @@ func Ref(v, k interface{}) interface{} {
 
 		return ret
 	default:
-		// TMP:
-		if err, ok := v.(error); ok {
-			println("ref failed", err.Error())
-		}
-
 		panic(fmt.Sprintf("ref: unsupported code: %v: %v", k, v))
 	}
 }
@@ -594,6 +589,13 @@ func convertAST(goAST *parser.Node) *Struct {
 	ast := make(map[string]interface{})
 	ast["name"] = goAST.Name
 	ast["text"] = goAST.Text()
+
+	// TODO:
+	ast["file"] = ""
+	ast["from"] = 0
+	ast["to"] = 0
+	ast["line"] = 0
+	ast["column"] = 0
 
 	var nodes []interface{}
 	for i := range goAST.Nodes {

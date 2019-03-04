@@ -1,74 +1,16 @@
 use (
 	. "lang"
-	  "code"
-	  "parse"
-	  "definitions"
-	  "snippets"
-	  "compile"
+	  "read"
 	  "errors"
+	  "compile"
 )
 
-fn printValidationErrors(m, errors) {
-	log(formats("%s:", m.path))
-	for e in errors {
-		log(e)
-	}
-}
-
-fn validateDefinitions(modules) {
-	let ~ hasErrors false
-	for m in modules {
-		let errors definitions.validate(m)
-		if len(errors) > 0 {
-			hasErrors = true
-			printValidationErrors(m, errors)
-		}
-	}
-
-	if hasErrors {
-		return error("undefined reference(s) found")
-	}
-}
-
-fn~ compileModuleCode(moduleCode) {
-	stdout(formats("modulePath = \"%s\"", moduleCode.path))
-	stdout(snippets.moduleHead)
-	moduleCode -> compile.do -> errors.pass(stdout) -> errors.only(log)
-	stdout(snippets.moduleFooter)
-}
-
-fn~ compileModules(m) {
-	for mi in m {
-		compileModuleCode(mi)
-	}
-}
-
 if len(args) < 2 {
-    stderr("usage: mml source_file")
-    exit(1)
+	fatal("usage: mml <source without the extension>")
 }
 
-let modules parse.modules(args[1])
-if isError(modules) {
-	panic(modules)
-}
-
-let validation validateDefinitions(modules)
-if isError(validation) {
-	panic(validation)
-}
-
-let builtins code.builtin
--> keys
--> sort(fn (left, right) left < right)
--> map(fn (k) formats("var _%s interface{} = mml.%s", k, code.builtin[k]))
--> join(";\n")
-
-stdout(snippets.head)
-stdout(builtins)
-stdout(snippets.initHead)
-compileModules(modules)
-stdout(snippets.initFooter)
-stdout(snippets.mainHead)
-stdout(args[1])
-stdout(snippets.mainFooter)
+args[1]
+	-> read.do
+	-> errors.pass(compile.toGo)
+	-> errors.pass(stdout)
+	-> errors.only(fatal)

@@ -3,3 +3,5 @@ user space programming
 alternative frontend for the Go and JS environment
 imperative like lisp
 not writing code for the compiler
+the ergonomy of a programming language as a tool
+a progamming language is as good as the programs written in it used by non-programmers

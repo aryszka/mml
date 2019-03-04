@@ -3,7 +3,6 @@ use (
 	"strings"
 	"ints"
 	logger "log"
-	"errors"
 	"functions"
 	"match"
 )
@@ -17,6 +16,9 @@ export let (
 	contains lists.contains
 	sort     lists.sort
 	flat     lists.flat
+	flats    lists.flats
+	concat   lists.concat
+	concats  lists.concats
 	uniq     lists.uniq
 	every    lists.every
 	some     lists.some
@@ -33,7 +35,10 @@ export let (
 export let enum ints.enum
 
 // log
-export let log logger.println
+export let (
+	log   logger.println
+	fatal logger.fatal
+)
 
 // functions
 export let (
@@ -48,7 +53,6 @@ export let (
 	function   match.function
 	channel    match.channel
 	natural    match.natural
-	emptyList  match.emptyList
 	type       match.type
 	listOf     match.listOf
 	structOf   match.structOf

@@ -1,0 +1,62 @@
+use (
+	. "lang"
+	  "parse"
+	  "errors"
+	  "io"
+	  "paths"
+	  "structs"
+	  "codetree"
+)
+
+fn~ readModule(reading, modules, path) {
+	if has(path, reading) {
+		return error("circular module reference")
+	}
+
+	if has(path, modules) {
+		return modules
+	}
+
+	let moduleCode = path -> errors.pass(
+		bind(formats, "%s.mml")
+		io.readFile
+		parse.do
+	)
+	check moduleCode
+
+	let usePaths = moduleCode
+		-> codetree.filter(is({type: "use"}))
+		-> map(structs.get("path"))
+		-> map(structs.get("value"))
+
+	let readingUses = {reading..., [path]: true}
+	let nextModules = fold(
+		fn~ (path, modules) isError(modules) ?
+			modules :
+			readModule(readingUses, modules, path)
+		modules
+		usePaths
+	)
+	check nextModules
+
+	fn setUsedModule(code)
+		is({type: "use"}, code) ?
+		{code..., module: nextModules[code.path.value]} :
+		code
+
+	let withUsedModules = codetree.edit(setUsedModule, moduleCode)
+	return {
+		nextModules...
+		[path]: {
+			withUsedModules...
+			path: path
+		}
+	}
+}
+
+export fn~ do(path) path -> errors.pass(
+	paths.normalize
+	paths.trimExtension
+	readModule({}, {})
+	structs.get(path)
+)

@@ -4,42 +4,52 @@ use (
 )
 
 fn (
+	minTextLength(n)          {text: rangeMin(string, n)}
 	childCount(n)             {nodes: range(listOf(any), n, n)}
 	minChildCount(n)          {nodes: rangeMin(listOf(any), n)}
-	paramsAreSymbols(n)       is(or(symbol, collectParameter), n.nodes[:len(n.nodes) - 1]...)
-	onlyLastParamIsCollect(n) len(n.nodes) < 3 || is(symbol, n.nodes[:len(n.nodes) - 2]...)
+	paramsAreSymbols(n)       is(listOf(or(symbol, collectParameter)), n.nodes[:len(n.nodes) - 1])
+	onlyLastParamIsCollect(n) len(n.nodes) < 2 || is(listOf(symbol), n.nodes[:len(n.nodes) - 2])
 )
 
 let (
+	textLengthMin2   minTextLength(2)
 	oneChild         childCount(1)
 	twoChildren      childCount(2)
 	threeChildren    childCount(3)
 	minOneChild      minChildCount(1)
 	minTwoChildren   minChildCount(2)
 	minThreeChildren minChildCount(3)
-	symbol           {name: "symbol", text: not(or(code.keywords...))}
+	symbol           {name: "symbol"}
+	stringNode       {name: "string"}
+	useInline        {name: "use-inline"}
 	symbolChild      {nodes: [symbol]}
 	collectParameter {name: "collect-parameter", symbolChild...}
 	rangeFrom        {name: "range-from"}
 	rangeTo          {name: "range-to"}
-	symbolAndAny     [symbol, any]
+	symbolAndAny     {nodes: [symbol, any]}
+	comment          predicate(is({name: or("line-comment", "block-comment")}))
 )
 
-let rangeExpression or(
-	listLength(0)
-	and(listLength(1), or(rangeFrom, rangeTo))
-	and(listLength(2), [rangeFrom, rangeTo])
-)
-
-let symbolOrControl {
-	name: "symbol"
-	text: or(
-		"break"
-		"continue"
-		"return"
-		not(or(code.keywords...))
+fn validateComments(node) is(
+	and(
+		or(
+			and({name: "block-comment"}, oneChild)
+			not({name: "block-comment"})
+		)
+		{nodes: listOf(predicate(validateComments))}
 	)
-}
+	node
+)
+
+fn dropComments(nodes) nodes
+	-> filter(is(not(comment)))
+	-> map(fn (n) {n..., nodes: dropComments(n.nodes)})
+
+let rangeExpression {nodes: or(
+	listLength(0)
+	and(listLength(1), [or(rangeFrom, rangeTo)])
+	and(listLength(2), [rangeFrom, rangeTo])
+)}
 
 let functionParamsAndBody and(
 	minOneChild
@@ -47,49 +57,49 @@ let functionParamsAndBody and(
 	predicate(onlyLastParamIsCollect)
 )
 
-let startsWithExpressionOrCaseOrDefault or(
-	[{name: or("case", "default")}]
-	[any, {name: or("case", "default")}]
-)
-
 let rangeOver {
 	nodes: or(
-		emptyList
-		range(listOf(or(rangeFrom, rangeTo)), 1, 2)
-		and([symbol], range(listOf(any), 1, 2))
+		listLength(0)
+		and(listLength(1), [or(rangeFrom, rangeTo)])
+		and(listLength(2), [rangeFrom, rangeTo])
+		and(listLength(1), [symbol])
+		and(listLength(2), [symbol, any])
 		and(listLength(3), [symbol, rangeFrom, rangeTo])
 	)
 }
 
-let startsWithOrCaseOrDefault or(
-	[{name: or("case", "default")}]
-	[any, {name: or("case", "default")}]
+let startsWithCaseOrDefault or(
+	[{name: or("case-line", "default-line")}]
+	[any, {name: or("case-line", "default-line")}]
 )
 
-let functionCapture and([symbol], functionParamsAndBody)
+let functionCapture and({nodes: [symbol]}, functionParamsAndBody)
 
-let definitionChild and(oneChild, {name: or(
+let definitionChild and(oneChild, {nodes: [{name: or(
 	"value-definition"
 	"value-definition-group"
 	"mutable-definition-group"
 	"function-definition"
 	"function-definition-group"
 	"effect-definition-group"
-)})
+)}]})
 
-let stringOrNamedStringOrInlin {
+let stringOrNamedStringOrInline {
 	nodes: or(
-		[type(string)]
-		[symbol, type(string)]
-		[".", type(string)]
+		[stringNode]
+		[symbol, stringNode]
+		[useInline, stringNode]
 	)
 }
 
 let customValidators {
-	"symbol":             symbolOrControl
+	"block-comment":      oneChild
+	"string":             textLengthMin2
+	"symbol":             symbol
 	"spread":             oneChild
 	"expression-key":     oneChild
 	"entry":              twoChildren
+	"check-ret":          oneChild
 	"function":           functionParamsAndBody
 	"effect":             functionParamsAndBody
 	"range-from":         oneChild
@@ -102,27 +112,27 @@ let customValidators {
 	"binary":             minThreeChildren
 	"chaining":           minTwoChildren
 	"ternary":            threeChildren
-	"if":                 minTwoChildren
-	"switch-case":        oneChild
-	"switch":             startsWithExpressionOrCaseOrDefault
+	"if-statement":       minTwoChildren
+	"case-block":         minOneChild
+	"select-case-block":  minOneChild
 	"range-over":         rangeOver
 	"value-capture":      symbolAndAny
 	"mutable-capture":    symbolAndAny
 	"function-capture":   functionCapture
 	"effect-capture":     functionCapture
-	"assignment":         twoChildren
-	"send":               twoChildren
-	"receive":            oneChild
-	"go":                 oneChild
-	"defer":              oneChild
+	"assign":             twoChildren
+	"send-statement":     twoChildren
+	"receive-statement":  oneChild
+	"go-statement":       oneChild
+	"defer-statement":    oneChild
 	"receive-definition": symbolAndAny
-	"select-case":        oneChild
-	"select":             startsWithOrCaseOrDefault
-	"export":             definitionChild
-	"use-fact":           stringOrNamedStringOrInlin
+	"export-statement":   definitionChild
+	"use-fact":           stringOrNamedStringOrInline
 }
 
-fn validateCustom(n) !has(n.name, customValidators) || is(customValidators[n.name], n)
+fn validateCustom(n)
+	!has(n.name, customValidators) ||
+	is(customValidators[n.name], n)
 
 fn node(n) is(
 	and(
@@ -130,6 +140,7 @@ fn node(n) is(
 			name:   type(string)
 			nodes:  listOf(predicate(node))
 			text:   type(string)
+			file:   type(string)
 			from:   natural
 			to:     natural
 			line:   natural
@@ -140,4 +151,7 @@ fn node(n) is(
 	n
 )
 
-export fn do(n) is(predicate(node), n) ? n : error("invalid AST")
+export fn do(n) {
+	let nc {n..., nodes: dropComments(n.nodes)}
+	return is(predicate(node), nc) ? n : error("invalid AST")
+}

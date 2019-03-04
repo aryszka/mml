@@ -8,4 +8,7 @@ export let (
 	pass functions.bind(functions.only, functions.not(isError))
 )
 
-export fn any(l) lists.fold(fn (c, r) isError(r) ? r : isError(c) ? c : [r..., c], [], l)
+export fn any(l) {
+	let first lists.first(isError, l)
+	return len(first) == 0 ? l : first[0]
+}

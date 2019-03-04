@@ -1,6 +1,12 @@
 use "lists"
 
 export fn (
-	merge(s)     lists.fold(fn (o, i) {o..., i...}, {}, s)
-	merges(...s) merge(s)
+	merge(s)           lists.fold(fn (i, s) {s..., i...}, {}, s)
+	merges(...s)       merge(s)
+	get(key, s)        s[key]
+	set(key, value, s) {s..., [key]: value}
+	index(key, s)      lists.fold(fn (i, s) {s..., [i[key]]: i}, {}, s)
+	values(s)          lists.map(fn (key) s[key], keys(s))
+	filterByKeys(k, s) s -> keys -> lists.intersect(k) -> lists.fold(fn (ki, f) {f..., [ki]: s[ki]}, {})
+	map(f, s)          s -> keys -> lists.map(fn (key) {key: f(s[key])}) -> merge
 )

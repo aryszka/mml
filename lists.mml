@@ -1,14 +1,18 @@
 export fn (
-	fold(f, i, l)  len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
-	foldr(f, i, l) len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
-	map(m, l)      fold(fn (c, r) [r..., m(c)], [], l)
-	filter(p, l)   fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
-	first(p, l)    len(l) == 0 ? [] : p(l[0]) ? l : first(p, l[1:])
-	contains(i, l) len(first(fn (ii) ii == i, l)) > 0
-	flat(l)        fold(fn (c, result) [result..., c...], [], l)
-	uniq(eq, l)    fold(fn (c, u) len(filter(fn (i) eq(i, c), u)) == 0 ? [u..., c] : u, [], l)
-	every(p, l)    fold(fn (i, r) r && p(i), true, l)
-	some(p, l)     fold(fn (i, r) r || p(i), false, l)
+	fold(f, i, l)     len(l) == 0 ? i : fold(f, f(l[0], i), l[1:])
+	foldr(f, i, l)    len(l) == 0 ? i : f(l[0], foldr(f, i, l[1:]))
+	map(m, l)         fold(fn (c, r) [r..., m(c)], [], l)
+	filter(p, l)      fold(fn (c, r) p(c) ? [r..., c] : r, [], l)
+	first(p, l)       len(l) == 0 ? [] : p(l[0]) ? l : first(p, l[1:])
+	contains(i, l)    len(first(fn (ii) ii == i, l)) > 0
+	concat(l)         flat(l)
+	concats(...l)     concat(l)
+	flat(l)           flatDepth(1, l)
+	flats(...l)       flat(l)
+	uniq(eq, l)       fold(fn (c, u) len(filter(fn (i) eq(i, c), u)) == 0 ? [u..., c] : u, [], l)
+	every(p, l)       fold(fn (i, r) r && p(i), true, l)
+	some(p, l)        fold(fn (i, r) r || p(i), false, l)
+	intersect(l0, l1) filter(fn (i0) some(fn (i1) i0 == i1, l1), l0)
 )
 
 export fn sort(less, l) len(l) == 0 ? [] : [
@@ -24,3 +28,20 @@ export fn group(n, l) fold(
 	[]
 	l
 )
+
+export fn indexes(l) fold(fn (_, i) [i..., len(i)], [], l)
+
+export fn flatDepth(d, l) {
+	if d == 0 {
+		return l
+	}
+
+	return fold(fn (i, r) {
+		if !isList(i) {
+			return [r..., i]
+		}
+
+		let fi flatDepth(d - 1, i)
+		return [r..., fi...]
+	}, [], l)
+}

@@ -5,7 +5,7 @@ export fn (
 	joins(j, ...s)          join(j, s)
 	joinTwo(j, left, right) joins(j, left, right)
 	formats(f, ...a)        format(f, a)
-	formatOne(f, a)         formats(f, a)
+	formatOne(f, a)         formats(f, a) // TODO: drop
 )
 
 export fn escape(s) {

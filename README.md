@@ -20,6 +20,6 @@ Test:
 ```
 mkdir -p hello
 echo 'stdout("Hello, world!\n")' > hello/hello.mml
-mml hello/hello.mml > hello/hello.go
+mml hello/hello > hello/hello.go
 go run hello/hello.go
 ```

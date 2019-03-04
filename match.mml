@@ -1,6 +1,6 @@
 use (
 	. "lists"
-	. "functions"
+	  "functions"
 	  "ints"
 	  "floats"
 )
@@ -95,11 +95,11 @@ let (
 export fn (
 	or(...matches)   {unionType..., matches: map(type, matches)}
 	and(...matches)  {intersectType..., matches: map(type, matches)}
-	predicate(p)     {predicateType..., check: p}
+	predicate(p)     {predicateType..., predicate: p}
 	predicates(...p) and(map(predicate, p)...)
 )
 
-fn isSimpleType(t) some(bind(eq, t), [
+fn isSimpleType(t) some(functions.bind(functions.eq, t), [
 	integer
 	floating
 	stringType
@@ -122,9 +122,26 @@ fn complexTypeEq(type, value)
 	type.type == value.type
 
 let primitives {
-	int:    {checkValue: isInt, type: integer, rangeType: intRangeType, rangeValue: identity}
-	float:  {checkValue: isFloat, type: floating, rangeType: floatRangeType, rangeValue: identity}
-	string: {checkValue: isString, type: stringType, rangeType: stringRangeType, rangeValue: len}
+	int: {
+		checkValue: isInt
+		type:       integer
+		rangeType:  intRangeType
+		rangeValue: functions.identity
+	}
+
+	float: {
+		checkValue: isFloat
+		type:       floating
+		rangeType:  floatRangeType
+		rangeValue: functions.identity
+	}
+
+	string: {
+		checkValue: isString
+		type:       stringType
+		rangeType:  stringRangeType
+		rangeValue: len
+	}
 }
 
 fn matchPrimitive(def, match, value) {
@@ -195,7 +212,7 @@ fn matchOne(match, value) {
 	case match == any:
 		return true
 	case complexTypeEq(predicateType, match):
-		return match.check(value)
+		return match.predicate(value)
 	case isType(value) && value != function:
 		return false
 	case match == value:
@@ -233,9 +250,6 @@ export fn (
 	not(m)               predicate(fn (v) !is(m, v))
 )
 
-export let (
-	natural   rangeMin(int, 0)
-	emptyList range(listOf(any), 0, 0)
-)
+export let natural rangeMin(int, 0)
 
-export fn is(match, ...values) len(values) == 0 ? bind(is, match) : every(matchOne(match), values)
+export fn is(match, ...values) len(values) == 0 ? functions.bind(is, match) : every(matchOne(match), values)

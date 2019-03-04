@@ -3,10 +3,10 @@ use "lists"
 export fn (
 	identity(x)        x
 	eq(...x)           len(x) < 2 || x[0] == x[1] && eq(x[1:]...)
-	not(p) fn (a)      !p(a)
+	not(p)             fn (a) !p(a)
 	apply(f, a)        f(a...)
 	call(f, ...a)      apply(f, a)
-	chain(f) fn (a)    lists.fold(call, a, f)
+	chain(f)           fn (a) lists.fold(call, a, f)
 	chains(...f)       chain(f)
 	bindAt(i, f, ...a) fn (...b) f(b[:i]..., a..., b[i:]...)
 	bind(f, ...a)      bindAt(0, f, a...)

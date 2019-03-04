@@ -1,0 +1,230 @@
+/*
+module codetree provides functions based on depth-first walk-in of a code
+tree.
+
+Example:
+
+```
+fn removeUnused(code) {
+	fn (
+		setUnused(code)        {code..., unused: true}
+		setUnusedIfNoRef(code) isReferenced(code) ? code : setUnused(code)
+	)
+
+	let unusedAndNotExported is(and({unused: true}, not({exported: true})))
+	return code
+		-> codetree.edit(setUnusedIfNoRef)
+		-> codetree.trim(unusedAndNotExported)
+}
+```
+
+The above function will mark each node "unused" if it is not referenced,
+decided by the `isReferenced` function that we assume to be implemented,
+and remove it from the code tree if it is not an exported definition, while
+keeping the rest of the code, including those nodes that are marked unused
+but exported.
+*/
+
+use (
+	  "structs"
+	  "lists"
+	  "functions"
+	  "errors"
+)
+
+fn removeToken() removeToken
+
+fn callTransform(transform, code, fields, listFields) {
+	fn exists(f) has(f, code)
+
+	fn fieldResults(keys, values) {
+		let r ~{}
+		for i in :len(keys) {
+			if values[i] == removeToken {
+				continue
+			}
+
+			r[keys[i]] = values[i]
+		}
+
+		return {r...}
+	}
+
+	let (
+		existingFields     lists.filter(exists, fields)
+		existingListFields lists.filter(exists, listFields)
+	)
+
+	let fieldValues lists.map(fn (f) do(transform, code[f]), existingFields)
+	check fieldValues
+
+	let notToRemove functions.not(functions.bind(functions.eq, removeToken))
+	let listFieldValues lists.map(
+		fn (f) code[f]
+			-> lists.map(do(transform))
+			-> lists.filter(notToRemove)
+			-> errors.any
+		existingListFields
+	)
+	check errors.any(listFieldValues)
+
+	let results {
+		fieldResults(existingFields, fieldValues)...
+		fieldResults(existingListFields, listFieldValues)...
+	}
+
+	return transform(code, results)
+}
+
+fn do(transform, code) {
+	let withFieldsAndLists callTransform(transform, code)
+	fn (
+		withFields(...keys)     withFieldsAndLists(keys, [])
+		withListFields(...keys) withFieldsAndLists([], keys)
+		leaf()                  withFieldsAndLists([], [])
+	)
+
+	switch code.type {
+	case "spread":
+		return withFields("value")
+	case "list":
+		return withListFields("values")
+	case "mutable-list":
+		return withListFields("values")
+	case "expression-key":
+		return withFields("value")
+	case "entry":
+		return withFields("key", "value")
+	case "struct":
+		return withListFields("entries")
+	case "mutable-struct":
+		return withListFields("entries")
+	case "ret":
+		return withFields("value")
+	case "check-ret":
+		return withFields("value")
+	case "statement-list":
+		return withListFields("statements")
+	case "function":
+		return withFields("body")
+	case "range":
+		return withFields("from", "to")
+	case "indexer":
+		return withFields("expression", "index")
+	case "application":
+		return withFieldsAndLists(["function"], ["args"])
+	case "unary":
+		return withFields("arg")
+	case "binary":
+		return withFields("left", "right")
+	case "cond":
+		return withFields("condition", "consequent", "alternative")
+	case "switch-case":
+		return withFields("expression", "body")
+	case "switch-statement":
+		return withFieldsAndLists(["expression", "defaultStatements"], ["cases"])
+	case "send-statement":
+		return withFields("channel", "value")
+	case "receive-expression":
+		return withFields("channel")
+	case "definition":
+		return withFields("docs", "expression")
+	case "select-case":
+		return withFields("expression", "body")
+	case "select-statement":
+		return withFieldsAndLists(["defaultStatements"], ["cases"])
+	case "go-statement":
+		return withFields("application")
+	case "defer-statement":
+		return withFields("application")
+	case "range-over":
+		return withFields("expression")
+	case "loop":
+		return withFields("expression", "body")
+	case "assign":
+		return withFields("capture", "value")
+	case "definition-group":
+		return withListFields("definitions")
+	case "use":
+		return withFields("path")
+	case "use-list":
+		return withListFields("uses")
+	case "module":
+		return withFields("body")
+	default:
+		return leaf()
+	}
+}
+
+// edit executes a depth-first walk-in of a code tree, passes each node
+// to the transform function as an argument and replaces the current
+// node with the result.
+//
+// Example:
+//
+// ```
+// edit(functions.identity, code)
+// ```
+//
+// The above call will return a code tree that is equivalent to the
+// input.
+//
+// The transform argument must be a function expecting a node in the
+// code tree and returning anything. If it returns an error, then the
+// walk-in is aborted.
+//
+export fn edit(transform, code) do(
+	fn (code, fieldResults) transform({code..., fieldResults...})
+	code
+)
+
+// filter executes a depth-first walk-in of a code tree and returns a
+// list of all the nodes that match the predicate argument.
+//
+// Example:
+//
+// ```
+// filter(is({type: "function"}), code)
+// ```
+//
+// The above call will return a list of all the function literals in
+// the input code.
+//
+// The predicate argument must be a function expecting a node in the
+// code tree and returning true or false.
+//
+export fn filter(predicate, code) do(
+	fn (code, fieldResults) predicate(code) ?
+		[lists.flatDepth(-1, structs.values(fieldResults))..., code] :
+		lists.flatDepth(-1, structs.values(fieldResults))
+	code
+)
+
+// trim executes a depth-first walk-in of a code tree and returns a
+// new code tree with all the nodes removed that match the predicate
+// argument.
+//
+// Example:
+//
+// ```
+// trim(is({type: "use"}), code)
+// ```
+//
+// The above call will return a code tree equivalent to the input,
+// except that it won't contain any imports ("use").
+//
+// The predicate argument must be a function expecting a node in the
+// code tree and returning true or false.
+//
+// trim returns an error if the root node needs to be removed.
+//
+export fn trim(predicate, code) {
+	let result edit(
+		fn (code) predicate(code) ? removeToken : code
+		code
+	)
+
+	return result == removeToken ?
+		error("root node removed") :
+		result
+}

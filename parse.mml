@@ -1,386 +1,320 @@
 use (
 	. "lang"
+	  "validateast"
+	  "structs"
+	  "lists"
 	  "code"
-	  "strings"
 	  "errors"
+	  "codetree"
+	  "strings"
+	  "functions"
+)
+
+fn assortComments(ast) {
+	let isComment is({name: or("line-comment", "block-comment")})
+	let astStripped {
+		ast...
+		nodes: filter(functions.not(isComment), ast.nodes)
+	}
+
+	let comments {
+		nodes: filter(isComment, ast.nodes)
+		indexes: ast.nodes
+			-> lists.indexes
+			-> filter(fn (i) isComment(ast.nodes[i]))
+	}
+
+	return {ast: astStripped, comments: comments}
+}
+
+fn create(type, ast, ...props)
+	structs.merges({type: type, ast: ast}, props...)
+
+fn (
+	commentLine(ast)         create("comment-line", ast, {text: ast.text})
+	lineComment(ast)         create("line-comment", ast, {lines: map(parse, ast.nodes)})
+	blockCommentContent(ast) create("block-comment-content", ast, {text: ast.text})
+	blockComment(ast)        create("block-comment", ast, {content: parse(ast.nodes[0])})
+)
+
+let (
+	intCode    create("int")
+	floatCode  create("float")
+	stringCode create("string")
+	boolCode   create("bool")
 )
 
 fn (
-	parseString(ast)           strings.unescape(ast.text[1:len(ast.text) - 1])
-	spread(ast)                {type: "spread", value: parse(ast.nodes[0])}
-	expressionList(nodes) map(parse, nodes)
-	list(ast)                  {type: "list", values: expressionList(ast.nodes), mutable: false}
-	mutableList(ast)           {list(ast)..., mutable: true}
-	expressionKey(ast)         {type: "expression-key", value: parse(ast.nodes[0])}
-	entry(ast)                 {type: "entry", key: parse(ast.nodes[0]), value: parse(ast.nodes[1])}
-	struct(ast)                {type: "struct", entries: map(parse, ast.nodes), mutable: false}
-	mutableStruct(ast)         {struct(ast)..., mutable: true}
-	statementList(ast)         {type: "statement-list", statements: map(parse, ast.nodes)}
-	function(ast)              functionFact(ast.nodes)
-	effect(ast)                {function(ast)..., effect: true}
-	symbolIndex(ast)           parse(ast.nodes[0]).name
-	expressionIndex(ast)       parse(ast.nodes[0])
-	indexer(ast)               indexerNodes(ast.nodes)
-	mutableCapture(ast)        {valueCapture(ast)..., mutable: true}
-	valueDefinition(ast)       parse(ast.nodes[0])
-	functionDefinition(ast)    parse(ast.nodes[0])
-	assign(ast)                {type: "assign-list", assignments: assignCaptures(ast.nodes)}
-	parseSend(ast)             {type: "send", channel: parse(ast.nodes[0]), value: parse(ast.nodes[1])}
-	parseReceive(ast)          {type: "receive", channel: parse(ast.nodes[0])}
-	parseGo(ast)               {type: "go", application: parse(ast.nodes[0])}
-	parseDefer(ast)            {type: "defer", application: parse(ast.nodes[0])}
-	receiveDefinition(ast)     valueCapture(ast)
+	symbol(ast)        create("symbol", ast, {name: ast.text})
+	spread(ast)        create("spread", ast, {value: parse(ast.nodes[0])})
+	list(ast)          create("list", ast, {values: map(parse, ast.nodes), mutable: false})
+	mutableList(ast)   {list(ast)..., mutable: true}
+	expressionKey(ast) create("expression-key", ast, {value: parse(ast.nodes[0])})
 )
 
-fn symbol(ast) {
-	switch ast.text {
-	case "break":
-		return {type: "control-statement", control: code.breakControl}
-	case "continue":
-		return {type: "control-statement", control: code.continueControl}
-	case "return":
-		return {type: "ret"}
-	// TODO: all the keywords
-	default:
-		return {type: "symbol", name: ast.text}
-	}
-}
+fn (
+	entry(ast)         create("entry", ast, {key: parse(ast.nodes[0]), value: parse(ast.nodes[1])})
+	struct(ast)        create("struct", ast, {entries: map(parse, ast.nodes), mutable: false})
+	mutableStruct(ast) {struct(ast)..., mutable: true}
+	ret(ast)           create("ret", ast, len(ast.nodes) == 0 ? {} : {value: parse(ast.nodes[0])})
+	checkRet(ast)      create("check-ret", ast, {value: parse(ast.nodes[0])})
+)
 
-fn ret(ast) len(ast.nodes) == 0 ? {type: "ret"} : {type: "ret", value: parse(ast.nodes[0])}
+fn (
+	statementListOf(ast, nodes) create("statement-list", ast, {statements: map(parse, nodes)})
+	statementList(ast)          statementListOf(ast, ast.nodes)
+	collectParameter(ast)       parse(ast.nodes[0])
+)
 
-fn functionFact(nodes) {
+fn functionFact(ast, offset) {
 	let (
-		last len(nodes) - 1
-		params nodes[:last]
-		lastParam len(params) - 1
-		hasCollectParam len(params) > 0 && params[lastParam].name == "collect-parameter"
-		fixedParams hasCollectParam ? params[:lastParam] : params
+		nodes           ast.nodes[offset:]
+		last            len(nodes) - 1
+		params          nodes[:last]
+		lastParam       len(params) - 1
+		hasCollectParam lastParam >= 0 && params[lastParam].name == "collect-parameter"
+		fixedParams     hasCollectParam ? params[:lastParam] : params
 	)
 
-	return {
-		type:         "function"
-		params:       fixedParams -> map(parse) -> map(fn (p) p.name)
-		collectParam: hasCollectParam ? parse(params[lastParam].nodes[0]).name : ""
-		statement:    parse(nodes[last])
+	return create("function", ast, {
+		params:       fixedParams -> map(parse) -> map(structs.get("name"))
+		collectParam: hasCollectParam ? parse(params[lastParam]).name : ""
+		body:         parse(nodes[last])
 		effect:       false
-	}
+	})
 }
 
-fn range(ast) {
-	let v = parse(ast.nodes[0])
-	return ast.name == "range-from" ? {
-		type: "range-expression"
-		from: v
-	} : {
-		type: "range-expression"
-		to: v
-	}
+fn (
+	functionLiteral(ast) functionFact(ast, 0)
+	effect(ast)          {functionFact(ast, 0)..., effect: true}
+)
+
+fn rangeExpression(ast) create(
+	"range"
+	ast
+	{[ast.name == "range-from" ? "from" : "to"]: parse(ast.nodes[0])}
+)
+
+fn (
+	symbolIndex(ast)     create("symbol-index", ast, {symbol: parse(ast.nodes[0])})
+	expressionIndex(ast) parse(ast.nodes[0])
+	rangeIndex(ast)      create("range", ast, map(parse, ast.nodes)...)
+)
+
+fn indexer(ast) {
+	fn indexerNodes(nodes) create("indexer", ast, {
+		expression: len(nodes) == 2 ?
+			parse(nodes[0]) :
+			indexerNodes(nodes[:len(nodes) - 1])
+		index: parse(nodes[len(nodes) - 1])
+	})
+
+	return indexerNodes(ast.nodes)
 }
 
-fn rangeIndex(ast) {
-	if len(ast.nodes) == 0 {
-		return {type: "range-expression"}
-	}
-
-	let r parse(ast.nodes[0])
-	if len(ast.nodes) == 1 {
-		return r
-	}
-
-	return {r..., to: parse(ast.nodes[1]).to}
-}
-
-fn indexerNodes(n) {
-	type:       "indexer"
-	expression: len(n) == 2 ? parse(n[0]) : indexerNodes(n[:len(n) - 1])
-	index:      parse(n[len(n) - 1])
-}
-
-fn application(ast) {
-	type:     "application"
+fn application(ast) create("application", ast, {
 	function: parse(ast.nodes[0])
-	args:     expressionList(ast.nodes[1:])
-}
+	args:     map(parse, ast.nodes[1:])
+})
 
 fn unary(ast) {
-	let ~ op code.binaryNot
-	switch ast.nodes[0].name {
-	case "plus":
-		op = code.plus
-	case "minus":
-		op = code.minus
-	case "logical-not":
-		op = code.logicalNot
+	let ops {
+		"binary-not":  code.binaryNot
+		"plus":        code.plus
+		"minus":       code.minus
+		"logical-not": code.logicalNot
 	}
 
-	return {
-		type: "unary"
-		op:   op
-		arg:  parse(ast.nodes[1])
-	}
+	return create("unary", ast, {
+		op:  ops[ast.nodes[0].name]
+		arg: parse(ast.nodes[1])
+	})
 }
 
 fn binary(ast) {
-	let ~ op code.binaryAnd
-	switch ast.nodes[len(ast.nodes)-2].name {
-	case "xor":
-		op = code.xor
-	case "and-not":
-		op = code.andNot
-	case "lshift":
-		op = code.lshift
-	case "rshift":
-		op = code.rshift
-	case "mul":
-		op = code.mul
-	case "div":
-		op = code.div
-	case "mod":
-		op = code.mod
-	case "add":
-		op = code.add
-	case "sub":
-		op = code.sub
-	case "eq":
-		op = code.equals
-	case "not-eq":
-		op = code.notEq
-	case "less":
-		op = code.less
-	case "less-or-eq":
-		op = code.lessOrEq
-	case "greater":
-		op = code.greater
-	case "greater-or-eq":
-		op = code.greaterOrEq
-	case "logical-and":
-		op = code.logicalAnd
-	case "logical-or":
-		op = code.logicalOr
+	let ops {
+		"binary-and":    code.binaryAnd
+		"xor":           code.xor
+		"and-not":       code.andNot
+		"lshift":        code.lshift
+		"rshift":        code.rshift
+		"mul":           code.mul
+		"div":           code.div
+		"mod":           code.mod
+		"add":           code.add
+		"sub":           code.sub
+		"eq":            code.equals
+		"not-eq":        code.notEq
+		"less":          code.less
+		"less-or-eq":    code.lessOrEq
+		"greater":       code.greater
+		"greater-or-eq": code.greaterOrEq
+		"logical-and":   code.logicalAnd
+		"logical-or":    code.logicalOr
 	}
 
-	return {
-		type:  "binary"
-		op:    op
-		left:  parse(len(ast.nodes) > 3 ?
-			{
-				name:  ast.name
-				nodes: ast.nodes[:len(ast.nodes) - 2]
-			} :
-			ast.nodes[0])
+	return create("binary", ast, {
+		op: ops[ast.nodes[len(ast.nodes) - 2].name]
+		left: parse(
+			len(ast.nodes) > 3 ?
+			{ast..., nodes: ast.nodes[:len(ast.nodes) - 2]} :
+			ast.nodes[0]
+		)
 		right: parse(ast.nodes[len(ast.nodes) - 1])
-	}
+	})
 }
 
-fn chaining(ast) {
-	let (
-		~ a parse(ast.nodes[0])
-		~ n ast.nodes[1:]
-	)
+fn chaining(ast)
+	parse(fold(
+		fn (f, a) {ast..., name: "application", nodes: [f, a]}
+		ast.nodes[0]
+		ast.nodes[1:]
+	))
 
-	for {
-		if len(n) == 0 {
-			return a
-		}
-
-		a = {
-			type:     "application"
-			function: parse(n[0])
-			args:     [a]
-		}
-
-		n = n[1:]
-	}
-}
-
-fn ternary(ast) {
-	type:        "cond"
+fn ternary(ast) create("cond", ast, {
 	condition:   parse(ast.nodes[0])
 	consequent:  parse(ast.nodes[1])
 	alternative: parse(ast.nodes[2])
 	ternary:     true
+})
+
+fn ifStatement(ast) {
+	fn constructCond(cond, cons, alt) alt == false ?
+		create("cond", ast, {condition: cond, consequent: cons, ternary: false}) :
+		{constructCond(cond, cons, false)..., alternative: alt}
+
+	return ast.nodes
+		-> map(parse)
+		-> lists.group(2)
+		-> foldr(fn (g, i) len(g) == 1 ? g[0] : constructCond(g..., i), false)
 }
 
-fn parseIf(ast) {
-	let cond {
-		type:       "cond"
-		ternary:    false
-		condition:  parse(ast.nodes[0])
-		consequent: parse(ast.nodes[1])
-	}
+fn parseCase(name, ast, c) create(name, ast, {
+	expression: parse(c.nodes[0])
+	body:       statementListOf(ast, c.nodes[1:])
+})
 
-	if len(ast.nodes) == 2 {
-		return cond
-	}
+fn defaultStatements(ast) ast.nodes
+	-> filter(is({name: "default-block"}))
+	-> map(structs.get("nodes"))
+	-> flat
+	-> statementListOf(ast)
 
-	let alternative len(ast.nodes) == 3 ?
-		parse(ast.nodes[2]) :
-		parse({ast..., nodes: ast.nodes[2:]})
+fn switchStatement(ast) {
+	let hasExpression =
+		len(ast.nodes) > 0 &&
+		!is({name: or("case-block", "default-block")}, ast.nodes[0])
 
-	return {
-		cond...
-		alternative: alternative
-	}
-}
-
-fn parseSwitch(ast) {
 	let (
-		hasExpression ast.nodes[0].name != "case" && ast.nodes[0].name != "default"
-		expression    hasExpression ? ast.nodes[0] : {}
-		nodes         hasExpression ? ast.nodes[1:] : ast.nodes
+		expression = hasExpression ? {expression: parse(ast.nodes[0])} : {}
+		defaults   = defaultStatements(ast)
 	)
 
-	fn groupLines() {
-		let ~ (
-			isDefault false
-			current   []
-			cases     []
-			defaults  []
-		)
-
-		for n in nodes {
-			switch n.name {
-			case "case":
-				if len(current) > 0 {
-					if isDefault {
-						defaults = current
-					} else {
-						cases = [cases..., current]
-					}
-				}
-
-				current = [n.nodes[0]]
-				isDefault = false
-			case "default":
-				if len(current) > 0 && !isDefault {
-					cases = [cases..., current]
-				}
-
-				current = []
-				isDefault = true
-			default:
-				current = [current..., n]
-			}
-		}
-
-		if len(current) > 0 {
-			if isDefault {
-				defaults = current
-			} else {
-				cases = [cases..., current]
-			}
-		}
-
-		return {cases: cases, defaults: defaults}
-	}
-
-	fn cases(c) {
-		return map(fn (c) {
-			type:       "switch-case"
-			expression: parse(c[0])
-			body:       {
-				type:       "statement-list"
-				statements: map(parse, c[1:])
-			}
-		}, c)
-	}
-
-	let lines groupLines()
-	let s {
-		type:              "switch-statement"
-		cases:             cases(lines.cases)
-		defaultStatements: {type: "statement-list", statements: map(parse, lines.defaults)}
-	}
-
-	return hasExpression ? {s..., expression: parse(expression)} : s
+	let cases  = ast.nodes -> filter(is({name: "case-block"})) -> map(parseCase("switch-case", ast))
+	return create("switch-statement", ast, expression, {cases: cases}, {defaultStatements: defaults})
 }
 
+fn sendStatement(ast) create("send-statement", ast, {
+	channel: parse(ast.nodes[0])
+	value:   parse(ast.nodes[1])
+})
+
+fn receiveExpression(ast) create("receive-expression", ast, {
+	channel: parse(ast.nodes[0])
+})
+
+fn selectStatement(ast) {
+	let (
+		hasDefault = some(is({name: "default-block"}), ast.nodes)
+		defaults   = {hasDefault: hasDefault, defaultStatements: defaultStatements(ast)}
+	)
+
+	let cases = ast.nodes
+		-> filter(is({name: "select-case-block"}))
+		-> map(parseCase("select-case", ast))
+
+	return create("select-statement", ast, cases..., defaults)
+}
+
+fn (
+	goStatement(ast)    create("go-statement", ast, {application: parse(ast.nodes[0])})
+	deferStatement(ast) create("defer-statement", ast, {application: parse(ast.nodes[0])})
+)
+
 fn rangeOver(ast) {
-	if len(ast.nodes) == 0 {
-		return {type: "range-over"}
-	}
+	fn (
+		createRangeOver(...props) create("range-over", ast, props...)
+		parseExpression(nodes)    structs.merge(map(parse, ast.nodes))
+	)
 
-	if len(ast.nodes) == 1 && ast.nodes[0].name == "symbol" {
-		return {
-			type:   "range-over"
-			symbol: parse(ast.nodes[0]).name
-		}
-	}
-
-	fn expression(nodes) {
-		let exp parse(nodes[0])
-		if !has("type", exp) || exp.type != "range-expression" || len(nodes) == 1 {
-			return exp
-		}
-
-		return {
-			exp...
-			to: parse(nodes[1]).to
-		}
-	}
-
-	if ast.nodes[0].name != "symbol" {
-		return {
-			type:       "range-over"
-			expression: expression(ast.nodes)
-		}
-	}
-
-	return {
-		type:       "range-over"
-		symbol:     parse(ast.nodes[0]).name
-		expression: expression(ast.nodes[1:])
+	switch {
+	case len(ast.nodes) == 0:
+		return createRangeOver()
+	case len(ast.nodes) == 1 && ast.nodes[0].name == "symbol":
+		return createRangeOver({symbol: parse(ast.nodes[0]).name})
+	case ast.nodes[0].name != "symbol":
+		return createRangeOver({expression: parseExpression(ast.nodes)})
+	default:
+		return createRangeOver({
+			symbol:     parse(ast.nodes[0]).name
+			expression: parseExpression(ast.nodes[1:])
+		})
 	}
 }
 
 fn loop(ast) {
-	let loop {type: "loop"}
+	fn createLoop(body) create("loop", ast, {body: statementList(body)})
 	if len(ast.nodes) == 1 {
-		return {loop..., body: statementList(ast.nodes[0])}
+		return createLoop(ast.nodes[0])
 	}
 
-	let expression parse(ast.nodes[0])
-	let emptyRange
-		has("type", expression) &&
-		expression.type == "range-over" &&
-		!has("symbol", expression) &&
-		!has("expression", expression)
-	
-	return emptyRange ?
-		{loop..., body: statementList(ast.nodes[1])} :
-		{loop..., expression: expression, body: statementList(ast.nodes[1])}
+	let (
+		emptyRange and({type: "range-over"}, not(or({symbol: any}, {expression: any})))
+		expression parse(ast.nodes[0])
+		loop       createLoop(ast.nodes[1])
+	)
+
+	return is(emptyRange, expression) ?
+		loop :
+		{loop..., expression: expression}
 }
 
-fn valueCapture(ast) {
-	type:       "definition"
+fn assign(ast) create("assign", ast, {
+	capture: parse(ast.nodes[0])
+	value:   parse(ast.nodes[1])
+})
+
+fn valueCapture(ast) create("definition", ast, {
 	symbol:     parse(ast.nodes[0]).name
 	expression: parse(ast.nodes[1])
 	mutable:    false
 	exported:   false
-}
+})
 
-fn definitions(ast) {
-	type:        "definition-list"
-	definitions: ast.nodes
-		-> map(parse)
-		-> filter(fn (c) !has("type", c) || c.type != "comment")
-}
+fn mutableCapture(ast) {valueCapture(ast)..., mutable: true}
 
-fn mutableDefinitions(ast) {
-	let dl definitions(ast)
+fn valueDefinition(ast) len(ast.nodes) > 1 ?
+	{docs: parse(ast.nodes[0]), parse(ast.nodes[1])...} :
+	parse(ast.nodes[0])
+
+fn definitionGroup(ast) create("definition-group", ast, {
+	definitions: map(parse, ast.nodes)
+})
+
+fn mutableDefinitionGroup(ast) {
+	let d definitionGroup(ast)
 	return {
-		dl...
-		definitions: dl.definitions -> map(fn (d) {d..., mutable: true})
+		d...
+		definitions: map(fn (d) {d..., mutable: true}, d.definitions)
 	}
 }
 
-fn functionCapture(ast) {
-	type:       "definition"
+fn functionCapture(ast) create("definition", ast, {
 	symbol:     parse(ast.nodes[0]).name
-	expression: functionFact(ast.nodes[1:])
+	expression: functionFact(ast, 1)
 	mutable:    false
 	exported:   false
-}
+})
 
 fn effectCapture(ast) {
 	let f functionCapture(ast)
@@ -390,368 +324,255 @@ fn effectCapture(ast) {
 	}
 }
 
-fn effectDefinitions(ast) {
-	let dl definitions(ast)
+fn functionDefinition(ast) len(ast.nodes) > 1 ?
+	{docs: parse(ast.nodes[0]), parse(ast.nodes[1])...} :
+	parse(ast.nodes[0])
+
+fn effectDefinitionGroup(ast) {
+	let d definitionGroup(ast)
 	return {
-		dl...
-		definitions: map(fn (d) {d..., effect: true}, dl.definitions)
+		d...
+		definitions: map(fn (d) {d..., expression: {d.expression..., effect: true}}, d.definitions)
 	}
 }
 
-fn assignCaptures(nodes) {
-	if len(nodes) == 0 {
-		return []
-	}
+fn exportStatement(ast) {
+	let (
+		d   parse(ast.nodes[0])
+		dl  d.type == "definition" ? [d] : d.definitions
+		edl map(fn (d) {d..., exported: true}, dl)
+	)
 
-	return [
-		{
-			type:    "assign"
-			capture: parse(nodes[0])
-			value:   parse(nodes[1])
-		}
-		assignCaptures(nodes[2:])...
-	]
-}
-
-fn parseSelect(ast) {
-	let nodes ast.nodes
-
-	fn groupLines() {
-		let ~ (
-			isDefault  false
-			hasDefault false
-			current    []
-			cases      []
-			defaults   []
-		)
-
-		for n in nodes {
-			switch n.name {
-			case "case":
-				if len(current) > 0 {
-					if isDefault {
-						defaults = current
-					} else {
-						cases = [cases..., current]
-					}
-				}
-
-				current = [n.nodes[0]]
-				isDefault = false
-			case "default":
-				if len(current) > 0 && !isDefault {
-					cases = [cases..., current]
-				}
-
-				current = []
-				isDefault = true
-				hasDefault = true
-			default:
-				current = [current..., n]
-			}
-		}
-
-		if len(current) > 0 {
-			if isDefault {
-				defaults = current
-			} else {
-				cases = [cases..., current]
-			}
-		}
-
-		return {cases: cases, defaults: defaults, hasDefault: hasDefault}
-	}
-
-	fn cases(c) {
-		return map(fn (c) {
-			type:       "select-case"
-			expression: parse(c[0])
-			body:       {
-				type:       "statement-list"
-				statements: map(parse, c[1:])
-			}
-		}, c)
-	}
-
-	let lines groupLines()
-	return {
-		cases:             cases(lines.cases)
-		defaultStatements: {type: "statement-list", statements: map(parse, lines.defaults)}
-		hasDefault:        lines.hasDefault
-	}
-}
-
-fn parseExport(ast) {
-	let d parse(ast.nodes[0])
-	return {
-		type: "definition-list"
-		definitions:
-			(d.type == "definition" ? [d] : d.definitions)
-			-> map(fn (d) {d..., exported: true})
-	}
+	return create("definition-group", ast, {definitions: edl})
 }
 
 fn useFact(ast) {
-	let (
-		~ capture ""
-		~ path    ""
-	)
-
+	fn createUse(...props) create("use", ast, {effect: false}, props...)
 	switch ast.nodes[0].name {
 	case "use-inline":
-		capture = "."
-		path = parse(ast.nodes[1])
+		return createUse({capture: ".", path: parse(ast.nodes[1])})
 	case "symbol":
-		capture = parse(ast.nodes[0]).name
-		path = parse(ast.nodes[1])
+		return createUse({capture: parse(ast.nodes[0]).name, path: parse(ast.nodes[1])})
 	default:
-		path = parse(ast.nodes[0])
-	}
-
-	return {
-		type:    "use"
-		capture: capture
-		path:    path
+		return createUse({path: parse(ast.nodes[0])})
 	}
 }
 
-fn parseUse(ast) {
-	type: "use-list"
-	uses: map(parse, ast.nodes)
-}
-
-// TODO: comments in groups
+fn (
+	useEffect(ast) {useFact(ast)..., effect: true}
+	useList(ast)   create("use-list", ast, {uses: map(parse, ast.nodes)})
+	module(ast)    create("module", ast, {body: statementList(ast)})
+)
 
 fn parse(ast) {
 	switch ast.name {
 	case "line-comment-content":
-		return {type: "comment"}
+		return commentLine(ast)
+	case "line-comment":
+		return lineComment(ast)
+	case "block-comment-content":
+		return blockCommentContent(ast)
+	case "block-comment":
+		return blockComment(ast)
 	case "int":
-		return parseInt(ast.text)
+		return intCode(ast)
 	case "float":
-		return parseFloat(ast.text)
+		return floatCode(ast)
 	case "string":
-		return parseString(ast)
+		return stringCode(ast)
 	case "true":
-		return true
+		return boolCode(ast)
 	case "false":
-		return false
+		return boolCode(ast)
 	case "symbol":
 		return symbol(ast)
-	case "spread-expression":
-		return spread(ast)
-	case "list":
-		return list(ast)
-	case "mutable-list":
-		return mutableList(ast)
-	case "expression-key":
-		return expressionKey(ast)
-	case "entry":
-		return entry(ast)
-	case "struct":
-		return struct(ast)
-	case "mutable-struct":
-		return mutableStruct(ast)
-	case "return-value":
-		return ret(ast)
-	case "block":
-		return statementList(ast)
-	case "function":
-		return function(ast)
-	case "effect":
-		return effect(ast)
-	case "range-from":
-		return range(ast)
-	case "range-to":
-		return range(ast)
-	case "symbol-index":
-		return symbolIndex(ast)
-	case "expression-index":
-		return expressionIndex(ast)
-	case "range-index":
-		return rangeIndex(ast)
-	case "indexer":
-		return indexer(ast)
-	case "application":
-		return application(ast)
-	case "unary-expression":
-		return unary(ast)
-	case "binary0":
-		return binary(ast)
-	case "binary1":
-		return binary(ast)
-	case "binary2":
-		return binary(ast)
-	case "binary3":
-		return binary(ast)
-	case "binary4":
-		return binary(ast)
-	case "chaining":
-		return chaining(ast)
-	case "ternary-expression":
-		return ternary(ast)
-	case "if":
-		return parseIf(ast)
-	case "switch":
-		return parseSwitch(ast)
-	case "range-over":
-		return rangeOver(ast)
-	case "loop":
-		return loop(ast)
-	case "value-capture":
-		return valueCapture(ast)
-	case "mutable-capture":
-		return mutableCapture(ast)
-	case "value-definition":
-		return valueDefinition(ast)
-	case "value-definition-group":
-		return definitions(ast)
-	case "mutable-definition-group":
-		return mutableDefinitions(ast)
-	case "function-capture":
-		return functionCapture(ast)
-	case "effect-capture":
-		return effectCapture(ast)
-	case "function-definition":
-		return functionDefinition(ast)
-	case "function-definition-group":
-		return definitions(ast)
-	case "effect-definition-group":
-		return effectDefinitions(ast)
-	case "assignment":
-		return assign(ast)
-	case "send":
-		return parseSend(ast)
-	case "receive":
-		return parseReceive(ast)
-	case "go":
-		return parseGo(ast)
-	case "defer":
-		return parseDefer(ast)
-	case "receive-definition":
-		return receiveDefinition(ast)
-	case "select":
-		return parseSelect(ast)
-	case "export":
-		return parseExport(ast)
-	case "use-fact":
-		return useFact(ast)
-	case "use":
-		return parseUse(ast)
-	default:
-		return statementList(ast)
-	}
-}
-
-fn parseFile(path) {
-	let in open(path)
-	if isError(in) {
-		return in
-	}
-
-	defer close(in)
-
-	let ast in(-1) -> errors.pass(parseAST)
-	if isError(ast) {
-		return ast
-	}
-
-	return parse(ast)
-}
-
-// TODO: can there be an export below the top level?
-// - nope: disable it in the syntax
-
-fn findExportNames(statements)
-	statements
-	-> code.flattenedStatements("definition", "definition-list", "definitions")
-	-> filter(fn (d) d.exported)
-	-> map(fn (d) d.symbol)
-
-fn~ parseModule(context, entryPath) {
-	// TODO:
-	// - this only considers the top level uses, while it is allowed to have lower level uses
-	// - use the type: "module"
-
-	if contains(entryPath, context.stack) {
-		return error(formats("circular module dependency: %s", entryPath))
-	}
-
-	if has(entryPath, context.parsed) {
-		return context.parsed[entryPath]
 	}
 
 	let (
-		module parseFile(entryPath)
-		uses   code.flattenedStatements("use", "use-list", "uses", module.statements)
+		  a    assortComments(ast)
+		~ code create("unknown", a.ast)
 	)
 
-	if isError(module) {
-		return module
+	switch a.ast.name {
+	case "spread":
+		code = spread(a.ast)
+	case "list":
+		code = list(a.ast)
+	case "mutable-list":
+		code = mutableList(a.ast)
+	case "expression-key":
+		code = expressionKey(a.ast)
+	case "entry":
+		code = entry(a.ast)
+	case "struct":
+		code = struct(a.ast)
+	case "mutable-struct":
+		code = mutableStruct(a.ast)
+	case "ret":
+		code = ret(a.ast)
+	case "check-ret":
+		code = checkRet(a.ast)
+	case "block":
+		code = statementList(a.ast)
+	case "collect-parameter":
+		code = collectParameter(a.ast)
+	case "function":
+		code = functionLiteral(a.ast)
+	case "effect":
+		code = effect(a.ast)
+	case "range-from":
+		code = rangeExpression(a.ast)
+	case "range-to":
+		code = rangeExpression(a.ast)
+	case "symbol-index":
+		code = symbolIndex(a.ast)
+	case "expression-index":
+		code = expressionIndex(a.ast)
+	case "range-index":
+		code = rangeIndex(a.ast)
+	case "indexer":
+		code = indexer(a.ast)
+	case "application":
+		code = application(a.ast)
+	case "unary":
+		code = unary(a.ast)
+	case "binary0":
+		code = binary(a.ast)
+	case "binary1":
+		code = binary(a.ast)
+	case "binary2":
+		code = binary(a.ast)
+	case "binary3":
+		code = binary(a.ast)
+	case "binary4":
+		code = binary(a.ast)
+	case "chaining":
+		code = chaining(a.ast)
+	case "ternary":
+		code = ternary(a.ast)
+	case "if-statement":
+		code = ifStatement(a.ast)
+	case "switch-statement":
+		code = switchStatement(a.ast)
+	case "send-statement":
+		code = sendStatement(a.ast)
+	case "receive-expression":
+		code = receiveExpression(a.ast)
+	case "receive-definition":
+		code = valueCapture(a.ast)
+	case "select-statement":
+		code = selectStatement(a.ast)
+	case "go-statement":
+		code = goStatement(a.ast)
+	case "defer-statement":
+		code = deferStatement(a.ast)
+	case "range-over":
+		code = rangeOver(a.ast)
+	case "break":
+		code = create("break", a.ast)
+	case "continue":
+		code = create("continue", a.ast)
+	case "loop":
+		code = loop(a.ast)
+	case "assign":
+		code = assign(a.ast)
+	case "value-capture":
+		code = valueCapture(a.ast)
+	case "mutable-capture":
+		code = mutableCapture(a.ast)
+	case "value-definition":
+		code = valueDefinition(a.ast)
+	case "docs-value-capture":
+		code = valueDefinition(a.ast)
+	case "docs-mixed-capture":
+		code = valueDefinition(a.ast)
+	case "value-definition-group":
+		code = definitionGroup(a.ast)
+	case "mutable-definition-group":
+		code = mutableDefinitionGroup(a.ast)
+	case "function-capture":
+		code = functionCapture(a.ast)
+	case "effect-capture":
+		code = effectCapture(a.ast)
+	case "function-definition":
+		code = functionDefinition(a.ast)
+	case "docs-function-capture":
+		code = functionDefinition(a.ast)
+	case "docs-mixed-function-capture":
+		code = functionDefinition(a.ast)
+	case "function-definition-group":
+		code = definitionGroup(a.ast)
+	case "effect-definition-group":
+		code = effectDefinitionGroup(a.ast)
+	case "export-statement":
+		code = exportStatement(a.ast)
+	case "use-fact":
+		code = useFact(a.ast)
+	case "use-effect":
+		code = useEffect(a.ast)
+	case "use-modules":
+		code = useList(a.ast)
+	case "mml":
+		code = module(a.ast)
 	}
 
-	context.stack = [context.stack..., entryPath]
-	let usesModules uses
-	-> map(fn (u) u.path + ".mml")
-	-> map(parseModule(context))
-	-> errors.any
-	-> errors.pass(flat)
-	-> errors.pass(map(fn (m) {
-		type: m.type
-		path: m.path
-		statements: m.statements
-		exportNames: findExportNames(m.statements)
-	}))
-	-> errors.pass(uniq(fn (left, right) left.path == right.path))
-	context.stack = context.stack[:len(context.stack) - 1]
-
-	if isError(usesModules) {
-		return usesModules
+	return {
+		code...
+		comments: {
+			code:    map(parse, a.comments.nodes)
+			indexes: a.comments.indexes
+		}
 	}
-
-	let statements module.statements
-	-> map(fn (s) {
-		if !has("type", s) || s.type != "use" && s.type != "use-list" {
-			return s
-		}
-
-		if s.type == "use" {
-			let m filter(fn (m) m.path == s.path, usesModules)
-			if len(m) == 0 {
-				return s
-			}
-
-			return {
-				s...
-				exportNames: m[0].exportNames
-			}
-		}
-
-		return {
-			type: s.type
-			uses: map(fn (u) {
-				let m filter(fn (m) m.path == u.path + ".mml", usesModules)
-				if len(m) == 0 {
-					return u
-				}
-
-				return {
-					u...
-					exportNames: m[0].exportNames
-				}
-			}, s.uses)
-		}
-	})
-
-	let currentCode {
-		module...
-		path:       entryPath
-		statements: statements
-	}
-
-	let modules [currentCode, usesModules...]
-	context.parsed[entryPath] = modules
-	return modules
 }
 
-export fn modules(entryPath) parseModule(~{stack: [], parsed: ~{}}, entryPath)
+fn parserError(msg, ast) error(
+	formats("%s:%d:%d:%v", ast.file, ast.line, ast.column, msg)
+)
+
+fn knownOrError(code) is({type: not("unknown")}, code) ?
+	code :
+	parserError("unknown code", code.ast)
+
+fn parsePrimitive(code) {
+	switch code.type {
+	case "int":
+		let v parseInt(code.ast.text)
+		return isError(v) ? parserError(v, code.ast) : {code..., value: v}
+	case "float":
+		let v parseFloat(code.ast.text)
+		return isError(v) ? parserError(v, code.ast) : {code..., value: v}
+	case "string":
+		return {
+			code...
+			value: strings.unescape(code.ast.text[1:len(code.ast.text) - 1])
+		}
+	case "bool":
+		return {code..., value: code.ast.text == "true"}
+	default:
+		return code
+	}
+}
+
+// ast transforms the AST representation of MML code into its internal representation after
+// validating it.
+//
+// validating the AST is necessary, because the AST can be an input from a non-MML process and MML
+// does not know if it is of the expected structure, even if we know that the AST parser cannot
+// return with an invalid tree. The validation could be the part of the parse step, but then the
+// individual parser functions would be more complex, because they would need to do error handling.
+// One benefit of the approach is: the parser can accept ASTs from any origin, not only the AST
+// parser.
+//
+// parsing primitives is executed by this function in a phase separate from parse, because while
+// parse does not return errors and can be simpler therefore, parsePrimitive may return errors
+// since the input validation does not check the node text, as that would be equivalent to parsing
+// it.
+//
+fn ast(node) node -> errors.pass(
+	validateast.do
+	parse
+	codetree.edit(parsePrimitive)
+	codetree.edit(knownOrError)
+)
+
+export fn do(text) text -> errors.pass(parseAST, ast)

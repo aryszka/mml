@@ -10,3 +10,8 @@ export fn~ println(...a) {
 	"\n" -> stderr
 	return len(a) == 0 ? "" : a[len(a) - 1]
 }
+
+export fn~ fatal(...a) {
+	println(a...)
+	exit(1)
+}

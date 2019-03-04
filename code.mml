@@ -1,5 +1,27 @@
 use . "lang"
 
+export let keywords [
+	"true"
+	"false"
+	"return"
+	"fn"
+	"if"
+	"else"
+	"case"
+	"switch"
+	"default"
+	"send"
+	"receive"
+	"select"
+	"go"
+	"defer"
+	"in"
+	"for"
+	"let"
+	"use"
+	"export"
+]
+
 export let (
 	controlStatement enum()
 	breakControl     controlStatement()
