@@ -59,6 +59,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -84,7 +85,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_read, _errors, _compile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_read, _errors, _compile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -99,6 +100,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -127,7 +129,7 @@ func init() {
 		_read = mml.Modules.Use("read")
 		_errors = mml.Modules.Use("errors")
 		_compile = mml.Modules.Use("compile")
-		c = mml.BinaryOp(13, _len.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _args)}).Values), 2)
+		c = mml.BinaryOp(12, _len.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _args)}).Values), 2)
 		if c.(bool) {
 			mml.Nop()
 			_fatal.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "usage: mml <source without the extension>")}).Values)
@@ -158,6 +160,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -189,7 +192,7 @@ func init() {
 		var _functions interface{}
 		var _match interface{}
 		var _logger interface{}
-		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is, _lists, _strings, _ints, _functions, _match, _logger)
+		mml.Nop(_fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is, _lists, _strings, _ints, _functions, _match, _logger)
 		_lists = mml.Modules.Use("lists")
 		_strings = mml.Modules.Use("strings")
 		_ints = mml.Modules.Use("ints")
@@ -222,6 +225,8 @@ func init() {
 		exports["every"] = _every
 		_some = mml.Ref(_lists, "some")
 		exports["some"] = _some
+		_take = mml.Ref(_lists, "take")
+		exports["take"] = _take
 		_join = mml.Ref(_strings, "join")
 		exports["join"] = _join
 		_joins = mml.Ref(_strings, "joins")
@@ -298,11 +303,13 @@ func init() {
 		var _every interface{}
 		var _some interface{}
 		var _intersect interface{}
+		var _takeFrom interface{}
+		var _take interface{}
 		var _sort interface{}
 		var _group interface{}
 		var _indexes interface{}
 		var _flatDepth interface{}
-		mml.Nop(_fold, _foldr, _map, _filter, _first, _contains, _concat, _concats, _flat, _flats, _uniq, _every, _some, _intersect, _sort, _group, _indexes, _flatDepth)
+		mml.Nop(_fold, _foldr, _map, _filter, _first, _contains, _concat, _concats, _flat, _flats, _uniq, _every, _some, _intersect, _takeFrom, _take, _sort, _group, _indexes, _flatDepth)
 		_fold = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -641,6 +648,51 @@ func init() {
 			FixedArgs: 2,
 		}
 		exports["intersect"] = _intersect
+		_takeFrom = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _n = a[0]
+				var _f = a[1]
+				var _ interface{}
+				_ = &mml.List{a[2:]}
+				mml.Nop(_n, _f)
+				return func() interface{} {
+					c = mml.BinaryOp(11, _n, 0)
+					if c.(bool) {
+						return &mml.List{Values: []interface{}{}}
+					} else {
+						return &mml.List{Values: append(append([]interface{}{}, _takeFrom.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.BinaryOp(10, _n, 1), _f)}).Values).(*mml.List).Values...), _f.(*mml.Function).Call((&mml.List{Values: []interface{}{}}).Values))}
+					}
+				}()
+			},
+			FixedArgs: 2,
+		}
+		exports["takeFrom"] = _takeFrom
+		_take = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _n = a[0]
+				var _v = a[1]
+				var _ interface{}
+				_ = &mml.List{a[2:]}
+				mml.Nop(_n, _v)
+				return _takeFrom.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _n, &mml.Function{
+					F: func(a []interface{}) interface{} {
+						var c interface{}
+						mml.Nop(c)
+						var _ interface{}
+						_ = &mml.List{a[0:]}
+						mml.Nop()
+						return _v
+					},
+					FixedArgs: 0,
+				})}).Values)
+			},
+			FixedArgs: 2,
+		}
+		exports["take"] = _take
 		_sort = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -1422,11 +1474,13 @@ func init() {
 		var _every interface{}
 		var _some interface{}
 		var _intersect interface{}
+		var _takeFrom interface{}
+		var _take interface{}
 		var _sort interface{}
 		var _group interface{}
 		var _indexes interface{}
 		var _flatDepth interface{}
-		mml.Nop(_complexType, _defineRange, _listRange, _isSimpleType, _isComplexType, _isType, _complexTypeEq, _primitives, _matchPrimitive, _matchToList, _matchToListType, _matchList, _matchStruct, _matchOne, _token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _predicates, _matchInt, _matchFloat, _matchString, _matchUnion, _matchIntersection, _rangeMin, _listLength, _not, _natural, _is, _functions, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _concat, _concats, _flat, _flats, _uniq, _every, _some, _intersect, _sort, _group, _indexes, _flatDepth)
+		mml.Nop(_complexType, _defineRange, _listRange, _isSimpleType, _isComplexType, _isType, _complexTypeEq, _primitives, _matchPrimitive, _matchToList, _matchToListType, _matchList, _matchStruct, _matchOne, _token, _none, _integer, _floating, _stringType, _boolean, _errorType, _any, _function, _channel, _type, _intRangeType, _floatRangeType, _isRange, _isNaturalRange, _intRange, _floatRange, _stringRangeType, _stringRange, _listType, _listOf, _structOf, _range, _unionType, _intersectType, _predicateType, _or, _and, _predicate, _predicates, _matchInt, _matchFloat, _matchString, _matchUnion, _matchIntersection, _rangeMin, _listLength, _not, _natural, _is, _functions, _ints, _floats, _fold, _foldr, _map, _filter, _first, _contains, _concat, _concats, _flat, _flats, _uniq, _every, _some, _intersect, _takeFrom, _take, _sort, _group, _indexes, _flatDepth)
 		var __lists = mml.Modules.Use("lists")
 		_fold = __lists.Values["fold"]
 		_foldr = __lists.Values["foldr"]
@@ -1442,6 +1496,8 @@ func init() {
 		_every = __lists.Values["every"]
 		_some = __lists.Values["some"]
 		_intersect = __lists.Values["intersect"]
+		_takeFrom = __lists.Values["takeFrom"]
+		_take = __lists.Values["take"]
 		_sort = __lists.Values["sort"]
 		_group = __lists.Values["group"]
 		_indexes = __lists.Values["indexes"]
@@ -2346,6 +2402,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -2371,7 +2428,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_readModule, _do, _parse, _errors, _io, _paths, _structs, _codetree, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_readModule, _do, _parse, _errors, _io, _paths, _structs, _codetree, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -2386,6 +2443,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -2582,7 +2640,7 @@ func init() {
 		var _chaining interface{}
 		var _ternary interface{}
 		var _ifStatement interface{}
-		var _parseCase interface{}
+		var _caseBlock interface{}
 		var _defaultStatements interface{}
 		var _switchStatement interface{}
 		var _sendStatement interface{}
@@ -2611,10 +2669,10 @@ func init() {
 		var _lineComment interface{}
 		var _blockCommentContent interface{}
 		var _blockComment interface{}
-		var _intCode interface{}
-		var _floatCode interface{}
-		var _stringCode interface{}
-		var _boolCode interface{}
+		var _intLiteral interface{}
+		var _floatLiteral interface{}
+		var _stringLiteral interface{}
+		var _boolLiteral interface{}
 		var _symbol interface{}
 		var _spread interface{}
 		var _list interface{}
@@ -2660,6 +2718,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -2685,7 +2744,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_assortComments, _create, _functionFact, _rangeExpression, _indexer, _application, _unary, _binary, _chaining, _ternary, _ifStatement, _parseCase, _defaultStatements, _switchStatement, _sendStatement, _receiveExpression, _selectStatement, _rangeOver, _loop, _assign, _valueCapture, _mutableCapture, _valueDefinition, _definitionGroup, _mutableDefinitionGroup, _functionCapture, _effectCapture, _functionDefinition, _effectDefinitionGroup, _exportStatement, _useFact, _parse, _parserError, _knownOrError, _parsePrimitive, _ast, _commentLine, _lineComment, _blockCommentContent, _blockComment, _intCode, _floatCode, _stringCode, _boolCode, _symbol, _spread, _list, _mutableList, _expressionKey, _entry, _struct, _mutableStruct, _ret, _checkRet, _statementListOf, _statementList, _collectParameter, _functionLiteral, _effect, _symbolIndex, _expressionIndex, _rangeIndex, _goStatement, _deferStatement, _useEffect, _useList, _module, _do, _validateast, _structs, _lists, _code, _errors, _codetree, _strings, _functions, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_assortComments, _create, _functionFact, _rangeExpression, _indexer, _application, _unary, _binary, _chaining, _ternary, _ifStatement, _caseBlock, _defaultStatements, _switchStatement, _sendStatement, _receiveExpression, _selectStatement, _rangeOver, _loop, _assign, _valueCapture, _mutableCapture, _valueDefinition, _definitionGroup, _mutableDefinitionGroup, _functionCapture, _effectCapture, _functionDefinition, _effectDefinitionGroup, _exportStatement, _useFact, _parse, _parserError, _knownOrError, _parsePrimitive, _ast, _commentLine, _lineComment, _blockCommentContent, _blockComment, _intLiteral, _floatLiteral, _stringLiteral, _boolLiteral, _symbol, _spread, _list, _mutableList, _expressionKey, _entry, _struct, _mutableStruct, _ret, _checkRet, _statementListOf, _statementList, _collectParameter, _functionLiteral, _effect, _symbolIndex, _expressionIndex, _rangeIndex, _goStatement, _deferStatement, _useEffect, _useList, _module, _do, _validateast, _structs, _lists, _code, _errors, _codetree, _strings, _functions, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -2700,6 +2759,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -2870,10 +2930,10 @@ func init() {
 			},
 			FixedArgs: 1,
 		}
-		_intCode = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "int")}).Values)
-		_floatCode = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "float")}).Values)
-		_stringCode = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "string")}).Values)
-		_boolCode = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "bool")}).Values)
+		_intLiteral = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "int")}).Values)
+		_floatLiteral = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "float")}).Values)
+		_stringLiteral = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "string")}).Values)
+		_boolLiteral = _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "bool")}).Values)
 		_symbol = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -3212,7 +3272,7 @@ func init() {
 				mml.Nop(_ast)
 				return _create.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "symbol-index", _ast, func() interface{} {
 					s := &mml.Struct{Values: make(map[string]interface{})}
-					s.Values["symbol"] = _parse.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(mml.Ref(_ast, "nodes"), 0))}).Values)
+					s.Values["symbol"] = mml.Ref(_parse.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(mml.Ref(_ast, "nodes"), 0))}).Values), "name")
 					return s
 				}())}).Values)
 			},
@@ -3511,7 +3571,7 @@ func init() {
 			},
 			FixedArgs: 1,
 		}
-		_parseCase = &mml.Function{
+		_caseBlock = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
 				mml.Nop(c)
@@ -3577,7 +3637,7 @@ func init() {
 					}
 				}()
 				_defaults = _defaultStatements.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
-				_cases = _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _parseCase.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "switch-case", _ast)}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _filter.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _is.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func() interface{} {
+				_cases = _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _caseBlock.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "switch-case", _ast)}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _filter.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _is.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func() interface{} {
 					s := &mml.Struct{Values: make(map[string]interface{})}
 					s.Values["name"] = "case-block"
 					return s
@@ -3651,7 +3711,7 @@ func init() {
 					s.Values["defaultStatements"] = _defaultStatements.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 					return s
 				}()
-				_cases = _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _parseCase.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "select-case", _ast)}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _filter.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _is.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func() interface{} {
+				_cases = _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _caseBlock.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "select-case", _ast)}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _filter.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _is.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func() interface{} {
 					s := &mml.Struct{Values: make(map[string]interface{})}
 					s.Values["name"] = "select-case-block"
 					return s
@@ -4318,23 +4378,23 @@ func init() {
 				case "int":
 
 					mml.Nop()
-					return _intCode.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
+					return _intLiteral.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "float":
 
 					mml.Nop()
-					return _floatCode.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
+					return _floatLiteral.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "string":
 
 					mml.Nop()
-					return _stringCode.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
+					return _stringLiteral.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "true":
 
 					mml.Nop()
-					return _boolCode.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
+					return _boolLiteral.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "false":
 
 					mml.Nop()
-					return _boolCode.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
+					return _boolLiteral.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _ast)}).Values)
 				case "symbol":
 
 					mml.Nop()
@@ -4817,6 +4877,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -4842,7 +4903,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_validateComments, _dropComments, _rangeExpression, _functionParamsAndBody, _rangeOver, _startsWithCaseOrDefault, _functionCapture, _definitionChild, _stringOrNamedStringOrInline, _customValidators, _validateCustom, _node, _minTextLength, _childCount, _minChildCount, _paramsAreSymbols, _onlyLastParamIsCollect, _textLengthMin2, _oneChild, _twoChildren, _threeChildren, _minOneChild, _minTwoChildren, _minThreeChildren, _symbol, _stringNode, _useInline, _symbolChild, _collectParameter, _rangeFrom, _rangeTo, _symbolAndAny, _comment, _do, _code, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_validateComments, _dropComments, _rangeExpression, _functionParamsAndBody, _rangeOver, _startsWithCaseOrDefault, _functionCapture, _definitionChild, _stringOrNamedStringOrInline, _customValidators, _validateCustom, _node, _minTextLength, _childCount, _minChildCount, _paramsAreSymbols, _onlyLastParamIsCollect, _textLengthMin2, _oneChild, _twoChildren, _threeChildren, _minOneChild, _minTwoChildren, _minThreeChildren, _symbol, _stringNode, _useInline, _symbolChild, _collectParameter, _rangeFrom, _rangeTo, _symbolAndAny, _comment, _do, _code, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -4857,6 +4918,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -5274,6 +5336,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -5299,7 +5362,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_keywords, _controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _equals, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _builtin, _flattenedStatements, _getModuleName, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_keywords, _controlStatement, _breakControl, _continueControl, _unaryOp, _binaryNot, _plus, _minus, _logicalNot, _binaryOp, _binaryAnd, _binaryOr, _xor, _andNot, _lshift, _rshift, _mul, _div, _mod, _add, _sub, _equals, _notEq, _less, _lessOrEq, _greater, _greaterOrEq, _logicalAnd, _logicalOr, _builtin, _flattenedStatements, _getModuleName, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -5314,6 +5377,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -6275,6 +6339,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -6300,7 +6365,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_readFile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_readFile, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -6315,6 +6380,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -6425,6 +6491,7 @@ func init() {
 		var _getScope interface{}
 		var _paramList interface{}
 		var _functionLiteral interface{}
+		var _symbolIndex interface{}
 		var _indexer interface{}
 		var _application interface{}
 		var _unary interface{}
@@ -6477,6 +6544,7 @@ func init() {
 		var _uniq interface{}
 		var _every interface{}
 		var _some interface{}
+		var _take interface{}
 		var _join interface{}
 		var _joins interface{}
 		var _formats interface{}
@@ -6502,7 +6570,7 @@ func init() {
 		var _predicate interface{}
 		var _predicates interface{}
 		var _is interface{}
-		mml.Nop(_primitive, _stringLiteral, _symbol, _spread, _list, _expressionKey, _struct, _getDefinitions, _getScope, _paramList, _functionLiteral, _indexer, _application, _unary, _binary, _ternary, _ifStatement, _cond, _caseBlock, _switchStatement, _sendStatement, _receiveExpression, _goStatement, _deferStatement, _selectStatement, _rangeOver, _loop, _definition, _definitionGroup, _assign, _ret, _checkRet, _useStatement, _useList, _module, _statementList, _do, _allModules, _intLiteral, _floatLiteral, _boolLiteral, _breakStatement, _continueStatement, _toGo, _strings, _code, _lists, _structs, _snippets, _codetree, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
+		mml.Nop(_primitive, _stringLiteral, _symbol, _spread, _list, _expressionKey, _struct, _getDefinitions, _getScope, _paramList, _functionLiteral, _symbolIndex, _indexer, _application, _unary, _binary, _ternary, _ifStatement, _cond, _caseBlock, _switchStatement, _sendStatement, _receiveExpression, _goStatement, _deferStatement, _selectStatement, _rangeOver, _loop, _definition, _definitionGroup, _assign, _ret, _checkRet, _useStatement, _useList, _module, _statementList, _do, _allModules, _intLiteral, _floatLiteral, _boolLiteral, _breakStatement, _continueStatement, _toGo, _strings, _code, _lists, _structs, _snippets, _codetree, _fold, _foldr, _map, _filter, _contains, _sort, _flat, _flats, _concat, _concats, _uniq, _every, _some, _take, _join, _joins, _formats, _enum, _log, _fatal, _bind, _identity, _eq, _any, _function, _channel, _natural, _type, _listOf, _structOf, _range, _rangeMin, _listLength, _or, _and, _not, _predicate, _predicates, _is)
 		var __lang = mml.Modules.Use("lang")
 		_fold = __lang.Values["fold"]
 		_foldr = __lang.Values["foldr"]
@@ -6517,6 +6585,7 @@ func init() {
 		_uniq = __lang.Values["uniq"]
 		_every = __lang.Values["every"]
 		_some = __lang.Values["some"]
+		_take = __lang.Values["take"]
 		_join = __lang.Values["join"]
 		_joins = __lang.Values["joins"]
 		_formats = __lang.Values["formats"]
@@ -7050,6 +7119,18 @@ func init() {
 			},
 			FixedArgs: 1,
 		}
+		_symbolIndex = &mml.Function{
+			F: func(a []interface{}) interface{} {
+				var c interface{}
+				mml.Nop(c)
+				var _i = a[0]
+				var _ interface{}
+				_ = &mml.List{a[1:]}
+				mml.Nop(_i)
+				return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "\"%s\"", mml.Ref(_i, "symbol"))}).Values)
+			},
+			FixedArgs: 1,
+		}
 		_indexer = &mml.Function{
 			F: func(a []interface{}) interface{} {
 				var c interface{}
@@ -7091,14 +7172,6 @@ func init() {
 							return "nil"
 						}
 					}())}).Values)
-				case _is.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, func() interface{} {
-					s := &mml.Struct{Values: make(map[string]interface{})}
-					s.Values["type"] = "symbol-index"
-					return s
-				}(), mml.Ref(_i, "index"))}).Values):
-
-					mml.Nop()
-					return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "mml.Ref(%s, \"%s\")", _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_i, "expression"))}).Values), mml.Ref(mml.Ref(mml.Ref(_i, "index"), "symbol"), "name"))}).Values)
 				default:
 
 					mml.Nop()
@@ -7665,7 +7738,7 @@ func init() {
 					if c.(bool) {
 						return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "return %s", _do.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_r, "value"))}).Values))}).Values)
 					} else {
-						return "return"
+						return "return nil"
 					}
 				}()
 			},
@@ -7775,17 +7848,17 @@ func init() {
 				var _statements interface{}
 				mml.Nop(_scopeDefs, _scope, _scopeNames, _statements)
 				_scope = _getScope.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _l)}).Values)
-				_scopeNames = _join.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, ", ", _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _bind.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_strings, "formats"), "_%s")}).Values), _scope)}).Values))}).Values)
+				_scopeNames = _join.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, ", ")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _bind.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, mml.Ref(_strings, "formats"), "_%s")}).Values))}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _scope)}).Values))}).Values)
 				_statements = _join.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, ";\n")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _do, mml.Ref(_l, "statements"))}).Values))}).Values)
 				_scopeDefs = _join.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, ";\n")}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _map.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, &mml.Function{
 					F: func(a []interface{}) interface{} {
 						var c interface{}
 						mml.Nop(c)
-						var _s = a[0]
+						var _v = a[0]
 						var _ interface{}
 						_ = &mml.List{a[1:]}
-						mml.Nop(_s)
-						return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "var _%s interface{}", _s)}).Values)
+						mml.Nop(_v)
+						return _formats.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "var _%s interface{}", _v)}).Values)
 					},
 					FixedArgs: 1,
 				})}).Values).(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _scope)}).Values))}).Values)
@@ -7847,6 +7920,10 @@ func init() {
 
 					mml.Nop()
 					return _functionLiteral.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _code)}).Values)
+				case "symbol-index":
+
+					mml.Nop()
+					return _symbolIndex.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _code)}).Values)
 				case "indexer":
 
 					mml.Nop()
@@ -7951,10 +8028,15 @@ func init() {
 
 					mml.Nop()
 					return _module.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _code)}).Values)
-				default:
+				case "statement-list":
 
 					mml.Nop()
 					return _statementList.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, _code)}).Values)
+				default:
+
+					mml.Nop()
+					_log.(*mml.Function).Call((&mml.List{Values: append([]interface{}{}, "unexpected code:", mml.Ref(_code, "type"), _code)}).Values)
+					return ""
 				}
 				return nil
 			},

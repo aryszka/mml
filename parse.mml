@@ -38,10 +38,10 @@ fn (
 )
 
 let (
-	intCode    create("int")
-	floatCode  create("float")
-	stringCode create("string")
-	boolCode   create("bool")
+	intLiteral    create("int")
+	floatLiteral  create("float")
+	stringLiteral create("string")
+	boolLiteral   create("bool")
 )
 
 fn (
@@ -96,7 +96,7 @@ fn rangeExpression(ast) create(
 )
 
 fn (
-	symbolIndex(ast)     create("symbol-index", ast, {symbol: parse(ast.nodes[0])})
+	symbolIndex(ast)     create("symbol-index", ast, {symbol: parse(ast.nodes[0]).name})
 	expressionIndex(ast) parse(ast.nodes[0])
 	rangeIndex(ast)      create("range", ast, map(parse, ast.nodes)...)
 )
@@ -189,7 +189,7 @@ fn ifStatement(ast) {
 		-> foldr(fn (g, i) len(g) == 1 ? g[0] : constructCond(g..., i), false)
 }
 
-fn parseCase(name, ast, c) create(name, ast, {
+fn caseBlock(name, ast, c) create(name, ast, {
 	expression: parse(c.nodes[0])
 	body:       statementListOf(ast, c.nodes[1:])
 })
@@ -210,7 +210,7 @@ fn switchStatement(ast) {
 		defaults   = defaultStatements(ast)
 	)
 
-	let cases  = ast.nodes -> filter(is({name: "case-block"})) -> map(parseCase("switch-case", ast))
+	let cases = ast.nodes -> filter(is({name: "case-block"})) -> map(caseBlock("switch-case", ast))
 	return create("switch-statement", ast, expression, {cases: cases}, {defaultStatements: defaults})
 }
 
@@ -231,7 +231,7 @@ fn selectStatement(ast) {
 
 	let cases = ast.nodes
 		-> filter(is({name: "select-case-block"}))
-		-> map(parseCase("select-case", ast))
+		-> map(caseBlock("select-case", ast))
 
 	return create("select-statement", ast, cases..., defaults)
 }
@@ -375,15 +375,15 @@ fn parse(ast) {
 	case "block-comment":
 		return blockComment(ast)
 	case "int":
-		return intCode(ast)
+		return intLiteral(ast)
 	case "float":
-		return floatCode(ast)
+		return floatLiteral(ast)
 	case "string":
-		return stringCode(ast)
+		return stringLiteral(ast)
 	case "true":
-		return boolCode(ast)
+		return boolLiteral(ast)
 	case "false":
-		return boolCode(ast)
+		return boolLiteral(ast)
 	case "symbol":
 		return symbol(ast)
 	}

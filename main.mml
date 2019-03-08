@@ -5,7 +5,7 @@ use (
 	  "compile"
 )
 
-if len(args) < 2 {
+if len(args) != 2 {
 	fatal("usage: mml <source without the extension>")
 }
 

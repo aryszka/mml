@@ -13,7 +13,7 @@ comment:alias              = line-comment | block-comment;
 true:kw          = "true";
 false:kw         = "false";
 return:kw:alias  = "return";
-check:kw:alias   = "check";
+check:kw:alias   = "check"; // TODO: consider a less used keyword
 fn:kw:alias      = "fn";
 if:kw:alias      = "if";
 else:kw:alias    = "else";
@@ -221,7 +221,9 @@ range-over            = symbol nl* in nl* (expression | range) | range;
 loop-expression:alias = expression | range-over;
 loop                  = for ((nl* loop-expression)? nl* block | nl* block);
 
-assign = (symbol | indexer) nl* "=" nl* expression;
+capture:alias       = symbol | indexer | capture-group;
+capture-group:alias = "(" nl* capture nl* ")";
+assign              = capture nl* "=" nl* expression;
 
 docs = comment nl?;
 

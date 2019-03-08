@@ -195,6 +195,8 @@ fn functionLiteral(f) {
 	)
 }
 
+fn symbolIndex(i) formats("\"%s\"", i.symbol)
+
 fn indexer(i) {
 	switch {
 	case is({type: "range"}, i.index):
@@ -203,12 +205,6 @@ fn indexer(i) {
 			do(i.expression)
 			is({from: any}, i.index) ? do(i.index.from) : "nil"
 			is({to: any}, i.index) ? do(i.index.to) : "nil"
-		)
-	case is({type: "symbol-index"}, i.index):
-		return formats(
-			"mml.Ref(%s, \"%s\")"
-			do(i.expression)
-			i.index.symbol.name
 		)
 	default:
 		return formats(
@@ -284,6 +280,7 @@ fn ifStatement(c)
 
 fn cond(c) c.ternary ? ternary(c) : ifStatement(c)
 
+// TODO: test receive definition
 fn caseBlock(c) formats("case %s:\n%s", do(c.expression), do(c.body))
 
 fn switchStatement(s) {
@@ -411,7 +408,7 @@ fn assign(a)
 
 fn ret(r) has("value", r) ?
 	formats("return %s", do(r.value)) :
-	"return"
+	"return nil"
 
 fn checkRet(r) formats(
 	"if v := %s; mml.IsError.F([]interface{}{v}).(bool) { return v }"
@@ -470,12 +467,12 @@ fn module(m) joins(
 fn statementList(l) {
 	let (
 		scope      getScope(l)
-		scopeNames join(", ", map(bind(strings.formats, "_%s"), scope))
+		scopeNames scope -> map(bind(strings.formats, "_%s")) -> join(", ")
 		statements map(do, l.statements) -> join(";\n")
 	)
 
-	let scopeDefs scope
-		-> map(fn (s) formats("var _%s interface{}", s))
+	let scopeDefs = scope
+		-> map(fn (v) formats("var _%s interface{}", v))
 		-> join(";\n")
 
 	return formats(
@@ -511,6 +508,8 @@ fn do(code) {
 		return struct(code)
 	case "function":
 		return functionLiteral(code)
+	case "symbol-index":
+		return symbolIndex(code)
 	case "indexer":
 		return indexer(code)
 	case "spread":
@@ -563,8 +562,11 @@ fn do(code) {
 		return useList(code)
 	case "module":
 		return module(code)
-	default:
+	case "statement-list":
 		return statementList(code)
+	default:
+		log("unexpected code:", code.type, code)
+		return ""
 	}
 }
 

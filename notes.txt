@@ -82,3 +82,13 @@ tooling feature: collect metrics
 // --
 
 effect scoping: effect outside of its scope
+
+// --
+
+interops must declare the type
+the defined type constraints can be applied after parsing
+no user defined types can be used for interops
+
+type alias node = {name: string, nodes: [node]}
+type parse = fn (string) node
+interop parse "github.com/aryszka/treerack:Parse"

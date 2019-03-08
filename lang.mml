@@ -22,6 +22,7 @@ export let (
 	uniq     lists.uniq
 	every    lists.every
 	some     lists.some
+	take     lists.take
 )
 
 // strings

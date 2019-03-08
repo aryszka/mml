@@ -13,6 +13,8 @@ export fn (
 	every(p, l)       fold(fn (i, r) r && p(i), true, l)
 	some(p, l)        fold(fn (i, r) r || p(i), false, l)
 	intersect(l0, l1) filter(fn (i0) some(fn (i1) i0 == i1, l1), l0)
+	takeFrom(n, f)    n == 0 ? [] : [takeFrom(n - 1, f)..., f()]
+	take(n, v)        takeFrom(n, fn () v)
 )
 
 export fn sort(less, l) len(l) == 0 ? [] : [
