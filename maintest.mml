@@ -1,0 +1,16 @@
+use (
+	.           "lang"
+	            "read"
+	            "errors"
+	            "compile"
+	definitions "definitions2check"
+)
+
+if len(args) != 2 {
+	fatal("usage: mml <source without the extension>")
+}
+
+args[1]
+	-> fn (m) {
+		let errs definitions.verify(m)
+	   }

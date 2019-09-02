@@ -29,6 +29,7 @@ compile-new:
 recompile: compile-proto compile-new
 
 check: check-syntax
+	mml definitions.test > build/definitions.test.go && go run build/definitions.test.go
 
 check-syntax: parser.treerack
 	treerack check-syntax parser.treerack

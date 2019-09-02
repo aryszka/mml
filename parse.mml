@@ -388,6 +388,7 @@ fn parse(ast) {
 		return symbol(ast)
 	}
 
+	// TODO: assort comments for more complex types
 	let (
 		  a    assortComments(ast)
 		~ code create("unknown", a.ast)
@@ -554,7 +555,8 @@ fn parsePrimitive(code) {
 }
 
 // ast transforms the AST representation of MML code into its internal representation after
-// validating it.
+// validating it. (Validation skipped now, considering the effectiveness of the currently
+// generated code.
 //
 // validating the AST is necessary, because the AST can be an input from a non-MML process and MML
 // does not know if it is of the expected structure, even if we know that the AST parser cannot
@@ -569,7 +571,8 @@ fn parsePrimitive(code) {
 // it.
 //
 fn ast(node) node -> errors.pass(
-	validateast.do
+	// only required for type checking the non-MML input:
+	// validateast.do
 	parse
 	codetree.edit(parsePrimitive)
 	codetree.edit(knownOrError)

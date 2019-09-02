@@ -1,8 +1,9 @@
 use (
-	. "lang"
-	  "read"
-	  "errors"
-	  "compile"
+	.           "lang"
+	            "read"
+	            "errors"
+	            "compile"
+	definitions "definitions3"
 )
 
 if len(args) != 2 {
@@ -11,6 +12,18 @@ if len(args) != 2 {
 
 args[1]
 	-> read.do
+	-> fn (m) {
+		let errs definitions.verify(m)
+		for e in errs {
+			log(e.error, e.code.ast.text)
+		}
+
+		if len(errs) > 0 {
+			return error("definition check failed")
+		}
+
+		return m
+	   }
 	-> errors.pass(compile.toGo)
 	-> errors.pass(stdout)
 	-> errors.only(fatal)

@@ -8,5 +8,11 @@ export fn (
 	index(key, s)      lists.fold(fn (i, s) {s..., [i[key]]: i}, {}, s)
 	values(s)          lists.map(fn (key) s[key], keys(s))
 	filterByKeys(k, s) s -> keys -> lists.intersect(k) -> lists.fold(fn (ki, f) {f..., [ki]: s[ki]}, {})
-	map(f, s)          s -> keys -> lists.map(fn (key) {key: f(s[key])}) -> merge
+	map(f, s)          s -> keys -> lists.map(fn (key) {[key]: f(s[key])}) -> merge
 )
+
+fn filter(f, s)
+	s
+	-> keys
+	-> lists.filter(fn (k) f(s[k]))
+	-> lists.fold(fn (k, f) {f..., [k]: s[k]}, {})

@@ -567,7 +567,7 @@ func parseInt(a []interface{}) interface{} {
 }
 
 var ParseInt = &Function{
-	F: parseInt,
+	F:         parseInt,
 	FixedArgs: 1,
 }
 
@@ -581,7 +581,7 @@ func parseFloat(a []interface{}) interface{} {
 }
 
 var ParseFloat = &Function{
-	F: parseFloat,
+	F:         parseFloat,
 	FixedArgs: 1,
 }
 

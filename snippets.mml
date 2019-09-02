@@ -18,7 +18,8 @@ export let moduleHead "
 		exports := make(map[string]interface{})
 
 		var c interface{}
-		mml.Nop(c)
+		var f *mml.Function
+		mml.Nop(c, f)
 "
 
 export let moduleFooter "

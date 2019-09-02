@@ -8,7 +8,33 @@ use (
 	  "codetree"
 )
 
-fn primitive(code) string(code.value)
+fn context() {
+	scope: {definitions: {}}
+}
+
+fn extend(ctx) {
+	ctx...
+	scope: {
+		parent:      ctx.scope
+		definitions: {}
+	}
+}
+
+fn inParentScope(name, ctx) {
+	fn defined(scope)
+		has("parent", scope) && (
+			has(name, scope.parent.definitions) ||
+			defined(scope.parent)
+		)
+	return defined(ctx.scope)
+}
+
+fn define(name, ctx) {
+	ctx.scope.definitions[name] = true
+	return ctx
+}
+
+fn primitive(_, code) string(code.value)
 
 let (
 	intLiteral   primitive
@@ -16,13 +42,13 @@ let (
 	boolLiteral  primitive
 )
 
-fn stringLiteral(s) formats("\"%s\"", strings.escape(s.value))
+fn stringLiteral(ctx, s) formats("\"%s\"", strings.escape(s.value))
 
-fn symbol(s) formats("_%s", s.name)
+fn symbol(ctx, s) formats("_%s", s.name)
 
-fn spread(s) formats("%s.(*mml.List).Values...", do(s.value))
+fn spread(ctx, s) formats("%s.(*mml.List).Values...", do(ctx, s.value))
 
-fn list(l) {
+fn list(ctx, l) {
 	fn (
 		isSpread(c)     len(c) > 3 && c[len(c) - 3:] == "..."
 		selectSpread(c) isSpread(c) ? {spread: c} : c
@@ -66,18 +92,18 @@ fn list(l) {
 		appendSimples(code, group.simple)
 
 	return l.values
-		-> map(do)
+		-> map(do(ctx))
 		-> map(selectSpread)
 		-> groupSpread
 		-> appendGroups
 		-> fn (c) formats("&mml.List{Values: %s}", c)
 }
 
-fn expressionKey(k) do(k.value)
+fn expressionKey(ctx, k) do(ctx, k.value)
 
-fn struct(s) {
+fn struct(ctx, s) {
 	fn entry(e) {
-		let v do(e.value)
+		let v do(ctx, e.value)
 		switch e.type {
 		case "spread":
 			let (
@@ -89,11 +115,11 @@ fn struct(s) {
 		default:
 			switch e.key.type {
 			case "string":
-				return formats("s.Values[%s] = %s;", do(e.key), v)
+				return formats("s.Values[%s] = %s;", do(ctx, e.key), v)
 			case "symbol":
 				return formats("s.Values[\"%s\"] = %s;", e.key.name, v)
 			default:
-				return formats("s.Values[%s.(string)] = %s;", do(e.key), v)
+				return formats("s.Values[%s.(string)] = %s;", do(ctx, e.key), v)
 			}
 		}
 	}
@@ -160,13 +186,14 @@ fn paramList(params, collectParam) {
 	return join(";\n", [paramsString..., collectParamString])
 }
 
-fn functionLiteral(f) {
+fn functionLiteral(ctx, f) {
 	let paramNames f.collectParam == "" ? f.params : [f.params..., f.collectParam]
 
 	let statementListFormat = "&mml.Function{
 		F: func(a []interface{}) interface{} {
 			var c interface{}
-			mml.Nop(c)
+			var f *mml.Function
+			mml.Nop(c, f)
 			%s;
 			mml.Nop(%s);
 			%s;
@@ -178,7 +205,8 @@ fn functionLiteral(f) {
 	let expressionFormat = "&mml.Function{
 		F: func(a []interface{}) interface{} {
 			var c interface{}
-			mml.Nop(c)
+			var f *mml.Function
+			mml.Nop(c, f)
 			%s;
 			mml.Nop(%s);
 			return %s
@@ -186,55 +214,60 @@ fn functionLiteral(f) {
 		FixedArgs: %d,
 	}"
 
+	let c extend(ctx)
+	for p in paramNames {
+		define(p, c)
+	}
+
 	return formats(
 		is({type: "statement-list"}, f.body) ? statementListFormat : expressionFormat
 		paramList(f.params, f.collectParam)
 		join(", ", map(strings.formatOne("_%s"), [paramNames...]))
-		do(f.body)
+		do(c, f.body)
 		len(f.params)
 	)
 }
 
-fn symbolIndex(i) formats("\"%s\"", i.symbol)
+fn symbolIndex(ctx, i) formats("\"%s\"", i.symbol)
 
-fn indexer(i) {
+fn indexer(ctx, i) {
 	switch {
 	case is({type: "range"}, i.index):
 		return formats(
 			"mml.RefRange(%s, %s, %s)"
-			do(i.expression)
-			is({from: any}, i.index) ? do(i.index.from) : "nil"
-			is({to: any}, i.index) ? do(i.index.to) : "nil"
+			do(ctx, i.expression)
+			is({from: any}, i.index) ? do(ctx, i.index.from) : "nil"
+			is({to: any}, i.index) ? do(ctx, i.index.to) : "nil"
 		)
 	default:
 		return formats(
 			"mml.Ref(%s, %s)"
-			do(i.expression)
-			do(i.index)
+			do(ctx, i.expression)
+			do(ctx, i.index)
 		)
 	}
 }
 
-fn application(a) formats(
+fn application(ctx, a) formats(
 	is({function: {type: "function"}}, a) ?
 		"(%s).Call((%s).Values)" :
 		"%s.(*mml.Function).Call((%s).Values)"
-	do(a.function)
-	list({values: a.args})
+	do(ctx, a.function)
+	list(ctx, {values: a.args})
 )
 
-fn unary(u)
+fn unary(ctx, u)
 	u.op == code.logicalNot ?
-	formats(is({type: "bool"}, u.arg) ? "!%s" : "!%s.(bool)", do(u.arg)) :
-	formats("mml.UnaryOp(%d, %s)", u.op, do(u.arg))
+	formats(is({type: "bool"}, u.arg) ? "!%s" : "!%s.(bool)", do(ctx, u.arg)) :
+	formats("mml.UnaryOp(%d, %s)", u.op, do(ctx, u.arg))
 
-fn binary(b) {
+fn binary(ctx, b) {
 	if !is(or(code.logicalAnd, code.logicalOr), b.op) {
 		return formats(
 			"mml.BinaryOp(%d, %s, %s)"
 			b.op
-			do(b.left)
-			do(b.right)
+			do(ctx, b.left)
+			do(ctx, b.right)
 		)
 	}
 
@@ -249,78 +282,87 @@ fn binary(b) {
 	)
 
 	let (
-		left  = b.left -> do -> convertIfNotBool(b.left)
-		right = b.right -> do -> convertIfNotBool(b.right)
+		left  = b.left -> do(ctx) -> convertIfNotBool(b.left)
+		right = b.right -> do(ctx) -> convertIfNotBool(b.right)
 		op    = b.op == code.logicalAnd ? "&&" : "||"
 	)
 
 	return formats("(%s %s %s)", left, op, right)
 }
 
-fn ternary(c) formats(
+fn ternary(ctx, c) formats(
 	"func () interface{} { c = %s; if c.(bool) { return %s } else { return %s } }()"
-	do(c.condition)
-	do(c.consequent)
-	do(c.alternative)
+	do(ctx, c.condition)
+	do(ctx, c.consequent)
+	do(ctx, c.alternative)
 )
 
-fn ifStatement(c)
-	is({alternative: any}, c) ?
-	formats(
-		"c = %s; if c.(bool) { %s } else { %s }"
-		do(c.condition)
-		do(c.consequent)
-		do(c.alternative)
-	) :
-	formats(
-		"c = %s; if c.(bool) { %s }"
-		do(c.condition)
-		do(c.consequent)
+fn ifStatement(ctx, c) {
+	let (
+		ct extend(ctx)
+		cn do(ct, c.condition)
+		cq do(ct, c.consequent)
+		ia is({alternative: any}, c)
+		at ia ? do(ct, c.alternative) : ""
+		ft ia ? "c = %s; if c.(bool) { %s } else { %s }" : "c = %s; if c.(bool) { %s }"
 	)
 
-fn cond(c) c.ternary ? ternary(c) : ifStatement(c)
+	return ia ? formats(ft, cn, cq, at) : formats(ft, cn, cq)
+}
 
-// TODO: test receive definition
-fn caseBlock(c) formats("case %s:\n%s", do(c.expression), do(c.body))
+fn cond(ctx, c) c.ternary ? ternary(ctx, c) : ifStatement(ctx, c)
 
-fn switchStatement(s) {
+// TODO:
+// - test receive definition
+// - test receive definition shadowing
+fn caseBlock(ctx, c) {
+	let (
+		ct extend(ctx)
+		e  do(ct, c.expression)
+		b  do(ct, c.body)
+	)
+
+	return formats("case %s:\n%s", e, b)
+}
+
+fn switchStatement(ctx, s) {
 	let (
 		hasDefault  len(s.defaultStatements.statements) > 0
-		cases       s.cases -> map(do)
-		def         hasDefault ? do(s.defaultStatements) : ""
+		cases       s.cases -> map(do(ctx))
+		def         hasDefault ? do(ctx, s.defaultStatements) : ""
 		defaultCode hasDefault ? formats("default:\n%s", def) : ""
 	)
 
 	return formats(
 		"switch %s {\n%s\n}"
-		is({expression: any}, s) ? do(s.expression) : ""
+		is({expression: any}, s) ? do(ctx, s.expression) : ""
 		(hasDefault ? [cases..., defaultCode] : cases) -> join("\n")
 	)
 }
 
-fn sendStatement(s) formats("%s <- %s", do(s.channel), do(s.value))
+fn sendStatement(ctx, s) formats("%s <- %s", do(ctx, s.channel), do(ctx, s.value))
 
-fn receiveExpression(r) formats("<-%s", do(r.channel))
+fn receiveExpression(ctx, r) formats("<-%s", do(ctx, r.channel))
 
-fn goStatement(g) formats("go %s", do(g.application))
+fn goStatement(ctx, g) formats("go %s", do(ctx, g.application))
 
-fn deferStatement(d) formats(
+fn deferStatement(ctx, d) formats(
 	is({application: {function: {type: "function"}}}, d) ?
-		"c = (%s); defer c.Call((%s).Values)" :
+		"f = (%s); defer f.Call((%s).Values)" :
 		"defer %s.(*mml.Function).Call((%s).Values)"
-	do(d.application.function)
-	list({values: d.application.args})
+	do(ctx, d.application.function)
+	list(ctx, {values: d.application.args})
 )
 
-fn selectStatement(s)
+fn selectStatement(ctx, s)
 	s.cases
-	-> map(do)
+	-> map(do(ctx))
 	-> fn (c) (
 		s.hasDefault ?
 		[
 			c...
 			s.defaultStatements
-				-> do
+				-> do(ctx)
 				-> strings.formatOne("default:\n%s")
 		] :
 		c
@@ -328,7 +370,7 @@ fn selectStatement(s)
 	-> join("\n")
 	-> strings.formatOne("func() interface{} {\nselect {\n%s\n} }()")
 
-fn rangeOver(r) {
+fn rangeOver(ctx, r) {
 	fn infiniteCounter() formats(
 		"_%s := 0; true; _%s++"
 		r.symbol
@@ -338,20 +380,20 @@ fn rangeOver(r) {
 	fn withRangeExpression() formats(
 		"_%s := %s; %s; _%s++"
 		r.symbol
-		has("from", r.expression) ? do(r.expression.from) : "0"
+		has("from", r.expression) ? is({type: "int"}, r.expression.from) ? do(ctx, r.expression.from) : do(ctx, r.expression.from) + ".(int)" : "0"
 		has("to", r.expression) ?
-			formats("_%s < %s.(int)", r.symbol, do(r.expression.to)) :
+			formats("_%s < %s.(int)", r.symbol, do(ctx, r.expression.to)) :
 			"true"
 		r.symbol
 	)
 
 	// TODO:
 	// - should work for struct, too
-	// - the arg should be called with nop() (only if don't check in advance?)
+	// - the arg should be called with nop() (only if not checking in advance?)
 	fn listStyleRange() formats(
 		"_, _%s := range %s.(*mml.List).Values"
 		r.symbol
-		do(r.expression)
+		do(ctx, r.expression)
 	)
 
 	switch {
@@ -365,57 +407,61 @@ fn rangeOver(r) {
 }
 
 fn (
-	breakStatement(_)    "break"
-	continueStatement(_) "continue"
+	breakStatement(_, __)    "break"
+	continueStatement(_, __) "continue"
 )
 
-fn loop(l) formats(
-	"for %s {\n%s\n}"
-	has("expression", l) ? do(l.expression) : ""
-	do(l.body)
-)
+fn loop(ctx, l) {
+	let (
+		c extend(ctx)
+		e has("expression", l) ? do(c, l.expression) : ""
+		b do(c, l.body)
+	)
 
-fn definition(d)
+	return formats("for %s {\n%s\n}", e, b)
+}
+
+fn definition(ctx, d)
 	d.exported ?
 	formats(
 		"_%s = %s; exports[\"%s\"] = _%s"
 		d.symbol
-		do(d.expression)
+		do(define(d.symbol, ctx), d.expression)
 		d.symbol
 		d.symbol
 	) :
 	formats(
 		"_%s = %s"
 		d.symbol
-		do(d.expression)
+		do(define(d.symbol, ctx), d.expression)
 	)
 
-fn definitionGroup(g) g.definitions -> map(do) -> join(";\n")
+fn definitionGroup(ctx, g) g.definitions -> map(do(ctx)) -> join(";\n")
 
-fn assign(a)
+fn assign(ctx, a)
 	a.capture.type == "symbol" ?
 	formats(
-		"%s = %s"
-		do(a.capture)
-		do(a.value)
+		"func() interface{} { %s = %s; return nil }()"
+		do(ctx, a.capture)
+		do(ctx, a.value)
 	) :
 	formats(
 		"mml.SetRef(%s, %s, %s)"
-		do(a.capture.expression)
-		do(a.capture.index)
-		do(a.value)
+		do(ctx, a.capture.expression)
+		do(ctx, a.capture.index)
+		do(ctx, a.value)
 	)
 
-fn ret(r) has("value", r) ?
-	formats("return %s", do(r.value)) :
+fn ret(ctx, r) has("value", r) ?
+	formats("return %s", do(ctx, r.value)) :
 	"return nil"
 
-fn checkRet(r) formats(
+fn checkRet(ctx, r) formats(
 	"if v := %s; mml.IsError.F([]interface{}{v}).(bool) { return v }"
-	do(r.value)
+	do(ctx, r.value)
 )
 
-fn useStatement(u) {
+fn useStatement(ctx, u) {
 	switch {
 	case is({capture: "."}, u):
 		let statement formats(
@@ -424,6 +470,15 @@ fn useStatement(u) {
 			u.path.value
 		)
 
+		let names = u.module.body
+			-> getDefinitions
+			-> filter(is({exported: true}))
+			-> map(structs.get("symbol"))
+
+		for name in names {
+			define(name, ctx)
+		}
+
 		let assigns map(fn (name)
 			formats(
 				"_%s = __%s.Values[\"%s\"]"
@@ -431,21 +486,20 @@ fn useStatement(u) {
 				code.getModuleName(u.path.value)
 				name
 			)
-			u.module.body
-			-> getDefinitions
-			-> filter(is({exported: true}))
-			-> map(structs.get("symbol"))
+			names
 		)
 		-> join(";\n")
 
 		return joins(";", statement, assigns)
 	case is({capture: any}, u):
+		define(u.capture, ctx)
 		return formats(
 			"_%s = mml.Modules.Use(\"%s\")"
 			u.capture
 			u.path.value
 		)
 	default:
+		define(u.path.value, ctx)
 		return formats(
 			"_%s = mml.Modules.Use(\"%s\")"
 			code.getModuleName(u.path.value)
@@ -454,25 +508,30 @@ fn useStatement(u) {
 	}
 }
 
-fn useList(u) u.uses -> map(do) -> join(";\n")
+fn useList(ctx, u) u.uses -> map(do(ctx)) -> join(";\n")
 
-fn module(m) joins(
+fn module(ctx, m) joins(
 	"\n"
 	formats("modulePath = \"%s\"", m.path)
 	snippets.moduleHead
-	do(m.body)
+	do(extend(ctx), m.body)
 	snippets.moduleFooter
 )
 
-fn statementList(l) {
+fn statementList(ctx, l) {
 	let (
 		scope      getScope(l)
-		scopeNames scope -> map(bind(strings.formats, "_%s")) -> join(", ")
-		statements map(do, l.statements) -> join(";\n")
+		scopeNames scope -> map(bind(formats, "_%s")) -> join(", ")
+		statements l.statements -> map(do(ctx)) -> join(";\n")
 	)
 
 	let scopeDefs = scope
-		-> map(fn (v) formats("var _%s interface{}", v))
+		-> map(
+			fn (name)
+				inParentScope(name, ctx) ?
+				formats("var _%s interface{} = _%s", name, name) :
+				formats("var _%s interface{}", name)
+		)
 		-> join(";\n")
 
 	return formats(
@@ -483,87 +542,89 @@ fn statementList(l) {
 	)
 }
 
-fn do(code) {
+fn do(ctx, code) {
 	switch {
 	case code.type == "int":
-		return intLiteral(code)
+		return intLiteral(ctx, code)
 	case code.type == "float":
-		return floatLiteral(code)
+		return floatLiteral(ctx, code)
 	case code.type == "string":
-		return stringLiteral(code)
+		return stringLiteral(ctx, code)
 	case code.type == "bool":
-		return boolLiteral(code)
+		return boolLiteral(ctx, code)
 	}
 
 	switch code.type {
 	case "comment":
 		return ""
+	case "line-comment":
+		return ""
 	case "symbol":
-		return symbol(code)
+		return symbol(ctx, code)
 	case "list":
-		return list(code)
+		return list(ctx, code)
 	case "expression-key":
-		return expressionKey(code)
+		return expressionKey(ctx, code)
 	case "struct":
-		return struct(code)
+		return struct(ctx, code)
 	case "function":
-		return functionLiteral(code)
+		return functionLiteral(ctx, code)
 	case "symbol-index":
-		return symbolIndex(code)
+		return symbolIndex(ctx, code)
 	case "indexer":
-		return indexer(code)
+		return indexer(ctx, code)
 	case "spread":
-		return spread(code)
+		return spread(ctx, code)
 	case "application":
-		return application(code)
+		return application(ctx, code)
 	case "unary":
-		return unary(code)
+		return unary(ctx, code)
 	case "binary":
-		return binary(code)
+		return binary(ctx, code)
 	case "cond":
-		return cond(code)
+		return cond(ctx, code)
 	case "switch-case":
-		return caseBlock(code)
+		return caseBlock(ctx, code)
 	case "switch-statement":
-		return switchStatement(code)
+		return switchStatement(ctx, code)
 	case "send-statement":
-		return sendStatement(code)
+		return sendStatement(ctx, code)
 	case "receive-expression":
-		return receiveExpression(code)
+		return receiveExpression(ctx, code)
 	case "go-statement":
-		return goStatement(code)
+		return goStatement(ctx, code)
 	case "defer-statement":
-		return deferStatement(code)
+		return deferStatement(ctx, code)
 	case "select-case":
-		return caseBlock(code)
+		return caseBlock(ctx, code)
 	case "select-statement":
-		return selectStatement(code)
+		return selectStatement(ctx, code)
 	case "range-over":
-		return rangeOver(code)
+		return rangeOver(ctx, code)
 	case "break":
-		return breakStatement(code)
+		return breakStatement(ctx, code)
 	case "continue":
-		return continueStatement(code)
+		return continueStatement(ctx, code)
 	case "loop":
-		return loop(code)
+		return loop(ctx, code)
 	case "definition":
-		return definition(code)
+		return definition(ctx, code)
 	case "definition-group":
-		return definitionGroup(code)
+		return definitionGroup(ctx, code)
 	case "assign":
-		return assign(code)
+		return assign(ctx, code)
 	case "ret":
-		return ret(code)
+		return ret(ctx, code)
 	case "check-ret":
-		return checkRet(code)
+		return checkRet(ctx, code)
 	case "use":
-		return useStatement(code)
+		return useStatement(ctx, code)
 	case "use-list":
-		return useList(code)
+		return useList(ctx, code)
 	case "module":
-		return module(code)
+		return module(ctx, code)
 	case "statement-list":
-		return statementList(code)
+		return statementList(ctx, code)
 	default:
 		log("unexpected code:", code.type, code)
 		return ""
@@ -589,7 +650,7 @@ export fn toGo(module) joins(
 	snippets.initHead
 	module
 		-> allModules
-		-> map(do)
+		-> map(do(code.builtin -> keys -> fold(define, context())))
 		-> join("\n")
 	snippets.initFooter
 	snippets.mainHead

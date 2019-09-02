@@ -1,0 +1,633 @@
+use (
+    . "lang"
+      "structs"
+      "code"
+      "lists"
+)
+
+// None of the current builtins are higher order functions.
+// (Maybe interops should never accept function arguments, nor return higher order functions.)
+fn builtins() {
+    definitions: fold(
+        fn (key, defs) {defs..., [key]: none()}
+        {}
+        keys(code.builtin)
+    )
+    modules: {}
+}
+
+fn undefined(symbol) {
+    error: "undefined"
+    code:  symbol
+}
+
+fn duplicate(d) {
+    error: "duplicate definition"
+    code:  d
+}
+
+fn (
+      value(options)      ~{options: options -> uniq(eq)}
+      options(value)      value.options
+    ~ addValue(to, from)  to.options = concats(to.options, from.options) -> uniq(eq)
+      mergeValues(values) value(values -> map(structs.get("options")) -> flat -> uniq(eq))
+)
+
+fn none() value([])
+
+let interop = value([{type: "interop"}])
+
+fn scope(parent) {
+    definitions: ~{}
+    parent:      parent
+    modules:     {}
+}
+
+fn context() ~{
+    prescan:    false
+    prescanned: ~{}
+    scanned:    ~{}
+    scope:      {}
+    returns:    none()
+    deferred:   []
+    stack:      []
+    errors:     []
+    modules:    ~{}
+    functions:  []
+}
+
+fn (
+    prescan(ctx)                ctx.prescan
+    setPrescan(ctx)             ctx.prescan = true
+    modulePrescanned(path, ctx) has(path, ctx.prescanned)
+    moduleScanned(path, ctx)    has(path, ctx.scanned)
+    setFull(ctx)                ctx.prescan = false
+    currentScope(ctx)           ctx.scope
+    extendFrom(from, ctx)       ctx.scope = scope(from)
+    setScope(s, ctx)            ctx.scope = s
+    setModuleScope(s, ctx)      ctx.scope = {s..., exports: ~{}}
+    moduleScope(ctx)            has("exports", ctx.scope)
+    extend(ctx)                 extendFrom(ctx.scope, ctx)
+    pop(ctx)                    ctx.scope = ctx.scope.parent
+    define(name, v, ctx)        ctx.scope.definitions[name] = v
+)
+
+fn defineExport(name, v, ctx) {
+    define(name, v, ctx)
+    ctx.scope.exports[name] = true
+}
+
+fn definedInCurrent(name, ctx) has(name, ctx.scope.definitions)
+
+fn defined(name, ctx) {
+    fn scopeDefined(scope)
+        has(name, scope.definitions) ||
+        has("parent", scope) &&
+        scopeDefined(scope.parent)
+    return scopeDefined(ctx.scope)
+}
+
+fn get(name, ctx) {
+    fn getScopeValues(scope)
+        has(name, scope.definitions) ?
+        scope.definitions[name] :
+        getScopeValues(scope.parent)
+    return getScopeValues(ctx.scope)
+}
+
+fn set(name, value, ctx) {
+    fn setScopeValues(scope)
+        has(name, scope.definitions) ?
+        addValue(scope.definitions[name], value) :
+        setScopeValues(scope.parent)
+    setScopeValues(ctx.scope)
+}
+
+fn isModule(name, ctx) {
+    fn isModuleInScope(scope)
+        has(name, scope.modules) ||
+        !has(name, scope.definitions) &&
+        has("parent", scope) &&
+        isModuleInScope(scope.parent)
+    return isModuleInScope(ctx.scope)
+}
+
+fn moduleRef(left, right) formats("%s.%s", left, right)
+
+fn defineModule(capture, exports, ctx) {
+    define(capture, exports, ctx)
+    ctx.scope.modules[capture] = true
+}
+
+fn firstFunction(code, args, ctx) {
+    // we know they're unique
+    fn setsEq(eq, left, right) {
+        if len(left) != len(right) {
+            return false
+        }
+
+        return every(fn (l) some(bind(eq, l), right), left)
+    }
+
+    let argsMatch setsEq(fn (left, right) setsEq(eq, options(left), options(right)))
+    return lists.first(
+        fn (f) f.function.code == code && argsMatch(f.args, args)
+        ctx.functions
+    ) -> map(structs.get("function"))
+}
+
+fn storeFunction(f, args, ctx) {
+    ctx.functions = [ctx.functions..., {function: f, args: args}]
+}
+
+fn (
+    currentReturns(ctx)  ctx.returns
+    addReturns(v, ctx)   addValue(ctx.returns, v)
+    setReturns(r, ctx)   ctx.returns = r
+    clearReturns(ctx)    ctx.returns = none()
+    currentDeferred(ctx) ctx.deferred
+)
+
+fn addDeferred(args, ctx) ctx.deferred = [ctx.deferred..., args]
+
+fn (
+    setDeferred(d, ctx)  ctx.deferred = d
+    clearDeferred(ctx)   ctx.deferred = []
+    onStack(a, f, ctx)   some(fn (frame) frame.application == a && frame.function == f, ctx.stack)
+    pushStack(a, f, ctx) ctx.stack = [ctx.stack..., {application: a, function: f}]
+    popStack(ctx)        ctx.stack = ctx.stack[:len(ctx.stack) - 1]
+    errors(ctx)          ctx.errors
+    addError(e, ctx)     ctx.errors = [ctx.errors..., e]
+    hasModule(path, ctx) has(path, ctx.modules)
+    getModule(path, ctx) ctx.modules[path]
+)
+
+fn setModule(path, m, ctx) {
+    ctx.modules[path] = m
+    ctx.prescanned[path] = true
+}
+
+fn setModuleScanned(path, ctx) {
+    ctx.scanned[path] = true
+}
+
+fn moduleExports(m) m.exports -> keys -> fold(fn (name, exports) {
+    exports...
+    [name]: m.definitions[name]
+}, {})
+
+fn primitive(ctx, code) none()
+
+fn symbol(ctx, s) {
+    if !defined(s.name, ctx) {
+        addError(undefined(s), ctx)
+        return none()
+    }
+
+    return get(s.name, ctx)
+}
+
+fn (
+    spread(ctx, s)        do(ctx, s.value)
+    expressionKey(ctx, k) do(ctx, k.value)
+)
+
+fn list(ctx, l) l.values -> map(do(ctx)) -> mergeValues
+
+fn entry(ctx, e) {
+    if is({type: "expression-key"}, e.key) {
+        do(ctx, e.key)
+    }
+
+    return do(ctx, e.value)
+}
+
+fn struct(ctx, s) s.entries -> map(do(ctx)) -> mergeValues
+
+fn ret(ctx, r) {
+    if has("value", r) {
+        addReturns(do(ctx, r.value), ctx)
+    }
+
+    return none()
+}
+
+// in the first step, we only do the prescan
+
+fn statementList(ctx, l) {
+    for s in l.statements {
+        do(ctx, s)
+    }
+
+    return none()
+}
+
+// analysis:
+// - apply its arguments
+// - return its arguments
+// - read from mutable variables
+// - write to mutable variables
+// - read from mutable values
+// - write to mutable values
+// - should be done in apply
+// - do we actually need to pass in the arguments?
+// implementation:
+// - everything is function this way
+// model:
+// - current arguments
+// - is something an argument
+// - return arguments
+// maybe delayed definitions is the solution
+fn functionLiteral(ctx, f) {
+    let fc = firstFunction(f, [], ctx)
+    if len(fc) > 0 {
+        return value([fc[0]])
+    }
+
+    let c = {f..., code: f, definitionScope: currentScope(ctx)}
+    storeFunction(c, [], ctx)
+    return value([c])
+}
+
+fn rangeExpression(ctx, r) {
+    if has("from", r) {
+        do(ctx, r.from)
+    }
+
+    if has("to", r) {
+        do(ctx, r.to)
+    }
+
+    return none()
+}
+
+fn indexer(ctx, i) {
+    let isModuleRef = 
+        is({type: "symbol"}, i.expression) &&
+        is({type: "symbol-index"}, i.index) &&
+        isModule(i.expression.name, ctx)
+
+    if isModuleRef {
+        let ref = moduleRef(i.expression.name, i.index.symbol)
+        if !defined(ref, ctx) {
+            addError(undefined(i), ctx)
+            return none()
+        }
+
+        return get(ref, ctx)
+    }
+
+    do(ctx, i.index)
+    return do(ctx, i.expression)
+}
+
+fn applyFunction(ctx, args, function) {
+    let (
+        returns       = currentReturns(ctx)
+        deferred      = currentDeferred(ctx)
+        originalScope = currentScope(ctx)
+    )
+
+    pushStack(args.application, function, ctx)
+    clearReturns(ctx)
+    clearDeferred(ctx)
+    extendFrom(function.definitionScope, ctx)
+    defer fn () {
+        setScope(originalScope, ctx)
+        setDeferred(deferred, ctx)
+        setReturns(returns, ctx)
+        popStack(ctx)
+    }()
+
+    let (
+        paramsFixed = len(args.fixed) >= len(function.params)
+        fixedCount  = paramsFixed ? len(function.params) : len(args.fixed)
+        fixed       = args.fixed[:fixedCount]
+        remaining   = mergeValues([args.fixed[fixedCount:]..., args.spread])
+    )
+
+    for i in :fixedCount {
+        define(function.params[i], fixed[i], ctx)
+    }
+
+    if !args.hasSpread && !paramsFixed {
+        let fc = firstFunction(args.application, fixed, ctx)
+        if len(fc) > 0 {
+            return value([fc[0]])
+        }
+
+        let f = {
+            function...
+            code:            args.application
+            params:          function.params[fixedCount:]
+            definitionScope: currentScope(ctx)
+        }
+
+        storeFunction(f, fixed, ctx)
+        return value([f])
+    }
+
+    if !paramsFixed {
+        for p in function.params[fixedCount:] {
+            define(p, remaining, ctx)
+        }
+    }
+
+    if function.collectParam != "" {
+        define(function.collectParam, remaining, ctx)
+    }
+
+    let value do(ctx, function.body)
+    for d in currentDeferred(ctx) {
+        applyResolved(ctx, d)
+    }
+
+    return mergeValues([value, currentReturns(ctx)])
+}
+
+fn applyResolved(ctx, args)
+    args.functions
+    -> map(applyFunction(ctx, args))
+    -> mergeValues
+
+fn applicationArgs(ctx, a) {
+    // TODO: branches where possible should be considered a shared stack entry. otherwise it will be
+    // exponential
+
+    let functions =
+        a.function
+        -> do(ctx)
+        -> options
+        -> filter(is({type: "function"}))
+        -> filter(fn (f) !onStack(a, f, ctx))
+
+    let (
+        firstSpread = lists.indexOf(is({type: "spread"}), a.args)
+        hasSpread   = firstSpread >= 0
+        fixed       = (hasSpread ? a.args[:firstSpread] : a.args) -> map(do(ctx))
+        spread      = (hasSpread ? a.args[firstSpread:] : []) -> map(do(ctx)) -> mergeValues
+    )
+
+    return {
+        application: a
+        functions:   functions
+        fixed:       fixed
+        spread:      spread
+        hasSpread:   hasSpread
+    }
+}
+
+fn application(ctx, a) {
+    log(a.ast.text)
+    return applyResolved(ctx, applicationArgs(ctx, a))
+}
+
+fn ternary(ctx, t) {
+    do(ctx, t.condition)
+    return mergeValues([do(ctx, t.consequent), do(ctx, t.alternative)])
+}
+
+fn scopedBlock(ctx, b) {
+    extend(ctx)
+    defer pop(ctx)
+    do(ctx, b)
+    return none()
+}
+
+fn ifStatement(ctx, i) {
+    do(ctx, i.condition)
+    scopedBlock(ctx, i.consequent)
+    if has("alternative", i) {
+        scopedBlock(ctx, i.alternative)
+    }
+
+    return none()
+}
+
+fn cond(ctx, c) c.ternary ? ternary(ctx, c) : ifStatement(ctx, c)
+
+fn caseBlock(ctx, c) {
+    do(ctx, c.expression)
+    do(ctx, c.body)
+    return none()
+}
+
+fn switchStatement(ctx, s) {
+    if has("expression", s) {
+        do(ctx, s.expression)
+    }
+
+    for c in s.cases {
+        scopedBlock(ctx, c)
+    }
+
+    scopedBlock(ctx, s.defaultStatements)
+    return none()
+}
+
+fn sendStatement(ctx, s) {
+    let (
+        c = do(ctx, s.channel)
+        v = do(ctx, s.value)
+    )
+
+    addValue(c, v)
+    return none()
+}
+
+fn receiveExpression(ctx, r) do(ctx, r.channel)
+
+fn selectStatement(ctx, s) {
+    for c in s.cases {
+        scopedBlock(ctx, c)
+    }
+
+    scopedBlock(ctx, s.defaultStatements)
+    return none()
+}
+
+fn goStatement(ctx, g) {
+    applyResolved(ctx, applicationArgs(ctx, g.application))
+    return none()
+}
+
+fn deferStatement(ctx, d) {
+    addDeferred(applicationArgs(ctx, d.application), ctx)
+    return none()
+}
+
+fn rangeOver(ctx, r) {
+    let expression = has("expression", r) ? do(ctx, r.expression) : none()
+    if has("symbol", r) {
+        define(r.symbol, expression, ctx)
+    }
+
+    return none()
+}
+
+fn loop(ctx, l) {
+    extend(ctx)
+    defer pop(ctx)
+    if has("expression", l) {
+        do(ctx, l.expression)
+    }
+
+    do(ctx, l.body)
+    return none()
+}
+
+fn assign(ctx, a) {
+    let (
+        v       = do(ctx, a.value)
+        capture = do(ctx, a.capture)
+    )
+
+    addValue(capture, v)
+    return none()
+}
+
+fn definition(ctx, d) {
+    if definedInCurrent(d.symbol, ctx) {
+        addError(duplicate(d), ctx)
+        return none()
+    }
+
+    let v do(ctx, d.expression)
+    if d.exported {
+        defineExport(d.symbol, v, ctx)
+    } else {
+        define(d.symbol, v, ctx)
+    }
+
+    return none()
+}
+
+fn definitionGroup(ctx, g) {
+    for d in g.definitions {
+        do(ctx, d)
+    }
+
+    return none()
+}
+
+fn useStatement(ctx, u) {
+    do(ctx, u.module)
+    let exports = moduleExports(getModule(u.path.value, ctx))
+    fn defineCapture(capture) {
+        let exportValues = exports -> structs.values -> mergeValues
+        defineModule(capture, exportValues, ctx)
+        for k in keys(exports) {
+            define(moduleRef(capture, k), exports[k], ctx)
+        }
+    }
+
+    switch {
+    case is({capture: "."}, u):
+        for name in keys(exports) {
+            define(name, exports[name], ctx)
+        }
+    case is({capture: any}, u):
+        defineCapture(u.capture)
+    default:
+        defineCapture(u.path.value)
+    }
+
+    return none()
+}
+
+fn useList(ctx, u) {
+    map(do(ctx), u.uses)
+    return none()
+}
+
+fn module(ctx, m) {
+    if modulePrescanned(m.path, ctx) {
+        return none()
+    }
+
+    let s currentScope(ctx)
+    defer setScope(s, ctx)
+    setModuleScope(scope(builtins()), ctx)
+    do(ctx, m.body)
+    setModule(m.path, currentScope(ctx), ctx)
+    return none()
+}
+
+fn do(ctx, code) {
+    switch code.type {
+    case "interop":
+        return interop
+    case "int":
+        return primitive(ctx, code)
+    case "float":
+        return primitive(ctx, code)
+    case "string":
+        return primitive(ctx, code)
+    case "symbol":
+        return symbol(ctx, code)
+    case "spread":
+        return spread(ctx, code)
+    case "list":
+        return list(ctx, code)
+    case "expression-key":
+        return expressionKey(ctx, code)
+    case "entry":
+        return entry(ctx, code)
+    case "struct":
+        return struct(ctx, code)
+    case "ret":
+        return ret(ctx, code)
+    case "statement-list":
+        return statementList(ctx, code)
+    case "function":
+        return functionLiteral(ctx, code)
+    case "range":
+        return rangeExpression(ctx, code)
+    case "indexer":
+        return indexer(ctx, code)
+    case "application":
+        return application(ctx, code)
+    case "cond":
+        return cond(ctx, code)
+    case "switch-case":
+        return caseBlock(ctx, code)
+    case "switch-statement":
+        return switchStatement(ctx, code)
+    case "send-statement":
+        return sendStatement(ctx, code)
+    case "receive-expression":
+        return receiveExpression(ctx, code)
+    case "select-case":
+        return caseBlock(ctx, code)
+    case "select-statement":
+        return selectStatement(ctx, code)
+    case "go-statement":
+        return goStatement(ctx, code)
+    case "defer-statement":
+        return deferStatement(ctx, code)
+    case "range-over":
+        return rangeOver(ctx, code)
+    case "loop":
+        return loop(ctx, code)
+    case "assign":
+        return assign(ctx, code)
+    case "definition":
+        return definition(ctx, code)
+    case "definition-group":
+        return definitionGroup(ctx, code)
+    case "module":
+        return module(ctx, code)
+    case "use":
+        return useStatement(ctx, code)
+    case "use-list":
+        return useList(ctx, code)
+    default:
+        return none()
+    }
+}
+
+export fn verify(module) {
+    let ctx context()
+    do(ctx, module)
+    return errors(ctx)
+}

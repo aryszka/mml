@@ -8,7 +8,7 @@ use (
 	  "codetree"
 )
 
-fn~ readModule(reading, modules, path) {
+fn readModule(reading, modules, path) {
 	if has(path, reading) {
 		return error("circular module reference")
 	}
@@ -28,35 +28,74 @@ fn~ readModule(reading, modules, path) {
 		-> codetree.filter(is({type: "use"}))
 		-> map(structs.get("path"))
 		-> map(structs.get("value"))
-
+	
 	let readingUses = {reading..., [path]: true}
-	let nextModules = fold(
-		fn~ (path, modules) isError(modules) ?
+	return fold(
+		fn (path, modules) isError(modules) ?
 			modules :
 			readModule(readingUses, modules, path)
-		modules
+		{modules..., [path]: moduleCode}
 		usePaths
 	)
-	check nextModules
+}
 
-	fn setUsedModule(code)
-		is({type: "use"}, code) ?
-		{code..., module: nextModules[code.path.value]} :
-		code
-
-	let withUsedModules = codetree.edit(setUsedModule, moduleCode)
-	return {
-		nextModules...
-		[path]: {
-			withUsedModules...
-			path: path
+fn setPaths(modules)
+	modules
+	-> keys
+	-> fold(
+		fn (path, withPath) {
+			withPath...
+			[path]: {
+				modules[path]...
+				path: path
+			}
 		}
+		{}
+	)
+
+fn setUsedModules(setting, done, path, modules) {
+	if has(path, setting) {
+		return error("circular module reference")
+	}
+
+	if has(path, done) {
+		return done
+	}
+
+	if !has(path, modules) {
+		return error("missing module")
+	}
+
+	let uses = modules[path] -> codetree.filter(is({type: "use"})) -> map(structs.get("path")) -> map(structs.get("value"))
+	let settingUses = {setting..., [path]: true}
+	let nextDone = fold(
+		fn (u, done)
+			isError(done) ?
+			done :
+			setUsedModules(settingUses, done, u, modules)
+		done
+		uses
+	)
+	check nextDone
+
+	return {
+		nextDone...
+		[path]: codetree.edit(fn (c) is({type: "use"}, c) ? {c..., module: nextDone[c.path.value]} : c, modules[path])
 	}
 }
 
-export fn~ do(path) path -> errors.pass(
+export fn do(path) path -> errors.pass(
 	paths.normalize
 	paths.trimExtension
 	readModule({}, {})
+	setPaths
+	setUsedModules({}, {}, path)
 	structs.get(path)
+)
+
+export fn fromCode(entryPath, modules) modules -> errors.pass(
+	structs.map(parse.do)
+	setPaths
+	setUsedModules({}, {}, entryPath)
+	structs.get(entryPath)
 )

@@ -1,0 +1,7 @@
+use "strings"
+
+fn callHello(name) {
+	stdout(strings.formats("Hello, %s!\n", name))
+}
+
+callHello("Thorby")

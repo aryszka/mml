@@ -1,0 +1,4 @@
+let a ~{}
+(fn () a).foo = "bar"
+stdout(a.foo)
+stdout("\n")

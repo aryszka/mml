@@ -47,6 +47,7 @@ float:nows          = decimal-digit+ "." decimal-digit* exponent?
                     | "." decimal-digit+ exponent?
                     | decimal-digit+ exponent;
 
+// TODO: a verbatim string would be nice after all
 string:nows = "\"" ([^\\"] | "\\" .)* "\"";
 
 bool:alias = true | false;
@@ -62,6 +63,7 @@ list-fact:alias = "[" list-sep? expression-list? list-sep? "]";
 list            = list-fact;
 mutable-list    = "~" nl* list-fact;
 
+// evaluation order of key and value undefined
 expression-key    = "[" nl* expression nl* "]";
 entry             = (symbol | string | expression-key) nl* ":" nl* expression;
 entry-list:alias  = (entry | spread) (list-sep (entry | spread))*;
@@ -174,6 +176,7 @@ binary:alias = binary0
              | binary3
              | binary4;
 
+// TODO: force value
 ternary = expression nl* "?" nl* expression nl* ":" nl* expression;
 
 chainingOperand:alias = primary-expression
@@ -193,6 +196,18 @@ if-statement = if nl* expression nl* block
                (nl* else nl* if nl* expression nl* block)*
                (nl* else nl* block)?;
 
+// TODO:
+// - a simpler switch for expressions
+//
+// 	switch a {
+// 	b:       c
+// 	d:       e
+// 	default: f
+// 	}
+//
+// - comments in case blocks
+// - empty cases broken
+//
 case-block        = case nl* expression nl* ":" sep? statement-list?;
 default-block     = default nl* ":" sep? statement-list?;
 case-blocks:alias = case-block (sep case-block)*;
@@ -284,8 +299,8 @@ export-statement = export nl* definition;
 
 statement:alias       = ret
                       | check-ret
-                      | application
                       | chaining
+                      | application
                       | if-statement
                       | switch-statement
                       | send-statement

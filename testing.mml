@@ -1,0 +1,54 @@
+use . "lang"
+
+let ~ testEnv {}
+
+/*
+type suite fn ~ (string, fn ~ () void) void
+*/
+
+fn runTest(t) {
+	log("[test]", t.title)
+	let result t.run()
+	if isError(result) {
+		fatal(result)
+	}
+
+	if !result {
+		fatal("test failed")
+	}
+}
+
+export fn suite(title, tests) {
+	testEnv = ~{parent: testEnv, tests: [], only: []}
+	defer (fn () testEnv = testEnv.parent)()
+	tests()
+	let run len(testEnv.only) > 0 ? testEnv.only : testEnv.tests
+	log("[suite]", title)
+	for t in run {
+		runTest(t)
+	}
+}
+
+/*
+type (
+	alias test       fn ~ () error|bool
+	alias defineTest fn ~ (string, test) void
+	      test       defineTest
+	      only       defineTest
+	      skip       defineTest
+)
+*/
+
+export fn test(title, t) {
+	if has("parent", testEnv) {
+		testEnv.tests = [testEnv.tests..., {title: title, run: t}]
+		return
+	}
+
+	runTest({title: title, run: t})
+}
+
+export fn (
+	only(title, t) testEnv.only = [testEnv.only..., {title: title, run: t}]
+	skip(_, __)    {;}
+)

@@ -1,0 +1,848 @@
+use (
+	. "lang"
+	  "structs"
+	  "code"
+	  "lists"
+)
+
+fn builtins() {
+	definitions: fold(
+		fn (key, defs) {defs..., [key]: interop}
+		{}
+		keys(code.builtin)
+	)
+}
+
+fn undefined(symbol) {
+	error: "undefined"
+	code:  symbol
+}
+
+fn duplicate(d) {
+	error: "duplicate definition"
+	code:  d
+}
+
+fn (
+	  value(options)         ~{options: options -> uniq(eq)}
+	  options(value)         value.options
+	~ addValue(to, from)     to.options = concats(to.options, from.options) -> uniq(eq)
+	  mergeValues(...values) value(values -> map(structs.get("options")) -> flat -> uniq(eq))
+)
+
+fn none() value([])
+
+let interop = value([{type: "interop"}])
+
+fn scope(parent) {
+	definitions: ~{}
+	parent:      parent
+}
+
+fn context() ~{
+	prescan:    false
+	prescanned: ~{}
+	scanned:    ~{}
+	scope:      {}
+	returns:    none()
+	deferred:   []
+	stack:      []
+	errors:     []
+	modules:    ~{}
+}
+
+fn (
+	prescan(ctx)                ctx.prescan
+	setPrescan(ctx)             ctx.prescan = true
+	modulePrescanned(path, ctx) has(path, ctx.prescanned)
+	moduleScanned(path, ctx)    has(path, ctx.scanned)
+	setFull(ctx)                ctx.prescan = false
+	currentScope(ctx)           ctx.scope
+	extendFrom(from, ctx)       ctx.scope = scope(from)
+	setScope(s, ctx)            ctx.scope = s
+	setModuleScope(s, ctx)      ctx.scope = {s..., exports: ~{}}
+	moduleScope(ctx)            has("exports", ctx.scope)
+	extend(ctx)                 extendFrom(ctx.scope, ctx)
+	pop(ctx)                    ctx.scope = ctx.scope.parent
+	define(name, v, ctx)        {
+		// log("defining", len(keys(ctx.scope.definitions)), name)
+		ctx.scope.definitions[name] = v
+	}
+)
+
+fn defineExport(name, v, ctx) {
+	define(name, v, ctx)
+	ctx.scope.exports[name] = true
+}
+
+fn definedInCurrent(name, ctx) has(name, ctx.scope.definitions)
+
+fn defined(name, ctx) {
+	fn scopeDefined(scope)
+		has(name, scope.definitions) ||
+		has("parent", scope) &&
+		scopeDefined(scope.parent)
+	return scopeDefined(ctx.scope)
+}
+
+fn get(name, ctx) {
+	fn getScopeValues(scope)
+		has(name, scope.definitions) ?
+		scope.definitions[name] :
+		getScopeValues(scope.parent)
+	return getScopeValues(ctx.scope)
+}
+
+fn set(name, value, ctx) {
+	fn setScopeValues(scope)
+		has(name, scope.definitions) ?
+		addValue(scope.definitions[name], value) :
+		setScopeValues(scope.parent)
+	setScopeValues(ctx.scope)
+}
+
+fn (
+	currentReturns(ctx)  ctx.returns
+	addReturns(v, ctx)   addValue(ctx.returns, v)
+	setReturns(r, ctx)   ctx.returns = r
+	clearReturns(ctx)    ctx.returns = none()
+	currentDeferred(ctx) ctx.deferred
+)
+
+fn addDeferred(application, function, args, ctx) ctx.deferred = [
+	ctx.deferred...
+	{application: application, function: function, args: args}
+]
+
+fn (
+	setDeferred(d, ctx)  ctx.deferred = d
+	clearDeferred(ctx)   ctx.deferred = []
+	onStack(a, f, ctx)   some(fn (frame) frame.application == a/* && frame.function == f*/, ctx.stack)
+	pushStack(a, f, ctx) ctx.stack = [ctx.stack..., {application: a, function: f}]
+	popStack(ctx)        ctx.stack = ctx.stack[:len(ctx.stack) - 1]
+	errors(ctx)          ctx.errors
+	addError(e, ctx)     ctx.errors = [ctx.errors..., e]
+	hasModule(path, ctx) has(path, ctx.modules)
+	getModule(path, ctx) ctx.modules[path]
+)
+
+fn setModule(path, m, ctx) {
+	ctx.modules[path] = m
+	ctx.prescanned[path] = true
+}
+
+fn setModuleScanned(path, ctx) {
+	ctx.scanned[path] = true
+}
+
+fn moduleExports(m) m.exports -> keys -> fold(fn (name, exports) {
+	exports...
+	[name]: m.definitions[name]
+}, {})
+
+fn primitive(p, ctx) value([p.value])
+
+fn symbol(s, ctx) {
+	if !defined(s.name, ctx) {
+		addError(undefined(s), ctx)
+		return none()
+	}
+
+	return get(s.name, ctx)
+}
+
+fn (
+	spread(s, ctx)        do(s.value, ctx)
+	expressionKey(k, ctx) do(k.value, ctx)
+)
+
+fn listValues(l, ctx) {
+	let result = ~{type: "list", values: [], ast: {text: "list value"}}
+	for v in l.values {
+		let vr = do(v, ctx)
+		switch {
+		case !is({type: "spread"}, v) && has("unknownIndex", result):
+			addValue(result.unknownIndex, vr)
+		case !is({type: "spread"}, v):
+			result.values = [result.values..., vr]
+		case has("unknownIndex", result) && is({type: "list"}, vr):
+			addValue(result.unknownIndex, mergeValues(vr.values...))
+			if has("unknownIndex", vr) {
+				addValue(result.unknownIndex, vr.unknownIndex)
+			}
+		case has("unknownIndex", result):
+			addValue(result.unknownIndex, vr)
+		case is({type: "list"}, vr):
+			result.values = [result.values..., vr.values...]
+			if has("unknownIndex", vr) {
+				result.unknownIndex = vr.unknownIndex
+			}
+		default:
+			result.unknownIndex = value(options(vr))
+		}
+	}
+
+	return {result...}
+}
+
+fn list(l, ctx) {
+	return value([listValues(l, ctx)])
+}
+
+fn addField(s, key, value) {
+	if has(key, s.values) {
+		addValue(s.values[key], value)
+	} else {
+		s.values[key] = value
+	}
+}
+
+fn mergeStructValues(s) {
+	let v = none()
+	for value in structs.values(s.values) {
+		addValue(v, value)
+	}
+
+	return v
+}
+
+fn initUnknownKeys(s) {
+	s.unknownKeys = mergeStructValues(s)
+}
+
+fn struct(s, ctx) {
+	let ~ result = ~{type: "struct", values: {}, ast: s.ast}
+	for e in s.entries {
+		if is({type: "spread"}, e) {
+			let er = do(e, ctx)
+			switch {
+			case has("unknownKeys", result) &&
+				is({type: "struct"}, er) &&
+				has("unknownKeys", er):
+				addValue(result.unknownKeys, er.unknownKeys)
+			case has("unknownKeys", result) && is({type: "struct"}, er):
+				addValue(result.unknownKeys, mergeStructValues(er))
+			case has("unknownKeys", result):
+				addValue(result.unknownKeys, er)
+			case is({type: "struct"}, er) && has("unknownKeys", er):
+				initUnknownKeys(result)
+				addValue(result.unknownKeys, er.unknownKeys)
+			case is({type: "struct"}, er):
+				for key in er.values {
+					result.values[key] = er.values[key]
+				}
+			default:
+				initUnknownKeys(result)
+				addValue(result.unknownKeys, er)
+			}
+
+			continue
+		}
+
+		if is({unknownKeys: any}, result) {
+			if is({type: "expression-key"}, e.key) {
+				do(e.key, ctx)
+			}
+
+			addValue(result.unknownKeys, do(e.value, ctx))
+			continue
+		}
+
+		let value = do(e.value, ctx)
+		switch e.key.type {
+		case "symbol":
+			addField(result, e.key.name, value)
+		case "string":
+			addField(result, e.key.value, value)
+		default:
+			let keys = options(do(e.key, ctx))
+			for k in keys {
+				if !is({unknownKeys: any}, result) && isString(k) {
+					addField(result, k, value)
+					continue
+				}
+
+				initUnknownKeys(result)
+				addValue(result.unknownKeys, value)
+			}
+		}
+	}
+
+	return value([{result...}])
+}
+
+fn ret(r, ctx) {
+	if has("value", r) {
+		addReturns(do(r.value, ctx), ctx)
+	}
+
+	return none()
+}
+
+fn statementList(l, ctx) {
+	if !prescan(ctx) && !moduleScope(ctx) {
+		// TODO: this is not required for module scopes
+		let errorCount len(errors(ctx))
+		setPrescan(ctx)
+		for s in l.statements {
+			do(s, ctx)
+		}
+
+		setFull(ctx)
+		if len(errors(ctx)) > errorCount {
+			return none()
+		}
+	}
+
+	for s in l.statements {
+		do(s, ctx)
+	}
+
+	return none()
+}
+
+fn functionLiteral(f, ctx) {
+	if prescan(ctx) {
+		return value([{f..., definitionScope: currentScope(ctx)}])
+	}
+
+	let (
+		af   {f..., definitionScope: currentScope(ctx)}
+		args {type: "list", values: lists.takeFrom(len(f.params) + 1, none), ast: f.ast}
+	)
+
+	applyMMLFunction(af, af, args, ctx)
+	return none()
+}
+
+fn rangeExpression(r, ctx) {
+	let range ~{type: "range"}
+	if has("from", r) {
+		range.from = do(r.from, ctx)
+	}
+
+	if has("to", r) {
+		range.to = do(r.to, ctx)
+	}
+
+	return value([{range...}])
+}
+
+fn symbolIndex(s, ctx) value([s.symbol])
+
+fn logAll(options) {
+	options
+	-> filter(isStruct)
+	-> filter(has("ast"))
+	-> map(fn (s) s.ast.text)
+	-> log
+}
+
+// TODO: string indexing
+fn indexer(i, ctx) {
+	// log("indexing", i.ast.text)
+	let (
+		expression = do(i.expression, ctx)
+		index      = do(i.index, ctx)
+	)
+
+	// log("index expressions done")
+	// log("looping in indexer", i.ast.text)
+	// log("expressions:", len(options(expression)))
+	// log("indexes:", len(options(index)))
+	let result = none()
+	let ~ counter = 0
+	// logAll(options(index))
+	// logAll(options(expression))
+	for exp in options(expression) {
+		// log("in expression", counter, exp.ast.text)
+		counter = counter + 1
+		for idx in options(index) {
+			switch {
+			case !is(type(string), exp) && !is({type: or("list", "struct")}, exp):
+				addValue(result, interop)
+			case is(type(string), exp):
+				addValue(result, value([exp]))
+			case is({type: "struct"}, exp) && has("unknownKeys", exp):
+				addValue(result, exp.unknownKeys)
+			case is({type: "struct"}, exp) && !is(type(string), idx):
+				addValue(result, mergeValues(structs.values(exp.values)...))
+			case is({type: "struct"}, exp):
+				if is({module: true}, exp) && !has(idx, exp.values) {
+					addError(undefined(idx), ctx)
+				}
+
+				if has(idx, exp.values) {
+					addValue(result, exp.values[idx])
+				}
+			case !is(type(int), idx) && !is({type: "range"}, idx) && has("unknownIndex", exp):
+				addValue(result, mergeValues(exp.values..., exp.unknownIndex))
+			case !is(type(int), idx) && !is({type: "range"}, idx):
+				addValue(result, mergeValues(exp.values...))
+			case is(type(int), idx) && idx < len(exp.values):
+				addValue(result, exp.values[idx])
+			case is(type(int), idx) && has("unknownIndex", exp):
+				addValue(result, exp.unknownIndex)
+			case is(type(int), idx):
+				addValue(result, none())
+			case is({from: not(type(int))}, idx) || is({to: not(type(int))}, idx):
+				addValue(result, value([{
+					type: "list"
+					values: []
+					unknownIndex: has("unknownIndex", exp) ?
+						mergeValues(exp.values..., exp.unknownIndex) :
+						mergeValues(exp.values...)
+					ast: exp.ast
+				}]))
+			default:
+				let (
+					from = has("from", idx) && idx.from >= 0 ? idx.from : 0
+					to   = has("to", idx) && idx.to < len(exp.values) ? idx.to : len(exp.values)
+				)
+
+				if has("unknownIndex", exp) && (!has("to", idx) || idx.to > len(exp.values)) {
+					addValue(result, value([{
+						type:         "list"
+						values:       exp.values[from:to]
+						unknownIndex: exp.unknownIndex
+					}]))
+					continue
+				}
+
+				addValue(result, value([{type: "list", values: exp.values[from:to], ast:
+				exp.ast}]))
+			}
+		}
+	}
+
+	// log("indexing done", i.ast.text)
+	return result
+}
+
+fn applyMMLFunction(application, f, args, ctx) {
+	if onStack(application, f, ctx) {
+		return none()
+	}
+
+	let (
+		returns       = currentReturns(ctx)
+		deferred      = currentDeferred(ctx)
+		originalScope = currentScope(ctx)
+	)
+
+	pushStack(application, f, ctx)
+	clearReturns(ctx)
+	clearDeferred(ctx)
+	extendFrom(f.definitionScope, ctx)
+	defer fn () {
+		setScope(originalScope, ctx)
+		setDeferred(deferred, ctx)
+		setReturns(returns, ctx)
+		popStack(ctx)
+	}()
+
+	let fixedArgCount =
+		len(args.values) < len(f.params) ?
+		len(args.values) :
+		len(f.params)
+
+	for i in :fixedArgCount {
+		define(f.params[i], args.values[i], ctx)
+	}
+
+	if fixedArgCount < len(f.params) && !has("unknownIndex", args) {
+		return value([{
+			f...
+			params:          f.params[fixedArgCount:]
+			definitionScope: currentScope(ctx)
+		}])
+	}
+
+	// TODO: this should go before the partial application
+	if fixedArgCount < len(f.params) && has("unknownIndex", args) {
+		for i in fixedArgCount:len(f.params) {
+			define(f.params[i], args.unknownIndex, ctx)
+		}
+	}
+
+	if f.collectParam != "" {
+		let remainingFixed =
+			fixedArgCount < len(args.values) ?
+			mergeValues(args.values[fixedArgCount:]...) :
+			none()
+
+		let unknown = has("unknownIndex", args) ? args.unknownIndex : none()
+		define(f.collectParam, mergeValues(remainingFixed, unknown), ctx)
+	}
+
+	let (
+		v = do(f.body, ctx)
+		r = currentReturns(ctx)
+	)
+
+	for d in currentDeferred(ctx) {
+		applicationResolved(d.application, d.function, d.args, ctx)
+	}
+
+	return mergeValues(v, r)
+}
+
+fn applyInterop(application, args, ctx) {
+	let fargs = args
+		-> fn (args) has("unknownIndex", args) ?
+			[args.values..., args.unknownIndex] :
+			args.values
+		-> map(options)
+		-> flat
+		-> filter(is({type: "function"}))
+	for f in fargs {
+		let (
+			paramCount = len(f.params) + (f.collectParam == "" ? 0 : 1)
+			iargs      = {type: "list", values: take(paramCount, interop)}
+		)
+
+		applyMMLFunction(application, f, iargs, ctx)
+	}
+
+	return interop
+}
+
+fn applyFunction(application, f, args, ctx)
+	f.type == "interop" ?
+	applyInterop(application, args, ctx) :
+	applyMMLFunction(application, f, args, ctx)
+
+fn applicationResolved(a, f, args, ctx) {
+	let functions = filter(is({type: or("function", "interop")}), options(f))
+	return fold(
+		fn (f, v) {
+			addValue(v, applyFunction(a, f, args, ctx))
+			return v
+		}
+		none()
+		functions
+	)
+}
+
+// TODO: consider, the only reason for doing the full evaluation is that we want to know whether the input or
+// output arguments are applied or not
+
+fn application(a, ctx) {
+	log("applying", a.ast.text)
+	let (
+		function = do(a.function, ctx)
+		args     = listValues({values: a.args}, ctx)
+	)
+
+	if !prescan(ctx) {
+		return none()
+	}
+
+	return applicationResolved(a, function, args, ctx)
+}
+
+fn ternary(t, ctx) {
+	do(t.condition, ctx)
+	return mergeValues(do(t.consequent, ctx), do(t.alternative, ctx))
+}
+
+fn scopedBlock(b, ctx) {
+	extend(ctx)
+	defer pop(ctx)
+	return do(b, ctx)
+}
+
+fn ifStatement(i, ctx) {
+	do(i.condition, ctx)
+	let (
+		consequent  = scopedBlock(i.consequent, ctx)
+		alternative = has("alternative", i) ? scopedBlock(i.alternative, ctx) : none()
+	)
+
+	return none()
+}
+
+fn cond(c, ctx) c.ternary ? ternary(c, ctx) : ifStatement(c, ctx)
+
+fn caseBlock(c, ctx) {
+	do(c.expression, ctx)
+	do(c.body, ctx)
+	return none()
+}
+
+fn switchStatement(s, ctx) {
+	if has("expression", s) {
+		do(s.expression, ctx)
+	}
+
+	for c in s.cases {
+		scopedBlock(c, ctx)
+	}
+
+	scopedBlock(s.defaultStatements, ctx)
+	return none()
+}
+
+fn sendStatement(s, ctx) {
+	let (
+		c = do(s.channel, ctx)
+		v = do(s.value, ctx)
+	)
+
+	addValue(c, v)
+	return none()
+}
+
+fn receiveExpression(r, ctx) do(r.channel, ctx)
+
+fn selectStatement(s, ctx) {
+	for c in s.cases {
+		scopedBlock(c, ctx)
+	}
+
+	scopedBlock(s.defaultStatements, ctx)
+	return none()
+}
+
+fn goStatement(g, ctx) {
+	let (
+		function = do(g.application.function, ctx)
+		args     = listValues({values: g.application.args}, ctx)
+	)
+
+	applicationResolved(g.application, function, args, ctx)
+	return none()
+}
+
+fn deferStatement(d, ctx) {
+	let (
+		function = do(d.application.function, ctx)
+		args     = listValues({values: d.application.args}, ctx)
+	)
+
+	addDeferred(d.application, function, args, ctx)
+	return none()
+}
+
+fn rangeOver(r, ctx) {
+	let expression = has("expression", r) ? do(r.expression, ctx) : none()
+	if has("symbol", r) {
+		switch {
+		case is({type: "list", unknownIndex: any}, expression):
+			define(r.symbol, mergeValues(expression.values..., expression.unknownIndex), ctx)
+		case is({type: "list"}, expression):
+			define(r.symbol, mergeValues(expression.values...), ctx)
+		case is({type: "struct", unknownKeys: any}, expression):
+			define(r.symbol, expression.unknownKeys, ctx)
+		case is({type: "struct"}, expression):
+			define(r.symbol, mergeValues(structs.values(expression)...), ctx)
+		default:
+			// log("defining interop", r.symbol)
+			define(r.symbol, interop, ctx)
+		}
+	}
+
+	return none()
+}
+
+fn loop(l, ctx) {
+	extend(ctx)
+	defer pop(ctx)
+	if has("expression", l) {
+		do(l.expression, ctx)
+	}
+
+	do(l.body, ctx)
+	return none()
+}
+
+fn assign(a, ctx) {
+	// log("in assign", a.capture.ast.text)
+	let (
+		v       = do(a.value, ctx)
+		capture = do(a.capture, ctx)
+	)
+
+	if !is({type: "indexer"}, a.capture) {
+		// log("not an indexer assign")
+		addValue(capture, v)
+		return none()
+	}
+
+	// log("indexer assign detected")
+	let (
+		expression = do(a.capture.expression, ctx)
+		index      = do(a.capture.index, ctx)
+	)
+
+	for e in options(expression) {
+		if !is({type: or("list", "struct")}, e) {
+			// log("not a list or struct")
+			addValue(capture, v)
+			continue
+		}
+
+		for i in options(index) {
+			if is({type: "struct"}, e) {
+				if has("unknownKeys", e) {
+					addValue(e.unknownKeys, v)
+					continue
+				}
+
+				if !is(type(string), i) {
+					initUnknownKeys(e)
+					addValue(e.unknownKeys, v)
+					continue
+				}
+
+				addField(e, i, v)
+				continue
+			}
+
+			if !is(type(int), i) {
+				if has("unknownIndex", e) {
+					addValue(e.unknownIndex, mergeValues(e.values...))
+				} else {
+					e.unknownIndex = mergeValues(e.values...)
+				}
+
+				addValue(e.unknownIndex, v)
+				continue
+			}
+
+			if i < len(e.values) {
+				addValue(e.values[i], v)
+				continue
+			}
+
+			if !has("unknownIndex", e) {
+				e.unknownIndex = none()
+			}
+
+			addValue(e.unknownIndex, v)
+		}
+	}
+
+	return none()
+}
+
+fn definition(d, ctx) {
+	if !prescan(ctx) {
+		do(d.expression, ctx)
+		return none()
+	}
+
+	if definedInCurrent(d.symbol, ctx) {
+		addError(duplicate(d), ctx)
+		return none()
+	}
+
+	let v do(d.expression, ctx)
+	if d.exported {
+		defineExport(d.symbol, v, ctx)
+	} else {
+		define(d.symbol, v, ctx)
+	}
+
+	return none()
+}
+
+fn definitionGroup(g, ctx) {
+	for d in g.definitions {
+		do(d, ctx)
+	}
+
+	return none()
+}
+
+fn module(m, ctx) {
+	if prescan(ctx) && modulePrescanned(m.path, ctx) {
+		return none()
+	}
+
+	if moduleScanned(m.path, ctx) {
+		return none()
+	}
+
+	let s currentScope(ctx)
+	defer setScope(s, ctx)
+	if prescan(ctx) {
+		log("prescanning", m.path)
+		setModuleScope(scope(builtins()), ctx)
+	} else {
+		log("scanning", m.path)
+		setModuleScope(getModule(m.path, ctx), ctx)
+	}
+
+	do(m.body, ctx)
+	if prescan(ctx) {
+		log("prescan done", m.path)
+		setModule(m.path, currentScope(ctx), ctx)
+	} else {
+		log("scan done", m.path)
+		setModuleScanned(m.path, ctx)
+	}
+
+	return none()
+}
+
+fn mapDo(code, ctx) map(fn (code) do(code, ctx), code)
+
+fn useStatement(u, ctx) {
+	do(u.module, ctx)
+	let exports moduleExports(getModule(u.path.value, ctx))
+	switch {
+	case is({capture: "."}, u):
+		for name in keys(exports) {
+			define(name, exports[name], ctx)
+		}
+	case is({capture: any}, u):
+		define(u.capture, value([~{type: "struct", module: true, values: exports, ast: u.ast}]), ctx)
+	default:
+		define(u.path.value, value([~{type: "struct", module: true, values: exports, ast: u.ast}]), ctx)
+	}
+
+	return none()
+}
+
+fn useList(u, ctx) {
+	mapDo(u.uses, ctx)
+	return none()
+}
+
+fn do(code, ctx) {
+	switch code.type {
+	case "interop":
+		return interop
+	case "int":
+		return primitive(code, ctx)
+	case "float":
+		return primitive(code, ctx)
+	case "string":
+		return primitive(code, ctx)
+	case "symbol":
+		return symbol(code, ctx)
+	case "spread":
+		return spread(code, ctx)
+	case "list":
+		return list(code, ctx)
+	case "expression-key":
+		return expressionKey(code, ctx)
+	case "struct":
+		return struct(code, ctx)
+	case "ret":
+		return ret(code, ctx)
+	case "statement-list":
+		return statementList(code, ctx)
+	default:
+		return none()
+	}
+}
+
+export fn verify(module) {
+	let ctx context()
+	setPrescan(ctx)
+	log("starting prescan phase")
+	do(module, ctx)
+	return errors(ctx)
+}

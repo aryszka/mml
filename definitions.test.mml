@@ -1,0 +1,691 @@
+use (
+	.           "lang"
+	.           "testing"
+	            "read"
+	            "errors"
+		   "parse"
+	definitions "definitions3"
+)
+
+fn definition(pass, code) fn () {
+	let simple = is(type(string), code)
+	let module = simple ?
+		parse.do(code) :
+		read.fromCode(code.entry, code.modules)
+	check module
+
+	let result = definitions.verify({path: "test", module...})
+	if pass && len(result) == 0 {
+		return true
+	}
+
+	if !pass && len(result) > 0 {
+		return true
+	}
+
+	if simple {
+		log(code)
+	} else {
+		for p in keys(code.modules) {
+			log(formats("%s:", p))
+			log(code.modules[p])
+		}
+	}
+
+	for e in result {
+		log(e.error, e.code.ast.text)
+	}
+
+	return false
+}
+
+suite("definition check, prescan", fn () {
+	test("function, undefined", definition(false, "f()"))
+	test("function, pass", definition(true, "let f fn() 42; f()"))
+
+	test("function parameter, shadow", definition(false, "
+		fn f(x) {
+			let x 42
+			return x
+		}
+
+		f(84)
+	"))
+
+	test("function parameter, pass", definition(true, "
+		fn f(x) {
+			return x
+		}
+
+		f(84)
+	"))
+
+	test("function in a list, undefined", definition(false, "
+		let l [1, 2, fn () f()]
+		l[2]()
+	"))
+
+	test("function in a list, pass", definition(true, "
+		fn f() 42
+		let l [1, 2, fn () f()]
+		l[2]()
+	"))
+
+	test("set a function in a mutable list, undefined", definition(false, "
+		let l [~[fn () 42]]
+		l[0][0] = fn () f()
+		l[0][0]()
+	"))
+
+	test("set a function in a mutable list, pass", definition(true, "
+		fn f() 42
+		let l [~[fn () 84]]
+		l[0][0] = fn () f()
+		l[0][0]()
+	"))
+
+	test("function in a struct, undefined", definition(false, "
+		let s {a: 1, b: 2, c: fn () f()}
+		s.c()
+	"))
+
+	test("function in a struct, pass", definition(true, "
+		fn f() 42
+		let s {a: 1, b: 2, c: fn () f()}
+		s.c()
+	"))
+
+	test("returned function, undefined", definition(false, "
+		let g (fn () f)()
+		g()
+	"))
+
+	test("returned function, pass", definition(true, "
+		fn f() 42
+		let g (fn () f)()
+		g()
+	"))
+
+	test("returned function from a block, undefined", definition(false, "
+		let g (fn () { return f })()
+		g()
+	"))
+
+	test("returned function from a block, pass", definition(true, "
+		fn f() 42
+		let g (fn () { return f })()
+		g()
+	"))
+
+	test("range expression, undefined", definition(false, "
+		let l [1, 2, 3][a:b]
+	"))
+
+	test("range expression, pass", definition(true, "
+		let (
+			a 0
+			b 2
+		)
+
+		let l [1, 2, 3][a:b]
+	"))
+
+	test("expression key, undefined", definition(false, "
+		let v {a: 1, b: 2, c: 3}[k]
+	"))
+
+	test("expression key, pass", definition(true, "
+		let (
+			k \"a\"
+			v {a: 1, b: 2, c: 3}[k]
+		)
+	"))
+
+	test("application, undefined", definition(false, "
+		fn f() g()
+		f()
+	"))
+
+	test("application, pass", definition(true, "
+		fn f() g()
+		fn g() 42
+		f()
+	"))
+
+	test("recursive", definition(true, "
+		fn f() f()
+		f()
+	"))
+
+	test("mutually recursive, defined after application", definition(false, "
+		fn (
+			f() g(h)
+			g(x) f(x())
+		)
+
+		f()
+		fn h() fn () h
+	"))
+
+	test("mutually recursive, defined before application", definition(true, "
+		fn (
+			f() g(h)
+			g(x) f(x())
+		)
+
+		fn h() fn () h
+		f()
+	"))
+
+	test("lexical scope, undefined", definition(false, "
+		fn f() fn () g()
+		f()()
+		fn g() 42
+	"))
+
+	test("lexical scope, pass", definition(true, "
+		fn f() {
+			fn g() 42
+			return fn () g()
+		}
+		f()()
+		fn g() 42
+	"))
+
+	test("ternary condition, undefined", definition(false, "
+		let t x ? 42 : 84
+	"))
+
+	test("ternary consequent, undefined", definition(false, "
+		let a true
+		let t x ? b : 84
+	"))
+
+	test("ternary alternative, undefined", definition(false, "
+		let a true
+		let t x ? 42 : b
+	"))
+
+	test("ternary, pass", definition(true, "
+		let (
+			a true
+			b 42
+			c 84
+		)
+
+		let t a ? b : c
+	"))
+
+	test("if, condition, undefined", definition(false, "
+		fn f(x) x
+		if a { f(42) }
+	"))
+
+	test("if, consequent, undefined", definition(false, "
+		let a true
+		if a { f(42) }
+	"))
+
+	test("if, alternative, undefined", definition(false, "
+		let a true
+		fn f(x) x
+		if a { f(42) } else { g(84) }
+	"))
+
+	test("if, pass", definition(true, "
+		let a true
+		fn (
+			f(x) x
+			g(x) x
+		)
+
+		if a { f(42) } else { g(84) }
+	"))
+
+	test("if, scope, undefined", definition(false, "
+		let a true
+		if a {
+			fn f(x) x
+			f(42)
+		}
+
+		f(84)
+	"))
+
+	test("if, scope, pass", definition(true, "
+		let a true
+		if a {
+			fn f(x) x
+			f(42)
+		}
+	"))
+
+	test("switch, expression, undefined", definition(false, "
+		switch a {}
+	"))
+
+	test("switch, expression, pass", definition(true, "
+		let a \"foo\"
+		switch a {}
+	"))
+
+	test("switch case, expression, undefined", definition(false, "
+		switch {
+		case a:
+		}
+	"))
+
+	test("switch case, expression, pass", definition(true, "
+		let a \"foo\"
+		switch {
+		case a:
+		}
+	"))
+
+	test("switch case, statement, undefined", definition(false, "
+		let a \"foo\"
+		switch {
+		case a:
+			f()
+		}
+	"))
+
+	test("switch case, statement, pass", definition(true, "
+		let a \"foo\"
+		fn f() 42
+		switch {
+		case a:
+			f()
+		}
+	"))
+
+	test("switch case, scope, undefined", definition(false, "
+		let a \"foo\"
+		switch {
+		case a:
+			fn f() 42
+			f()
+		}
+
+		f()
+	"))
+
+	test("switch case, scope, pass", definition(true, "
+		let a \"foo\"
+		switch {
+		case a:
+			fn f() 42
+			f()
+		}
+	"))
+
+	test("go, undefined", definition(false, "
+		go a()
+	"))
+
+	test("go, pass", definition(true, "
+		fn a() 42
+		go a()
+	"))
+
+	test("defer, function, undefined", definition(false, "
+		fn f() {
+			defer g()
+			fn g() 42
+		}
+
+		f()
+	"))
+
+	test("defer, function, pass", definition(true, "
+		fn f() {
+			fn g() 42
+			defer g()
+		}
+
+		f()
+	"))
+
+	test("defer, argument, undefined", definition(false, "
+		fn f() {
+			fn g(x) x
+			defer g(a)
+			let a 42
+		}
+
+		f()
+	"))
+
+	test("defer, argument, pass", definition(true, "
+		fn f() {
+			fn g(x) x
+			let a 42
+			defer g(a)
+		}
+
+		f()
+	"))
+
+	test("defer, effect, undefined", definition(false, "
+		fn h() 42
+		let ~ g fn () h()
+		fn f() {
+			defer fn() {
+				g = fn () i()
+			}()
+
+		}
+
+		f()
+		g()
+		fn i() 84
+	"))
+
+	test("defer, effect, pass", definition(true, "
+		fn h() 42
+		let ~ g fn () h()
+		fn f() {
+			defer fn() {
+				g = fn () i()
+			}()
+
+			g()
+
+		}
+
+		f()
+		fn i() 84
+	"))
+
+	test("loop, expression, undefined", definition(false, "
+		for a {
+		}
+	"))
+
+	test("loop, expression, pass", definition(true, "
+		let a true
+		for a {
+		}
+	"))
+
+	test("loop, range, undefined", definition(false, "
+		for :a {
+		}
+	"))
+
+	test("loop, range, pass", definition(true, "
+		let a 42
+		for :a {
+		}
+	"))
+
+	test("loop, range over, undefined", definition(false, "
+		for a in b {
+		}
+	"))
+
+	test("loop, range over, pass", definition(true, "
+		let b []
+		for a in b {
+		}
+	"))
+
+	test("loop, range expression scope, undefined", definition(false, "
+		for f in [] {
+		}
+
+		f()
+	"))
+
+	test("loop, range expression scope, pass", definition(true, "
+		for f in [] {
+			f()
+		}
+	"))
+
+	test("loop, scope, undefined", definition(false, "
+		for {
+			fn f() 42
+		}
+
+		f()
+	"))
+
+	test("loop, scope, pass", definition(true, "
+		for {
+			fn f() 42
+			f()
+		}
+	"))
+
+	test("assign, value, undefined", definition(false, "
+		let ~ a 42
+		a = b
+	"))
+
+	test("assign, value, pass", definition(true, "
+		let (
+			~ a 42
+			  b 84
+		)
+
+		a = b
+	"))
+
+	test("assign, capture, undefined", definition(false, "
+		a = 42
+	"))
+
+	test("assign, capture, pass", definition(true, "
+		let ~ a 42
+		a = 84
+	"))
+
+	test("assign, indexer, undefined", definition(false, "
+		a.b = 42
+	"))
+
+	test("assign, indexer, pass", definition(true, "
+		let a ~{}
+		a.b = 42
+	"))
+
+	test("definition, duplicate", definition(false, "
+		let a 42
+		let a 84
+	"))
+
+	test("definition, pass", definition(true, "
+		let a 42
+		fn f() {
+			let a 84
+			return a
+		}
+
+		f()
+	"))
+})
+
+// TODO: partial application
+
+skip("definition check", fn () {
+	test("not applied", definition(false, "
+		fn f() g()
+	"))
+
+	test("not applied, mutual recursion in function scope", definition(true, "
+		fn f() {
+			fn g() h()
+			fn h() g()
+		}
+	"))
+})
+
+skip("collections", fn () {
+	test("list, known index, undefined", definition(false, "
+		let l [
+			fn () f()
+			fn () g()
+		]
+
+		l[0]()
+		fn f() 42
+		fn g() 84
+	"))
+
+	test("list, known index, pass", definition(true, "
+		let l [
+			fn () f()
+			fn () g()
+		]
+
+		fn f() 42
+		l[0]()
+		fn g() 84
+	"))
+
+	test("mutual recursion from list, undefined", definition(false, "
+		let l [
+			fn (x) l[1]()
+			fn () l[0](h())
+		]
+
+		l[0](42)
+	"))
+
+	test("mutual recursion from list, pass", definition(true, "
+		let l [
+			fn (x) l[1]()
+			fn () l[0](h())
+		]
+
+		fn h() 84
+		l[0](42)
+	"))
+
+	test("mutual recursion from struct, undefined", definition(false, "
+		let s {
+			f: fn (x) s.g()
+			g: fn () s.f(h())
+		}
+
+		s.f(42)
+	"))
+
+	test("mutual recursion from struct, pass", definition(true, "
+		let s {
+			f: fn (x) s.g()
+			g: fn () s.f(h())
+		}
+
+		fn h() 84
+		s.f(42)
+	"))
+})
+
+suite("modules", fn () {
+	test("not used", definition(true, {
+		entry:   "test1"
+		modules: {test1: "use \"test2\"", test2: ""}
+	}))
+
+	test("used, undefined", definition(false, {
+		entry:   "test1"
+		modules: {test1: "use \"test2\"", test2: "f()"}
+	}))
+
+	test("used, defined", definition(true, {
+		entry: "test1"
+		modules: {test1: "use \"test2\"", test2: "fn f() 42; f()"}
+	}))
+
+	test("undefined inside export", definition(false, {
+		entry: "test1"
+		modules: {test1: "use \"test2\"; test2.f()", test2: "export fn f() g()"}
+	}))
+
+	test("export, defined", definition(true, {
+		entry: "test1"
+		modules: {test1: "use \"test2\"; test2.f()", test2: "fn g() 42; export fn f() g()"}
+	}))
+
+	skip("export, scan full, undefined", definition(false, {
+		entry: "test1"
+		modules: {test1: "use \"test2\"", test2: "fn f() g()"}
+	}))
+
+	test("export, scan full, pass", definition(true, {
+		entry: "test1"
+		modules: {test1: "use \"test2\"", test2: "fn f() g(); fn g() 42"}
+	}))
+
+	test("use, undefined", definition(false, {
+		entry: "test1"
+		modules: {
+			test1: "
+				use \"test2\"
+				test2.bar()
+			"
+			test2: "export fn foo() 42"
+		}
+	}))
+
+	test("use, defined", definition(true, {
+		entry: "test1"
+		modules: {
+			test1: "
+				use \"test2\"
+				test2.bar()
+			"
+			test2: "export fn (foo() 42, bar() 84)"
+		}
+	}))
+
+	test("use named, undefined", definition(false, {
+		entry: "test1"
+		modules: {
+			test1: "
+				use test \"test2\"
+				test.bar()
+			"
+			test2: "export fn foo() 42"
+		}
+	}))
+
+	test("use named, defined", definition(true, {
+		entry: "test1"
+		modules: {
+			test1: "
+				use test \"test2\"
+				test.bar()
+			"
+			test2: "export fn (foo() 42, bar() 84)"
+		}
+	}))
+
+	test("use inline, undefined", definition(false, {
+		entry: "test1"
+		modules: {
+			test1: "
+				use . \"test2\"
+				bar()
+			"
+			test2: "export fn foo() 42"
+		}
+	}))
+
+	test("use inline, defined", definition(true, {
+		entry: "test1"
+		modules: {
+			test1: "
+				use . \"test2\"
+				bar()
+			"
+			test2: "export fn (foo() 42, bar() 84)"
+		}
+	}))
+
+	// TODO:
+	// - exported mutable variable
+	// - exported mutable function variable
+})

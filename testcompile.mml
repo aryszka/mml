@@ -1,0 +1,5 @@
+use "testcompile2"
+
+fn foo() {
+	let stdin 42
+}
